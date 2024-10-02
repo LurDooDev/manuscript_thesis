@@ -1,4 +1,4 @@
-# manuscript_thesis
+# manuscript_thesis PRODUCTION REPO
 
 # backend
   python -m venv venv
