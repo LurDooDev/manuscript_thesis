@@ -1,5 +1,7 @@
 {% extends "base_auth.html" %}
 
+{% load static %}
+
 {% block content %}
 
 <div id="registration-form" class="login-form-container">
@@ -10,12 +12,14 @@
             <label for="username" class="login-label">Username</label>
             <input
                 type="text"
-                id="username"
+                id="usernameField"
                 name="username"
                 required
                 class="login-input"
                 placeholder="Choose a username"
             />
+            <!-- Feedback area for username validation -->
+            <div class="invalid_feedback invalid-Feedback text-red-500 mt-2" style="display:none"></div>
         </div>
         
         <div class="mb-6">
@@ -67,5 +71,6 @@
     </form>
 </div>
 
+<script src="{% static 'js/register.js'%}"></script>
 
 {% endblock %}
