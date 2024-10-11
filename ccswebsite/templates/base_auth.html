@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCS Manuscript Repository</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <link href="{% static 'css/main.css' %}" rel="stylesheet">
+    <link href="{% static 'css/landingpage.css' %}" rel="stylesheet">
+</head>
+<body>
+    <header class="z-10 p-4 bg-[#25580F] text-white">
+        <h1 class="text-lg font-bold">CCS Manuscript Repository</h1>
+    </header>
+    <main class="text-center p-8">
+        <div class="text-section w-full">
+            <h2 class="text-2xl font-bold mb-4">Welcome to CCS Manuscript Repository</h2>
+            <p>The ultimate resource hub for computer science and information technology thesis and capstone projects.</p>
+            <p>Dive into a wealth of knowledge curated from the brightest minds in the field. Explore groundbreaking research, innovative solutions, and transformative ideas that shape the future of technology.</p>
+            <p>Whether you're a student seeking inspiration or a researcher on the quest for cutting-edge insights, our platform is your gateway to the forefront of computational advancements.</p>
+            <p>Unlock the power of knowledge and embark on a journey of discovery with us.</p>
+        </div>
+        {% block content %}
+        
+        {% endblock %}
+    </main>
+
+</body>
+</html>

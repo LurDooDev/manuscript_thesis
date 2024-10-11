@@ -1,0 +1,47 @@
+{% extends "base_auth.html" %}
+
+{% block content %}
+
+<div id="login-form" class="login-form-container">
+    <form action="" method="post" class="login-form">
+        <h1 class="text-2xl font-bold mb-6 text-center text-gray-900">CCS</h1>
+        
+        <div class="mb-6">
+            <label for="username" class="login-label">Username</label>
+            <input
+                type="text"
+                id="usernameField"
+                name="username"
+                required
+                class="login-input"
+                placeholder="Choose a username"
+            />
+        </div>
+
+        <div class="mb-6">
+            <label for="password" class="login-label">Password</label>
+            <input
+                type="password"
+                id="passwordField"
+                name="password"
+                required
+                class="login-input"
+                placeholder="Create a password"
+            />
+        </div>
+        
+        <button type="submit" class="login-button mb-6">Login</button>
+
+        <!-- Sign Up Now -->
+        <div class="px-6 py-4 text-center mt-6 rounded-lg">
+            <p class="text-sm">Don't have an account? 
+                <a class="signup-link" href="">
+                    Sign up!
+                </a>
+            </p>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}

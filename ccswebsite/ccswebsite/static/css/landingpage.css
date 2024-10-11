@@ -1,0 +1,35 @@
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+}
+
+/* Background SVG wavy */
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(to right bottom, #23c5f9, #00aec3, #009386, #007649, #25580f);
+    clip-path: polygon(0 0, 100% 0, 100% 70%,0 100%);
+    z-index: -1;
+}
+/* Main layout styles */
+main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+    padding: 2rem;
+}
+
+.login-form-container {
+    width: 60%;
+    padding: 2rem;
+    border-radius: 1rem;
+     margin: 0 auto;
+    }

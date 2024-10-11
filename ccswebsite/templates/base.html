@@ -1,0 +1,115 @@
+{% load static %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover Manuscripts</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <header>
+        <div class="bg-[#25580F] text-white p-4">
+            <h1 class="text-lg font-bold">Manuscript Discovery</h1>
+        </div>
+    </header>
+
+    <div class="flex">
+        {% include "partials/_sidebar.html" %}
+        <main class="flex-1 p-6">
+            <form id="searchForm" class="flex items-center mb-6">
+                <input type="text" id="searchQuery" placeholder="Search for manuscripts..."
+                    class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#25580F] focus:border-[#25580F] sm:text-sm">
+                <button type="submit"
+                    class="ml-3 px-4 py-2 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300">
+                    Search
+                </button>
+            </form>
+
+            <div id="manuscriptsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+            </div>
+
+            <div class="mt-8 flex justify-between">
+                <button id="prevButton"
+                    class="px-4 py-2 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 disabled:opacity-50"
+                    disabled>
+                    Previous
+                </button>
+                <button id="nextButton"
+                    class="px-4 py-2 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 disabled:opacity-50">
+                    Next
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const manuscripts = [
+            { id: 1, title: 'AI in Education', author: 'John Doe', batch: '2023-2024', course: 'BSCS', category: 'Machine Learning' },
+            { id: 2, title: 'Blockchain Technology', author: 'Jane Smith', batch: '2022-2023', course: 'BSIT', category: 'Finance' },
+            { id: 3, title: 'Cybersecurity Trends', author: 'Mike Lee', batch: '2023-2024', course: 'MIT', category: 'Security' },
+            { id: 4, title: 'Hello', author: 'Sponge Lee', batch: '2024-2025', course: 'MIT', category: 'Technology' },
+            { id: 5, title: 'Kitty', author: 'Bruce Lee', batch: '2025-2026', course: 'MIT', category: 'Animals' },
+            { id: 6, title: 'Ball', author: 'Jep Lee', batch: '2026-2027', course: 'MIT', category: 'Sports' },
+            { id: 7, title: 'Skynet', author: 'Taguro Lee', batch: '2025-2026', course: 'BSCS', category: 'Mobile Development' },
+            { id: 8, title: 'Robotics', author: 'Fugiro Lee', batch: '2026-2027', course: 'BSIT', category: 'Web Development' },
+        ];
+
+        let currentPage = 1;
+        const manuscriptsPerPage = 4;
+        const totalPages = Math.ceil(manuscripts.length / manuscriptsPerPage);
+
+        const displayManuscripts = () => {
+            const manuscriptsGrid = document.getElementById('manuscriptsGrid');
+            manuscriptsGrid.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * manuscriptsPerPage;
+            const currentManuscripts = manuscripts.slice(startIndex, startIndex + manuscriptsPerPage);
+
+            currentManuscripts.forEach(manuscript => {
+                const manuscriptDiv = document.createElement('div');
+                manuscriptDiv.className = 'bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300';
+                manuscriptDiv.innerHTML = `
+                    <h3 class="text-lg font-semibold text-gray-900">${manuscript.title}</h3>
+                    <p class="text-sm text-gray-600">Author: ${manuscript.author}</p>
+                    <p class="text-sm text-gray-600">Batch: ${manuscript.batch}</p>
+                    <p class="text-sm text-gray-600">Course: ${manuscript.course}</p>
+                    <p class="text-sm text-gray-600">Category: ${manuscript.category}</p>
+                    <button class="mt-4 px-3 py-2 bg-[#25580F] text-white rounded-lg w-full hover:bg-[#1c4a0c] transition duration-300">
+                        View Manuscript
+                    </button>
+                `;
+                manuscriptsGrid.appendChild(manuscriptDiv);
+            });
+
+            // Update pagination buttons
+            document.getElementById('prevButton').disabled = currentPage === 1;
+            document.getElementById('nextButton').disabled = currentPage === totalPages;
+        };
+
+        document.getElementById('searchForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const searchQuery = document.getElementById('searchQuery').value.toLowerCase();
+            // Search Functionality
+            console.log('Searching for:', searchQuery);
+        });
+
+        document.getElementById('prevButton').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                displayManuscripts();
+            }
+        });
+
+        document.getElementById('nextButton').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayManuscripts();
+            }
+        });
+        displayManuscripts();
+    </script>
+</body>
+
+</html>
