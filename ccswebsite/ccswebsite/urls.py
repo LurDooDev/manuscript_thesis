@@ -1,10 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView
-
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', RedirectView.as_view(url='ccsrepo_app/login', permanent=False)),  
-    path('ccsrepo_app/', include('ccsrepo_app.urls')),
+    path('', include('ccsrepo_app.urls')),  # This includes the app's URLs
 ]

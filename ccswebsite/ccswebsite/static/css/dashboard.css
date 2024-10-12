@@ -1,15 +1,8 @@
-.bi {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-}
-
-/* full viewport */
 html, body {
   height: 100%;
+  margin: 0;
 }
 
-/* Container responsiveness */
 .container {
   display: flex;
   flex-direction: column;
@@ -28,15 +21,37 @@ html, body {
   display: none; 
 }
 
+.sidebar-link {
+  display: block;
+  padding: 12px 16px;
+  color: #4a4a4a;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  text-decoration: none;
+}
+
+/* Hover Effect */
+.sidebar-link:hover {
+  background-color: #f0f0f0;
+  color: #25580F;
+}
+
+/* Active Link */
+.sidebar-link.active {
+  background-color: #25580F;
+  color: white;
+}
+
 @media (min-width: 992px) {
   .sidebar {
     display: block;
     position: sticky;
-    top: 48px;
-    height: calc(100vh - 48px); 
+    top: 0;
+    height: calc(100vh - 48px);
   }
 }
 
+/* Link and heading styles */
 .sidebar .nav-link {
   font-size: .875rem;
   font-weight: 500;
@@ -62,7 +77,7 @@ html, body {
   padding: .75rem 1rem;
 }
 
-
+/* Mobile-specific styles */
 @media (max-width: 991.98px) {
   .col-lg-3 {
     display: none;

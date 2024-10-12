@@ -1,0 +1,46 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+    <h2 class="text-2xl font-semibold text-[#25580F] mb-6">Manage Programs</h2>
+
+    <div class="flex">
+        <div class="flex-1 mr-4">
+            <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
+                <thead>
+                    <tr class="bg-[#25580F] text-white">
+                        <th class="px-4 py-2">Program Name</th>
+                        <th class="px-4 py-2">Abbreviation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for program in programs %}
+                    <tr class="text-center">
+                        <td class="border px-4 py-2">{{ program.name }}</td>
+                        <td class="border px-4 py-2">{{ program.abbreviation }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="border px-4 py-2">No programs found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="w-1/3 bg-white shadow-md rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-[#25580F] mb-4">Create Program</h3>
+            <form method="POST" action="{% url 'manage_program' %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="name" class="block text-gray-700 font-medium mb-2">Program Name</label>
+                    <input type="text" id="name" name="name" class="border border-gray-300 p-2 rounded w-full" required>
+                </div>
+                <div class="mb-4">
+                    <label for="abbreviation" class="block text-gray-700 font-medium mb-2">Abbreviation</label>
+                    <input type="text" id="abbreviation" name="abbreviation" class="border border-gray-300 p-2 rounded w-full" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-[#25580F] text-white px-4 py-2 rounded">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

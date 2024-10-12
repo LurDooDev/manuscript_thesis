@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCS Manuscript Repository</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <header class="bg-[#25580F] text-white p-4">
+        <h1 class="text-lg font-bold">College of Computing Studies Repository</h1>
+    </header>
+
+    <div class="container h-screen flex">
+        {% if user.is_admin %}
+        {% include 'partials/sidebar_admin.html' %}
+        {% elif user.is_student %}
+        {% include 'partials/sidebar_student.html' %}
+        {% elif user.is_adviser %}
+        {% include 'partials/sidebar_adviser.html' %}
+        {% endif %}
+
+        <main class="flex-1 p-6 overflow-y-auto">
+            {% block content %}
+            <!-- Main content goes here -->
+            {% endblock %}
+        </main>
+    </div>
+</body>
+
+</html>
