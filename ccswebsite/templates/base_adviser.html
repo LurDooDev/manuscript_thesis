@@ -1,0 +1,23 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <link href="{% static 'css/main.css' %}" rel="stylesheet">
+    <link href="{% static 'css/adviser.css' %}" rel="stylesheet">
+</head>
+<body>
+    <header class="z-10 p-4 bg-[#25580F] text-white">
+        <h1 class="text-lg font-bold">College of Computing Studies Manuscript Repository</h1>
+    </header>
+    <main class="text-center p-8">
+        {% block content %}
+        
+        {% endblock %}
+    </main>
+
+</body>
+</html>

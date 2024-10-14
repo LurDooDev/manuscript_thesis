@@ -1,0 +1,10 @@
+{% extends "base_adviser.html" %}
+
+{% block content %}
+<div class="login-form-container">
+            <div class="text-section w-full">
+            <h2 class="text-2xl font-bold mb-4">Wait for your adviser approval!</h2>
+            </div>
+    <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+</div>
+{% endblock %}

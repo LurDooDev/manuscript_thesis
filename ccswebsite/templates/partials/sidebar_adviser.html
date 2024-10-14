@@ -1,23 +1,25 @@
 {% load static %}
 <aside class="w-64 bg-white shadow-md p-6 rounded-lg">
-  <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]">Adviser</h2>
-  <div>
-      <ul class="mt-6 space-y-4">
-          <li class="mb-4">
-              <a href="/dashboard" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Dashboard</a>
-          </li>
-          <li class="mb-4">
-              <a href="/advisee-list" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">My Advisees</a>
-          </li>
-          <li class="mb-4">
-              <a href="/review-manuscripts" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Review Manuscripts</a>
-          </li>
-          <li class="mb-4">
-              <a href="/meetings" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Schedule Meetings</a>
-          </li>
-          <li class="mb-4">
-              <a href="/reports" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Reports</a>
-          </li>
-      </ul>
-  </div>
+    <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]"> {{user.first_name }}</h2>
+    <div>
+        <ul class="mt-6 space-y-4">
+            <li class="mb-4">
+                <a href="/dashboard" class="sidebar-link">Dashboard</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'adviser_approve_student' %}" class="sidebar-link">Approve Student</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'manage_users' %}" class="sidebar-link">My Advisees</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'manage_program' %}" class="sidebar-link">Review Manuscripts</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+            </li>
+        </ul>
+    </div>
 </aside>
+
+

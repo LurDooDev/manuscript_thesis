@@ -1,23 +1,22 @@
 {% load static %}
 <aside class="w-64 bg-white shadow-md p-6 rounded-lg">
-  <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]">Student</h2>
-  <div>
-      <ul class="mt-6 space-y-4">
-          <li class="mb-4">
-              <a href="/discover" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Home</a>
-          </li>
-          <li class="mb-4">
-              <a href="/submit-manuscript" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Submit Manuscript</a>
-          </li>
-          <li class="mb-4">
-              <a href="/my-manuscripts" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">My Manuscripts</a>
-          </li>
-          <li class="mb-4">
-              <a href="/category" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Category</a>
-          </li>
-          <li class="mb-4">
-              <a href="/advisor" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">My Adviser</a>
-          </li>
-      </ul>
-  </div>
+    <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]"> {{user.first_name }}</h2>
+    <div>
+        <ul class="mt-6 space-y-4">
+            <li class="mb-4">
+                <a href="/dashboard" class="sidebar-link">Dashboard</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'manage_users' %}" class="sidebar-link">My Manuscript</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'manage_program' %}" class="sidebar-link">My Adviser</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+            </li>
+        </ul>
+    </div>
 </aside>
+
+

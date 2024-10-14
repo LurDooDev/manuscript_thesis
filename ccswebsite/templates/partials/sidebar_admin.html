@@ -7,13 +7,19 @@
                 <a href="/dashboard" class="sidebar-link">Dashboard</a>
             </li>
             <li class="mb-4">
+                <a href="{% url 'manage_users' %}" class="sidebar-link">Manage Users</a>
+            </li>
+            <li class="mb-4">
                 <a href="{% url 'manage_program' %}" class="sidebar-link">Manage Program</a>
             </li>
             <li class="mb-4">
-                <a href="/manage-users" class="sidebar-link">Manage Category</a>
+                <a href="{% url 'manage_category' %}" class="sidebar-link">Manage Category</a>
             </li>
             <li class="mb-4">
-                <a href="/manage-users" class="sidebar-link">Manage Users</a>
+                <a href="{% url 'manage_batch' %}" class="sidebar-link">Manage Batch</a>
+            </li>
+            <li class="mb-4">
+                <a href="{% url 'manage_type' %}" class="sidebar-link">Manage Type</a>
             </li>
             {% comment %} <li class="mb-4">
                 <a href="/manage-manuscripts" class="sidebar-link">Manage Manuscripts</a>

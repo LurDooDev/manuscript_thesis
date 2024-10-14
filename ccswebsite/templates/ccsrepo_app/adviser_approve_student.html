@@ -1,0 +1,47 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+    <h2 class="text-2xl font-semibold text-[#25580F] mb-6">Approve Students</h2>
+    <div class="flex-1 mr-4">
+        <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
+            <thead>
+                <tr class="bg-[#25580F] text-white">
+                    <th class="px-4 py-2">Student Name</th>
+                    <th class="px-4 py-2">Program</th>
+                    <th class="px-4 py-2">Status</th>
+                    <th class="px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for relationship in relationships %}
+                    <tr class="text-center">
+                        <td class="border px-4 py-2">{{ relationship.student.first_name }} {{ relationship.student.last_name }}</td>
+                        <td class="border px-4 py-2">{{ relationship.student.program.name }}</td>
+                        <td class="border px-4 py-2">
+                            {% if relationship.student.is_student %}
+                                Approved
+                            {% else %}
+                                Pending Approval
+                            {% endif %}
+                        </td>
+                        <td class="border px-4 py-2">
+                            {% if not relationship.student.is_student %}
+                                <form method="POST" action="{% url 'adviser_approve_student' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="student_id" value="{{ relationship.id }}">
+                                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Approve</button>
+                                </form>
+                            {% else %}
+                                <span class="text-gray-500">Already Approved</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="border px-4 py-2">No student requests found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

@@ -1,7 +1,5 @@
 {% extends "base_auth.html" %}
 
-{% load static %}
-
 {% block content %}
 <div id="registration-form" class="login-form-container">
     <form method="POST" class="login-form">
@@ -15,49 +13,59 @@
                 </div>
             {% endfor %}
         {% endif %}
+        <div class="flex flex-wrap mb-4">
+            <div class="w-full md:w-1/2 input-margin">
+                <label for="first_name" class="login-label">First Name</label>
+                <input type="text" name="first_name" id="first_name" required
+                    class="login-input"
+                    placeholder="Enter your first name">
+            </div>
+
+            <div class="w-full md:w-1/2 input-margin">
+                <label for="last_name" class="login-label">Last Name</label>
+                <input type="text" name="last_name" id="last_name" required
+                    class="login-input"
+                    placeholder="Enter your last name">
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label for="program" class="login-label">Program</label>
+            <select name="program" id="program" required class="login-input">
+                <option value="">Select a program</option>
+                {% for program in programs %}
+                    <option value="{{ program.id }}">{{ program.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
         <div class="mb-4">
             <label for="username" class="login-label">Username</label>
             <input type="text" name="username" id="username" required
-                   class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Choose a username">
-        </div>
-
-        <div class="mb-4">
-            <label for="first_name" class="login-label">First Name</label>
-            <input type="text" name="first_name" id="first_name" required
-                   class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter your first name">
-        </div>
-
-        <div class="mb-4">
-            <label for="last_name" class="login-label">Last Name</label>
-            <input type="text" name="last_name" id="last_name" required
-                   class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter your last name">
+                class="login-input"
+                placeholder="Choose a username">
         </div>
 
         <div class="mb-4">
             <label for="email" class="login-label">Email</label>
             <input type="email" name="email" id="email" required
-                   class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter your email">
+                class="login-input"
+                placeholder="Enter your email">
         </div>
 
         <div class="mb-4">
             <label for="password1" class="login-label">Password</label>
             <input type="password" name="password1" id="password1" required
-                   class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Create a password">
+                class="login-input"
+                placeholder="Create a password">
         </div>
 
         <div class="mb-4">
             <label for="password2" class="login-label">Confirm Password</label>
             <input type="password" name="password2" id="password2" required
-                   class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Confirm your password">
+                class="login-input"
+                placeholder="Confirm your password">
         </div>
-
         <button type="submit" class="login-button mb-2">Register</button>
 
         <div class="px-6 py-4 text-center rounded-lg">
