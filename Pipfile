@@ -7,6 +7,9 @@ name = "pypi"
 django = "*"
 psycopg2 = "*"
 python-dotenv = "*"
+pytesseract = "*"
+pdf2image = "*"
+pillow = "*"
 
 [dev-packages]
 

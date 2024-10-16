@@ -17,6 +17,15 @@
                     <input type="text" id="last_name" name="last_name" class="border border-gray-300 p-2 rounded w-full" required>
                 </div>
                 <div class="mb-4">
+                    <label for="program" class="login-label">Program</label>
+                    <select name="program" id="program" required class="login-input">
+                        <option value="">Select a program</option>
+                        {% for program in programs %}
+                            <option value="{{ program.id }}">{{ program.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
                     <label for="username" class="block text-gray-700 font-medium mb-2">Username</label>
                     <input type="text" id="username" name="username" class="border border-gray-300 p-2 rounded w-full" required>
                 </div>

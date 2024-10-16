@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Manuscript</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <link href="{% static 'css/main.css' %}" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <div class="container mx-auto flex justify-between items-center p-4">
+            <h1 class="text-xl font-bold">CCS Repository</h1>
+            <nav>
+                <ul class="flex space-x-4">
+                    <li><a href="{% url 'manuscript_search_page' %}" class="hover:text-gray-300">Home</a></li>
+                    <li><a href="{% url 'manuscript_upload_page' %}" class="hover:text-gray-300">Upload</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Hello, {{ user.first_name }}</a></li>
+                    <li><a href="{% url 'logout' %}" class="hover:text-gray-300">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex justify-center items-center flex-1 py-10">
+        <div class="login-form-container">
+            <div class="login-form">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Upload Your Manuscript</h2>
+                <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                    {% csrf_token %}
+
+                    <!-- Title Field -->
+                    <div class="input-margin">
+                        <label for="title" class="login-label">Title</label>
+                        <input type="text" id="title" name="title" class="login-input" required>
+                    </div>
+
+                    <!-- Authors Field -->
+                    <div class="input-margin">
+                        <label for="authors" class="login-label">Researchers (comma-separated)</label>
+                        <input type="text" id="authors" name="authors" class="login-input" required>
+                    </div>
+
+                    <!-- Category Field -->
+                    <div class="input-margin">
+                        <label for="category" class="login-label">Category</label>
+                        <select id="category" name="category" class="login-input" required>
+                            <option value=""></option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Batch Field -->
+                    <div class="input-margin">
+                        <label for="batch" class="login-label">Batch</label>
+                        <select id="batch" name="batch" class="login-input" required>
+                            <option value=""></option>
+                            {% for batch in batches %}
+                                <option value="{{ batch.id }}">{{ batch.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Manuscript Type Field -->
+                    <div class="input-margin">
+                        <label for="manuscript_type" class="login-label">Manuscript Type</label>
+                        <select id="manuscript_type" name="manuscript_type" class="login-input" required>
+                            <option value=""></option>
+                            {% for manuscript_type in manuscript_types %}
+                                <option value="{{ manuscript_type.id }}">{{ manuscript_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Program Field -->
+                    <div class="input-margin">
+                        <label for="program" class="login-label">Program</label>
+                        <select id="program" name="program" class="login-input" required>
+                            <option value=""></option>
+                            {% for program in programs %}
+                                <option value="{{ program.id }}">{{ program.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Adviser Field -->
+                    <div class="input-margin">
+                        <label for="adviser" class="login-label">Adviser</label>
+                        <select id="adviser" name="adviser" class="login-input" required>
+                            <option value=""></option>
+                            {% for adviser in advisers %}
+                                <option value="{{ adviser.id }}">{{ adviser.first_name }} {{ adviser.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Keywords Field -->
+                    <div class="input-margin">
+                        <label for="keywords" class="login-label">Keywords (comma-separated)</label>
+                        <input type="text" id="keywords" name="keywords" class="login-input">
+                    </div>
+
+                    <!-- PDF Upload Field -->
+                    <div class="input-margin">
+                        <label for="pdf_file" class="login-label">Upload PDF</label>
+                        <input type="file" id="pdf_file" name="pdf_file" accept="application/pdf" class="login-input" required>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-4">
+                        <button type="submit" class="login-button w-full">
+                            Submit Manuscript
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

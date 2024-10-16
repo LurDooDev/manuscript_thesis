@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+</head>
+<body>
+     <!-- Header section (from your base design) -->
+     <header class="flex justify-between items-center bg-[#25580F] text-white p-4 shadow-md">
+        <h1 class="text-lg font-bold">College of Computing Studies Repository</h1>
+        <nav>
+            <ul class="flex space-x-8 text-sm">
+                <li>
+                    <a href="{% url 'manuscript_search_page' %}" class="text-lg font-bold px-3 py-2">Home</a>
+                </li>
+                <li>
+                    <a href="{% url 'manuscript_upload_page' %}" class="text-lg font-bold px-3 py-2">Upload</a>
+                </li>
+                <li>
+                    <a href="" class="text-lg font-bold px-3 py-2">Hello, {{user.first_name }}</a>
+                </li>
+                <li>
+                    <a href="{% url 'logout' %}" class="text-lg font-bold px-3 py-2">Logout</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="min-h-screen bg-gray-100 p-6 flex justify-center items-center">
+        <div class="login-form-container">
+            <div class="text-section w-full">
+            <h2 class="text-2xl font-bold mb-4">Manuscript Submitted wait for feedback!</h2>
+            </div>
+            <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+        </div>
+    </main>
+</body>
+</html>

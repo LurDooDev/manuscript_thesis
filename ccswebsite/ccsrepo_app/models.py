@@ -16,6 +16,7 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
 #Program
 class Program(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -30,9 +31,8 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
-
-#Type
-class Type(models.Model):
+    
+class ManuscriptType(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
@@ -44,7 +44,7 @@ class Batch(models.Model):
 
     def __str__(self):
         return self.name
-
+    
 #users Create
 class CustomUser(AbstractBaseUser):
     email = models.EmailField(unique=True)
@@ -56,6 +56,7 @@ class CustomUser(AbstractBaseUser):
     is_adviser = models.BooleanField(default=False)
     is_student = models.BooleanField(default=False)
     program = models.ForeignKey(Program, null=True, blank=True, on_delete=models.SET_NULL)
+    manuscript_allow = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
@@ -73,7 +74,31 @@ class AdviserStudentRelationship(models.Model):
 
     def __str__(self):
         return f"{self.adviser.username} advises {self.student.username}"
+    
+#Keywords
+class Keyword(models.Model):
+    word = models.CharField(max_length=100, unique=True)
 
+    def __str__(self):
+        return self.word
 
+#Manuscripts
+class Manuscript(models.Model):
+    title = models.CharField(max_length=255)
+    abstracts = models.TextField()
+    citations = models.TextField()
+    authors = models.CharField(max_length=255)
+    category = models.ForeignKey(Category, null=True, on_delete=models.CASCADE)
+    keywords = models.ManyToManyField(Keyword, related_name='manuscripts')
+    publication_date = models.DateField()
+    pdf_file = models.FileField(upload_to='manuscripts/')
+    batch = models.ForeignKey(Batch, null=True, on_delete=models.CASCADE)
+    manuscript_type = models.ForeignKey(ManuscriptType, null=True, on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, null=True, on_delete=models.CASCADE)
+    adviser = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='manuscripts')
+    student = models.ForeignKey(CustomUser, null=True, on_delete=models.CASCADE, related_name='submitted_manuscripts')
+    status = models.CharField(max_length=10, default='pending')
+    allowed_student = models.BooleanField(default=False)
 
-
+    def __str__(self):
+        return self.title
