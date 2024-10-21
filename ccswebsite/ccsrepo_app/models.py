@@ -90,7 +90,7 @@ class Manuscript(models.Model):
     authors = models.CharField(max_length=255)
     category = models.ForeignKey(Category, null=True, on_delete=models.CASCADE)
     keywords = models.ManyToManyField(Keyword, related_name='manuscripts')
-    publication_date = models.DateField()
+    publication_date = models.DateField(null=True, blank=True)
     pdf_file = models.FileField(upload_to='manuscripts/')
     batch = models.ForeignKey(Batch, null=True, on_delete=models.CASCADE)
     manuscript_type = models.ForeignKey(ManuscriptType, null=True, on_delete=models.CASCADE)
@@ -99,6 +99,8 @@ class Manuscript(models.Model):
     student = models.ForeignKey(CustomUser, null=True, on_delete=models.CASCADE, related_name='submitted_manuscripts')
     status = models.CharField(max_length=10, default='pending')
     allowed_student = models.BooleanField(default=False)
+    feedback = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return self.title
+    

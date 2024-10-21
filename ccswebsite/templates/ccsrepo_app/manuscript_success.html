@@ -20,7 +20,7 @@
                     <a href="{% url 'manuscript_upload_page' %}" class="text-lg font-bold px-3 py-2">Upload</a>
                 </li>
                 <li>
-                    <a href="" class="text-lg font-bold px-3 py-2">Hello, {{user.first_name }}</a>
+                    <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold px-3 py-2">Hello, {{user.first_name }}</a>
                 </li>
                 <li>
                     <a href="{% url 'logout' %}" class="text-lg font-bold px-3 py-2">Logout</a>

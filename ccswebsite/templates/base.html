@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Repository</title>
     <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body>
@@ -28,10 +29,10 @@
                     <a href=" %}" class="text-lg font-bold  hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Contact</a>
                 </li>
                 <li>
-                    <a href="" class="text-lg font-bold  hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{user.first_name }}</a>
+                    <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold  hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{user.first_name }}</a>
                 </li>
-                <li class="mb-4">
-                    <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+                <li>
+                    <a href="{% url 'logout' %}" class="text-lg font-bold px-3 py-2">Logout</a>
                 </li>
             </ul>
         </nav>

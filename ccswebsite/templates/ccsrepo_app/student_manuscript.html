@@ -1,0 +1,36 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+    <h2 class="text-2xl font-semibold text-[#25580F] mb-6">My Manuscripts</h2>
+
+    <div class="flex">
+        <div class="flex-1 mr-4">
+            <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
+                <thead>
+                    <tr class="bg-[#25580F] text-white">
+                        <th class="px-4 py-2">Title</th>
+                        <th class="px-4 py-2">Status</th>
+                        <th class="px-4 py-2">Feedback</th>
+                        <th class="px-4 py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for manuscript in manuscripts %}
+                    <tr class="text-center">
+                        <td class="border px-4 py-2">{{ manuscript.title }}</td>
+                        <td class="border px-4 py-2">{{ manuscript.is_approved|yesno:"Approved,Pending" }}</td>
+                        <td class="border px-4 py-2">{{ manuscript.feedback|default:"No feedback yet." }}</td>
+                        <td class="border px-4 py-2">
+                            <a href="" class="text-blue-500 hover:underline">View Details</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="border px-4 py-2">No Manuscripts found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

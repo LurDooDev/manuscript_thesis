@@ -4,7 +4,7 @@
     <div>
         <ul class="mt-6 space-y-4">
             <li class="mb-4">
-                <a href="/dashboard" class="sidebar-link">Dashboard</a>
+                <a href="{% url 'manuscript_search_page' %}" class="sidebar-link">Home</a>
             </li>
             <li class="mb-4">
                 <a href="{% url 'manage_users' %}" class="sidebar-link">Manage Users</a>
@@ -21,15 +21,6 @@
             <li class="mb-4">
                 <a href="{% url 'manage_type' %}" class="sidebar-link">Manage Type</a>
             </li>
-            {% comment %} <li class="mb-4">
-                <a href="/manage-manuscripts" class="sidebar-link">Manage Manuscripts</a>
-            </li>
-            <li class="mb-4">
-                <a href="/approve-manuscripts" class="sidebar-link">Approve Manuscripts</a>
-            </li>
-            <li class="mb-4">
-                <a href="/settings" class="sidebar-link">Settings</a>
-            </li> {% endcomment %}
             <li class="mb-4">
                 <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
             </li>

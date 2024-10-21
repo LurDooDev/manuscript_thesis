@@ -3,55 +3,66 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.utils import timezone
 import os
+from django.db.models import Q
 import pytesseract
 from pdf2image import convert_from_path
 from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, Keyword
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 
-# Mock data for manuscripts (this should be replaced with actual data from your database)
-manuscripts = [
-    {"id": 1, "title": "AI in Education", "author": "John Doe", "batch": "2023-2024", "course": "BSCS", "category": "Machine Learning"},
-    {"id": 2, "title": "Blockchain Technology", "author": "Jane Smith", "batch": "2022-2023", "course": "BSIT", "category": "Finance"},
-    {"id": 3, "title": "Cybersecurity Trends", "author": "Mike Lee", "batch": "2023-2024", "course": "MIT", "category": "Security"},
-    {"id": 4, "title": "Hello", "author": "Sponge Lee", "batch": "2024-2025", "course": "MIT", "category": "Technology"},
-    {"id": 5, "title": "Kitty", "author": "Bruce Lee", "batch": "2025-2026", "course": "MIT", "category": "Animals"},
-    {"id": 6, "title": "Ball", "author": "Jep Lee", "batch": "2026-2027", "course": "MIT", "category": "Sports"},
-    {"id": 7, "title": "Skynet", "author": "Taguro Lee", "batch": "2025-2026", "course": "BSCS", "category": "Mobile Development"},
-    {"id": 8, "title": "Robotics", "author": "Fugiro Lee", "batch": "2026-2027", "course": "BSIT", "category": "Web Development"},
-    # Add more manuscripts...
-]
 
-def search_page(request):
+#----------------Search System ------------------------/
+def manuscript_search_page(request):
     search_query = request.GET.get('search', '')
-    selected_course = request.GET.get('course', 'All')
+    selected_program = request.GET.get('program', 'All')  # Change here
     selected_category = request.GET.get('category', 'All')
     selected_batch = request.GET.get('batch', 'All')
-    current_page = request.GET.get('page', 1)
 
-    # Filter manuscripts based on search, course, category, and batch
-    filtered_manuscripts = [
-        manuscript for manuscript in manuscripts
-        if (search_query.lower() in manuscript["title"].lower())
-        and (selected_course == 'All' or manuscript["course"] == selected_course)
-        and (selected_category == 'All' or manuscript["category"] == selected_category)
-        and (selected_batch == 'All' or manuscript["batch"] == selected_batch)
-    ]
+    manuscripts = Manuscript.objects.all()
 
-    # Pagination
-    paginator = Paginator(filtered_manuscripts, 4)  # 4 manuscripts per page
-    manuscripts_page = paginator.get_page(current_page)
+    # Filter based on search query
+    if search_query:
+        manuscripts = manuscripts.filter(
+            Q(title__icontains=search_query) |
+            Q(abstracts__icontains=search_query) |
+            Q(keywords__word__icontains=search_query)  # Assuming you have a ManyToMany relation with Keyword model
+        ).distinct()
 
-    context = {
-        'manuscripts': manuscripts_page,
-        'total_pages': paginator.num_pages,
-        'current_page': manuscripts_page.number,
+    # Filter based on selected program
+    if selected_program != 'All':
+        manuscripts = manuscripts.filter(program=selected_program)
+
+    # Filter based on selected category
+    if selected_category != 'All':
+        manuscripts = manuscripts.filter(category=selected_category)
+
+    # Filter based on selected batch
+    if selected_batch != 'All':
+        manuscripts = manuscripts.filter(batch=selected_batch)
+
+    manuscripts = manuscripts.order_by('-publication_date')  # Example order
+
+    # Pagination (example with 10 manuscripts per page)
+    paginator = Paginator(manuscripts, 10)
+    page_number = request.GET.get('page')
+    manuscripts = paginator.get_page(page_number)
+
+    # Retrieve distinct values for dropdowns
+    programs = Manuscript.objects.values_list('program', flat=True).distinct()
+    categories = Manuscript.objects.values_list('category', flat=True).distinct()
+    batches = Manuscript.objects.values_list('batch', flat=True).distinct()
+
+    return render(request, 'ccsrepo_app/manuscript_search_page.html', {
+        'manuscripts': manuscripts,
         'search_query': search_query,
-        'selected_course': selected_course,
+        'selected_program': selected_program,
         'selected_category': selected_category,
         'selected_batch': selected_batch,
-    }
-    return render(request, 'ccsrepo_app/manuscript_search_page.html', context)
+        'programs': programs,
+        'categories': categories,
+        'batches': batches,
+    })
+
 #----------------End Search ------------------------/
 
 
@@ -78,19 +89,23 @@ def login_view(request):
                 login(request, user)
                 return redirect('manuscript_search_page')  # Redirect to search page for students
 
-            # Redirect advisers and admins to the dashboard
-            elif user.is_adviser or user.is_admin:
+            # Redirect advisers to the adviser approval page
+            elif user.is_adviser:
                 login(request, user)
-                return redirect('dashboard')  # Redirect to dashboard for advisers and admins
+                return redirect('adviser_approve_student')  # Redirect to adviser approve student page
+
+            # Redirect admins to the manage users page
+            elif user.is_admin:
+                login(request, user)
+                return redirect('manage_users')
 
             else:
                 messages.warning(request, "Your account is not registered as a student. Please contact your adviser.")
-                login(request, user)
-                return redirect('adviser_request')  # Handle non-students
+                return redirect('adviser_request')
 
         else:
             messages.error(request, "Invalid username or password. Please try again.")
-            return redirect('login')  # If login fails, redirect to the login page
+            return redirect('login')
 
     return render(request, 'ccsrepo_app/login.html')
 
@@ -107,7 +122,6 @@ def request_adviser_view(request):
         student = request.user
 
         try:
-            # Find the adviser email, to make sure its an adviser
             adviser = CustomUser.objects.get(email=adviser_email, is_adviser=True)
 
             # Check to prevent duplicates
@@ -300,12 +314,51 @@ def ManageAdviser(request):
 #----------------End Admin Managing ------------------------/
 
 #----------------Manuscript System ------------------------/
-
 def upload_manuscript(request):
     if request.method == 'POST':
-        # Extract data from the request
-        title = request.POST.get('title')
         pdf_file = request.FILES.get('pdf_file')
+
+        if pdf_file:
+            manuscript = Manuscript(
+                pdf_file=pdf_file,
+                student=request.user,
+            )
+            manuscript.save()
+
+            pdf_file_path = manuscript.pdf_file.path
+
+            if os.path.exists(pdf_file_path):
+                try:
+                    pages = convert_from_path(pdf_file_path, dpi=72)
+
+                    if len(pages) >= 2:
+                        abstract_image = pages[1]
+                        abstract_text = pytesseract.image_to_string(abstract_image).strip()
+
+                        if "Abstract" in abstract_text:
+                            abstract_text = abstract_text.split("Abstract", 1)[1].strip()
+                        else:
+                            abstract_text = "No abstract found"
+
+                        manuscript.abstracts = abstract_text
+
+                except Exception as e:
+                    print(f"Error processing PDF: {e}")
+
+            manuscript.save()
+
+            return redirect('final_manuscript_page', manuscript_id=manuscript.id, extracted_abstract=manuscript.abstracts)
+
+    return render(request, 'ccsrepo_app/manuscript_upload_page.html')
+
+
+
+
+def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
         authors = request.POST.get('authors')
         category_id = request.POST.get('category')
         batch_id = request.POST.get('batch')
@@ -313,175 +366,97 @@ def upload_manuscript(request):
         program_id = request.POST.get('program')
         keywords = request.POST.get('keywords')
         adviser_id = request.POST.get('adviser')
-        
+
         adviser = CustomUser.objects.get(id=adviser_id)
 
-        # Create the manuscript instance and save to ensure file is stored
-        manuscript = Manuscript(
-            title=title,
-            pdf_file=pdf_file,
-            student=request.user,  # Set the student as the uploader
-            authors=authors,
-            category_id=category_id,
-            batch_id=batch_id,
-            manuscript_type_id=manuscript_type_id,
-            program_id=program_id,
-            publication_date=timezone.now().date(),  # Set current date as default
-            adviser=adviser,
-            status='pending',
-            allowed_student=False
-        )
+        manuscript.title = title
+        manuscript.authors = authors
+        manuscript.category_id = category_id
+        manuscript.batch_id = batch_id
+        manuscript.manuscript_type_id = manuscript_type_id
+        manuscript.program_id = program_id
+        manuscript.adviser = adviser
+        manuscript.publication_date = timezone.now().date()
 
-        # Save the manuscript first to ensure the file is saved
         manuscript.save()
 
-        # Extract the PDF file path
-        pdf_file_path = manuscript.pdf_file.path
-
-        if os.path.exists(pdf_file_path):
-            try:
-                # Convert the PDF to images
-                pages = convert_from_path(pdf_file_path, dpi=72)
-
-                # Assuming the abstract is on the second page
-                if len(pages) >= 2:
-                    abstract_image = pages[1]  # Get the second page as an image
-                    abstract_text = pytesseract.image_to_string(abstract_image)  # Extract text from the image
-
-                    # Get the first 300 words
-                    words = abstract_text.split()  # Split the text into words
-                    first_300_words = ' '.join(words[:300])  # Join the first 300 words back into a string
-                    manuscript.abstracts = first_300_words.strip()  # Populate the abstracts field
-
-            except Exception as e:
-                print(f"Error processing PDF: {e}")
-
-        # Save the manuscript again with the abstract populated
-        manuscript.save()
-
-        # Process keywords
         if keywords:
-            keywords_list = [keyword.strip() for keyword in keywords.split(',')]  # Split and strip whitespace
+            keywords_list = [keyword.strip() for keyword in keywords.split(',')]
             for word in keywords_list:
-                # Create or get the keyword object
                 keyword, _ = Keyword.objects.get_or_create(word=word)
-                manuscript.keywords.add(keyword)  # Associate the keyword with the manuscript
+                manuscript.keywords.add(keyword)
 
-        return redirect('dashboard')  # Redirect to a success page or wherever you want
-    
+        return redirect('dashboard')
+
     categories = Category.objects.all()
     batches = Batch.objects.all()
     manuscript_types = ManuscriptType.objects.all()
     programs = Program.objects.all()
     advisers = CustomUser.objects.filter(is_adviser=True)
-    return render(request, 'ccsrepo_app/manuscript_upload_page.html', {
+
+    return render(request, 'ccsrepo_app/manuscript_final_page.html', {
+        'manuscript': manuscript,
+        'extracted_abstract': extracted_abstract,  # Pass extracted abstract to template
         'categories': categories,
         'batches': batches,
         'manuscript_types': manuscript_types,
         'programs': programs,
-        'advisers': advisers
+        'advisers': advisers,
     })
 
-# def upload_manuscript(request):
-#     if request.method == 'POST':
-#         # Extract data from the request
-#         title = request.POST.get('title')
-#         pdf_file = request.FILES.get('pdf_file')
-#         category_id = request.POST.get('category')  # Assume category ID is sent
-#         # keywords = request.POST.get('keywords')  # Keywords will be comma-separated
-#         # publication_date = request.POST.get('publication_date')
-#         # manuscript_type_id = request.POST.get('manuscript_type')  # Assume manuscript type ID is sent
-#         # program_id = request.POST.get('program')  # Assume program ID is sent
+#----------------End Manuscript System ------------------------/
 
-#         # Create the manuscript instance but do not save yet
-#         manuscript = Manuscript(
-#             title=title,
-#             pdf_file=pdf_file,
-#             category_id=category_id,
-#             abstract = request.POST.get('abstract')
-#             # publication_date=publication_date,
-#             # manuscript_type_id=manuscript_type_id,
-#             # program_id=program_id,
-#             student=request.user  # Set the student as the uploader
-#         )
+#----------------Adviser System ------------------------/
+def adviser_manuscript(request):
+    manuscripts = Manuscript.objects.filter(adviser=request.user)
 
-#         # Extract text from PDF
-#         pdf_file_path = manuscript.pdf_file.path
-#         pages = convert_from_path(pdf_file_path, dpi=300)
-
-#         # Assuming the abstract is on the second page
-#         if len(pages) >= 2:
-#             abstract_image = pages[1]  # Get the second page
-#             abstract_text = pytesseract.image_to_string(abstract_image)
-#             manuscript.abstracts = abstract_text.strip()  # Populate the abstract field
-        
-#         # Save the manuscript before adding keywords to avoid integrity issues
-#         manuscript.save()
-
-#         # # Handle keywords
-#         # if keywords:
-#         #     keywords_list = [keyword.strip() for keyword in keywords.split(',')]  # Split and strip whitespace
-#         #     for word in keywords_list:
-#         #         # Create or get the keyword object
-#         #         keyword, created = Keyword.objects.get_or_create(word=word)
-#         #         manuscript.keywords.add(keyword)  # Add the keyword to the manuscript
-
-#         return redirect('dashboard')  # Redirect to a success page or wherever you want
-
-#     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
+    return render(request, 'ccsrepo_app/adviser_manuscript.html', {
+        'manuscripts': manuscripts,
+    })
 
 
-def finalize_manuscript_submission(request):
+def adviser_review(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id, adviser=request.user)
+
     if request.method == 'POST':
-        title = request.POST.get('title')
-        abstract = request.POST.get('abstract')
-        keywords = request.POST.get('keywords')
-        citations = request.POST.get('citations')
-        authors = request.POST.get('authors')
-        pdf_file_url = request.POST.get('file')  # Use the file URL
+        feedback = request.POST.get('feedback')
+        decision = request.POST.get('decision')
 
-        # Get additional form data
-        category_id = request.POST.get('category')
-        batch_id = request.POST.get('batch')
-        manuscript_type_id = request.POST.get('manuscript_type')
-        program_id = request.POST.get('program')
-        adviser_id = request.POST.get('adviser')  # Get adviser ID from form
-
-        # Assign the logged-in user as the student
-        student = request.user
-
-        # Get the adviser instance
-        adviser = get_object_or_404(CustomUser, id=adviser_id)
-
-        # Create the Manuscript instance
-        manuscript = Manuscript(
-            title=title,
-            abstracts=abstract,
-            citations=citations,
-            authors=authors,
-            category_id=category_id,
-            batch_id=batch_id,
-            manuscript_type_id=manuscript_type_id,
-            program_id=program_id,
-            pdf_file=pdf_file_url,  # Store URL instead of file object
-            adviser=adviser,
-            student=student,
-            status='pending',
-            allowed_student=False
-        )
+        # Update feedback
+        manuscript.feedback = feedback
+        
+        # Update approval status based on the decision
+        if decision == 'approve':
+            manuscript.is_approved = True  # Set as approved
+        elif decision == 'reject':
+            manuscript.is_approved = False  # Set as rejected
+        else:
+            # Handle case where decision is not recognized, if necessary
+            pass
+        
         manuscript.save()
 
-        # Save keywords (assuming they're comma-separated)
-        if keywords:
-            for keyword in keywords.split(','):
-                keyword_obj, _ = Keyword.objects.get_or_create(word=keyword.strip())
-                manuscript.keywords.add(keyword_obj)
+        return redirect('adviser_manuscript')
+
+    return render(request, 'ccsrepo_app/adviser_review.html', {
+        'manuscript': manuscript
+    })
+
+#----------------End Adviser System ------------------------/
+
+#----------------Student System ------------------------/
+def student_manuscripts_view(request):
+    # Ensure the user is authenticated and is a student
+    if request.user.is_authenticated and request.user.is_student:
+        # Get all manuscripts submitted by the logged-in student
+        manuscripts = Manuscript.objects.filter(student=request.user)
+
+        return render(request, 'ccsrepo_app/student_manuscript.html', {
+            'manuscripts': manuscripts,
+        })
+    
+#----------------End Student System ------------------------/
 
 
-        manuscript.save()
 
-        # Redirect to a success page
-        return redirect('ccsrepo_app:manuscript_success')
 
-    # If the request is not POST, redirect back to the manuscript review page
-    return redirect('ccsrepo_app:manuscript_review')

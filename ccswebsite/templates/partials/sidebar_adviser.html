@@ -4,16 +4,13 @@
     <div>
         <ul class="mt-6 space-y-4">
             <li class="mb-4">
-                <a href="/dashboard" class="sidebar-link">Dashboard</a>
+                <a href="{% url 'manuscript_search_page' %}" class="sidebar-link">Home</a>
             </li>
             <li class="mb-4">
                 <a href="{% url 'adviser_approve_student' %}" class="sidebar-link">Approve Student</a>
             </li>
             <li class="mb-4">
-                <a href="{% url 'manage_users' %}" class="sidebar-link">My Advisees</a>
-            </li>
-            <li class="mb-4">
-                <a href="{% url 'manage_program' %}" class="sidebar-link">Review Manuscripts</a>
+                <a href="{% url 'adviser_manuscript' %}" class="sidebar-link">Review Manuscripts</a>
             </li>
             <li class="mb-4">
                 <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
