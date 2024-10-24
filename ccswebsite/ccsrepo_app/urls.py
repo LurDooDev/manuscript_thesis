@@ -7,6 +7,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard_view, name='dashboard'),
     #Manuscript
     path('manuscript-page/', views.upload_manuscript, name='manuscript_upload_page'),
+    path('manuscript/<int:manuscript_id>/', views.view_manuscript, name='view_manuscript'),
     path('finalize/<int:manuscript_id>/<str:extracted_abstract>/', views.final_manuscript_page, name='final_manuscript_page'),
     path('manuscript-search/', views.manuscript_search_page, name='manuscript_search_page'),
     #User to verify
@@ -24,7 +25,7 @@ urlpatterns = [
     path('manage-type/', views.manage_type, name='manage_type'),
     #Student
     path('my-manuscripts/', views.student_manuscripts_view, name='student_manuscripts'),
-    path('manuscripts/<int:manuscript_id>/', views.manuscript_detail_view, name='manuscript_detail'),
+    path('manuscripts-details/<int:manuscript_id>/', views.manuscript_detail_view, name='manuscript_detail'),
     #Redirecting
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),

@@ -39,6 +39,10 @@ def manuscript_search_page(request):
         'manuscripts': manuscripts,
         'search_query': search_query,
     })
+
+def view_manuscript(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    return render(request, 'ccsrepo_app/view_manuscript.html', {'manuscript': manuscript})
 #----------------End Search ------------------------/
 
 #dashboard
@@ -80,7 +84,6 @@ def login_view(request):
             return redirect('login')
 
     return render(request, 'ccsrepo_app/login.html')
-
 
 #----------------Student and Adviser ------------------------/
 

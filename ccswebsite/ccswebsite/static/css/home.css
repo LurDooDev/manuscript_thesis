@@ -1,0 +1,138 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f8f9fa;
+    color: #343a40;
+}
+
+.min-h-screen {
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.max-w-6xl {
+    max-width: 80rem;
+    margin: 0 auto;
+}
+
+input[type="text"] {
+    padding: 0.75rem 1.25rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.5rem;
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input[type="text"]:focus {
+    border-color: #25580F;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(37, 88, 15, 0.25);
+}
+
+button {
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #1c4a0c;
+}
+
+.bg-white {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.bg-white:hover {
+    transform: translateY(-2px);
+}
+
+.text-gray-600 {
+    color: #6c757d;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.mb-8 {
+    margin-bottom: 2rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+}
+
+.text-3xl {
+    font-size: 1.875rem;
+}
+
+.gap-8 {
+    gap: 2rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.manuscript-title {
+    font-size: 3.75rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #343a40;
+}
+
+.manuscript-details {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+}
+
+.manuscript-label {
+    font-weight: 600;
+    color: #343a40;
+}
+
+.manuscript-abstract-heading {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #343a40;
+}
+
+.manuscript-abstract {
+    font-size: 1.125rem;
+    color: #495057;
+    line-height: 1.75;
+    margin-bottom: 2rem;
+}
+
+.back-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.125rem;
+    background-color: #25580F;
+    color: #fff;
+    border-radius: 0.5rem;
+    text-align: center;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #1c4a0c;
+}
+

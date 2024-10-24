@@ -1,42 +1,45 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-100 p-6">
+<div class="min-h-screen bg-gray-100 p-8">
     <div class="max-w-6xl mx-auto">
-        <form method="get" class="flex items-center mb-6">
+        <form method="get" class="flex items-center mb-8">
             <input
                 type="text"
                 id="search-input"
                 name="search"
                 value="{{ search_query }}"
                 placeholder="Search for manuscripts..."
-                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#25580F] focus:border-[#25580F] sm:text-sm"
-            />
+                class="w-full px-6 py-3 rounded-lg border border-gray-300 focus:ring-[#25580F] focus:border-[#25580F] shadow-md text-lg"
+            >
             <button
                 type="submit"
-                class="ml-3 px-4 py-2 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300"
+                class="ml-4 px-6 py-3 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 shadow-lg text-lg"
             >
                 Search
             </button>
         </form>
-        <div class="mb-6 flex justify-between items-center">
-            <div class="flex space-x-4">
-            </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+
+        
+
+        <div class="flex flex-wrap justify-between gap-8">
             {% for manuscript in manuscripts %}
-            <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                <h3 class="text-lg font-semibold text-gray-900">{{ manuscript.title }}</h3>
-                <p class="text-sm text-gray-600">Author: {{ manuscript.authors }}</p>
-                <p class="text-sm text-gray-600">Batch: {{ manuscript.batch }}</p>
-                <p class="text-sm text-gray-600">Program: {{ manuscript.program.name }}</p>
-                <p class="text-sm text-gray-600">Category: {{ manuscript.category.name }}</p>
-                <button class="mt-4 px-3 py-2 bg-[#25580F] text-white rounded-lg w-full hover:bg-[#1c4a0c] transition duration-300">
-                    View Manuscript
-                </button>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300 border border-gray-200 flex flex-col w-full sm:w-[48%] lg:w-[30%]">
+                <h3 class="text-2xl font-semibold text-center mb-4">{{ manuscript.title }}</h3>
+                <div class="text-lg flex-grow mb-4">
+                    <p><span class="font-semibold">Author:</span> {{ manuscript.authors }}</p>
+                    <p><span class="font-semibold">Batch:</span> {{ manuscript.batch }}</p>
+                    <p><span class="font-semibold">Program:</span> {{ manuscript.program.name }}</p>
+                    <p><span class="font-semibold">Category:</span> {{ manuscript.category.name }}</p>
+                </div>
+                <h4 class="text-lg mt-2 font-semibold">Abstract:</h4>
+                <p class="text-lg">{{ manuscript.abstracts|truncatewords:50 }}{% if manuscript.abstract|length > 30 %}...{% endif %}</p>
+                <div class="mt-auto">
+                    <a href="{% url 'view_manuscript' manuscript.id %}" class="w-full text-center block mt-4 py-3 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 text-lg">View Manuscript</a>
+                </div>
             </div>
             {% empty %}
-            <p>No manuscripts found.</p>
+            <p class="text-lg text-gray-800 text-center col-span-full">No manuscripts found.</p>
             {% endfor %}
         </div>
     </div>

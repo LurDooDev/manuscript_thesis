@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white p-8 rounded-lg shadow-lg border border-gray-200">
+            <h2 class="manuscript-title">{{ manuscript.title }}</h2>
+            <div class="manuscript-details">
+                <span class="manuscript-label">Author:</span> {{ manuscript.authors }}
+            </div>
+            <div class="manuscript-details">
+                <span class="manuscript-label">Batch:</span> {{ manuscript.batch }}
+            </div>
+            <div class="manuscript-details">
+                <span class="manuscript-label">Program:</span> {{ manuscript.program.name }}
+            </div>
+            <div class="manuscript-details">
+                <span class="manuscript-label">Category:</span> {{ manuscript.category.name }}
+            </div>
+            <h4 class="manuscript-abstract-heading">Abstract:</h4>
+            <p class="manuscript-abstract">{{ manuscript.abstracts }}</p>
+            <a href="{% url 'manuscript_search_page' %}" class="back-button">
+                Back to Manuscripts
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
