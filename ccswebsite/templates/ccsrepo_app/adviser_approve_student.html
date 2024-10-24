@@ -29,7 +29,9 @@
                                 <form method="POST" action="{% url 'adviser_approve_student' %}">
                                     {% csrf_token %}
                                     <input type="hidden" name="student_id" value="{{ relationship.id }}">
-                                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Approve</button>
+                                    <button type="submit" class="bg-[#25580F] text-white px-4 py-2 rounded hover:bg-[#3b8a12] transition duration-200">
+                                        Approve
+                                    </button>
                                 </form>
                             {% else %}
                                 <span class="text-gray-500">Already Approved</span>

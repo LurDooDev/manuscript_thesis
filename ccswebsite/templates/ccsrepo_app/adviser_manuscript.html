@@ -22,7 +22,11 @@
                         <td class="border px-4 py-2">{{ manuscript.authors }}</td>
                         <td class="border px-4 py-2">{{ manuscript.status }}</td>
                         <td class="border px-4 py-2">
-                            <a href="{% url 'adviser_review' manuscript.id %}" class="text-blue-500 hover:underline">Review</a>
+                            {% if manuscript.status == "approved" %}
+                                <a href="{% url 'manuscript_detail' manuscript.id %}" class="bg-[#25580F] text-white px-4 py-2 rounded hover:bg-[#3b8a12] transition duration-200">View</a>
+                            {% else %}
+                                <a href="{% url 'adviser_review' manuscript.id %}" class="bg-[#25580F] text-white px-4 py-2 rounded hover:bg-[#3b8a12] transition duration-200">Review</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

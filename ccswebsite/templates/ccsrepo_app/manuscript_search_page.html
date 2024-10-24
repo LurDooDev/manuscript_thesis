@@ -21,24 +21,6 @@
         </form>
         <div class="mb-6 flex justify-between items-center">
             <div class="flex space-x-4">
-                <select id="program-select" name="program" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#25580F] focus:border-[#25580F] sm:text-sm">
-                    <option value="All" {% if selected_program == 'All' %}selected{% endif %}>All Programs</option>
-                    {% for program in programs %}
-                    <option value="{{ program.id }}" {% if selected_program == program.id %}selected{% endif %}>{{ program.name }}</option>
-                    {% endfor %}
-                </select>
-                <select id="category-select" name="category" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#25580F] focus:border-[#25580F] sm:text-sm">
-                    <option value="All" {% if selected_category == 'All' %}selected{% endif %}>All Categories</option>
-                    {% for category in categories %}
-                    <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>{{ category.name }}</option>
-                    {% endfor %}
-                </select>
-                <select id="batch-select" name="batch" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#25580F] focus:border-[#25580F] sm:text-sm">
-                    <option value="All" {% if selected_batch == 'All' %}selected{% endif %}>All Batches</option>
-                    {% for batch in batches %}
-                    <option value="{{ batch }}" {% if selected_batch == batch %}selected{% endif %}>{{ batch }}</option>
-                    {% endfor %}
-                </select>
             </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">

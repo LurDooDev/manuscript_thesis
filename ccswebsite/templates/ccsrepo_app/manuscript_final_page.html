@@ -19,7 +19,9 @@
                     <a href="{% url 'manuscript_search_page' %}" class="text-lg font-bold px-3 py-2">Home</a>
                 </li>
                 <li>
-                    <a href="{% url 'manuscript_upload_page' %}" class="text-lg font-bold px-3 py-2">Upload</a>
+                    {% if request.user.is_authenticated and request.user.is_student %}
+                        <a href="{% url 'manuscript_upload_page' %}" class="text-lg font-bold px-3 py-2">Upload</a>
+                    {% endif %}
                 </li>
                 <li>
                     <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold px-3 py-2">Hello, {{ user.first_name }}</a>
@@ -111,11 +113,11 @@
                         </select>
                     </div>
 
-                    <!-- Keywords Field -->
+                    {% comment %} <!-- Keywords Field -->
                     <div class="input-margin">
                         <label for="keywords" class="login-label">Keywords (comma-separated)</label>
                         <input type="text" id="keywords" name="keywords" class="login-input" value="{% if manuscript.keywords.all %}{{ manuscript.keywords.all|join:',' }}{% endif %}">
-                    </div>
+                    </div> {% endcomment %}
 
                     <!-- Submit Button -->
                     <div class="pt-4">

@@ -64,7 +64,7 @@ class CustomUser(AbstractBaseUser):
     REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
 
     def __str__(self):
-        return self.email
+        return  f"{self.first_name} {self.last_name}"
 
 #Student and Adviser    
 class AdviserStudentRelationship(models.Model):
