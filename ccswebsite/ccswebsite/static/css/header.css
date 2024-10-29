@@ -1,0 +1,94 @@
+/* Body styles */
+body {
+    font-family: Arial, sans-serif; /* Global font */
+    background-color: #f8f9fa; /* Light background color */
+    color: #333; /* Dark text color for readability */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+    line-height: 1.6; /* Improve line height for readability */
+}
+
+/* Container styles for consistent width */
+.container {
+    max-width: 1200px; /* Set a max width for the content */
+    margin: 0 auto; /* Center the container */
+    padding: 20px; /* Add some padding around the content */
+}
+
+/* Add additional styles for headings and paragraphs */
+h1, h2, h3, h4, h5, h6 {
+    color: #25580F; /* Dark green color for headings */
+    margin-top: 1.5rem; /* Space above headings */
+    margin-bottom: 0.5rem; /* Space below headings */
+}
+
+p {
+    margin-bottom: 1rem; /* Space below paragraphs */
+}
+
+/* Link styles */
+a {
+    color: #007bff; /* Blue color for links */
+    text-decoration: none; /* Remove underline from links */
+}
+
+a:hover {
+    text-decoration: underline; /* Add underline on hover */
+}
+
+/* Header styles */
+header {
+    background-color: #25580F; /* Dark Green */
+    color: white;
+    padding: 1rem; /* Adjusted padding */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Title styles */
+header h1 {
+    font-size: 1.5rem; /* Increased font size for better visibility */
+    font-weight: bold;
+}
+
+/* Navigation link styles */
+.nav-link {
+    font-size: 1rem; /* Font size for navigation links */
+    padding: 0.5rem 1rem; /* Adjusted padding for links */
+    color: white;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    border-radius: 0.375rem; /* Rounded corners */
+    display: inline-block; /* Ensures the padding applies */
+}
+
+/* Hover effects for links */
+.nav-link:hover {
+    background-color: #3a6c24; /* Lighter green on hover */
+    color: #f1f1f1; /* Lighter text color on hover */
+}
+
+
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .nav-link {
+        font-size: 1.125rem; /* Slightly larger font size on medium screens */
+    }
+}
+
+/* Responsive adjustments for spacing */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column; /* Stack items vertically on small screens */
+        align-items: flex-start; /* Align items to the start */
+    }
+
+    nav {
+        width: 100%; /* Full width for navigation */
+        text-align: center; /* Center align text */
+    }
+
+    nav ul {
+        flex-direction: column; /* Stack links vertically */
+        space-y-4; /* Add space between links */
+    }
+}

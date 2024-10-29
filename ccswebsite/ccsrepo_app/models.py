@@ -74,13 +74,6 @@ class AdviserStudentRelationship(models.Model):
 
     def __str__(self):
         return f"{self.adviser.username} advises {self.student.username}"
-    
-#Keywords
-class Keyword(models.Model):
-    word = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return self.word
 
 #Manuscripts
 class Manuscript(models.Model):
@@ -89,7 +82,6 @@ class Manuscript(models.Model):
     citations = models.TextField()
     authors = models.CharField(max_length=255)
     category = models.ForeignKey(Category, null=True, on_delete=models.CASCADE)
-    keywords = models.ManyToManyField(Keyword, related_name='manuscripts')
     publication_date = models.DateField(null=True, blank=True)
     pdf_file = models.FileField(upload_to='manuscripts/')
     batch = models.ForeignKey(Batch, null=True, on_delete=models.CASCADE)
@@ -100,7 +92,22 @@ class Manuscript(models.Model):
     status = models.CharField(max_length=10, default='pending')
     allowed_student = models.BooleanField(default=False)
     feedback = models.TextField(null=True, blank=True)
+    extract_title = models.CharField(max_length=255, blank=True, null=True) 
 
     def __str__(self):
         return self.title
+
+#PageOCRData for Pdf 
+class PageOCRData(models.Model):
+    manuscript = models.ForeignKey(Manuscript, related_name='ocr_data', on_delete=models.CASCADE)
+    page_num = models.PositiveIntegerField()
+    text = models.TextField()
+    image = models.ImageField(upload_to='page_images/', null=True, blank=True) 
+
+    class Meta:
+        unique_together = ('manuscript', 'page_num')
+        
+    def __str__(self):
+        return f"Page {self.page_num} of {self.manuscript.title}"
+    
     

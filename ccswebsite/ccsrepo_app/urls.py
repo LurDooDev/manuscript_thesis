@@ -10,6 +10,7 @@ urlpatterns = [
     path('manuscript/<int:manuscript_id>/', views.view_manuscript, name='view_manuscript'),
     path('finalize/<int:manuscript_id>/<str:extracted_abstract>/', views.final_manuscript_page, name='final_manuscript_page'),
     path('manuscript-search/', views.manuscript_search_page, name='manuscript_search_page'),
+    path('view_pdf/<int:manuscript_id>/', views.view_pdf_manuscript, name='view_pdf_manuscript'),
     #User to verify
     path('adviser-request/', views.request_adviser_view, name='adviser_request'),
     path('adviser-request-success/', views.success_request_view, name='adviser_request_success'),

@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ manuscript.title }} - PDF Viewer</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <link href="{% static 'css/pdf.css' %}" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="module" src="{% static 'pdfjs/pdf.mjs' %}"></script>
+</head>
+
+<body class="bg-gray-100">
+    <header class="flex justify-between items-center bg-[#25580F] text-white p-4 shadow-md">
+        <h1 class="text-2xl font-bold">College of Computing Studies Repository</h1>
+        <nav>
+            <ul class="flex space-x-6 text-lg">
+                <li>
+                    <a href="{% url 'manuscript_search_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg">Home</a>
+                </li>
+                <li>
+                    {% if request.user.is_authenticated and request.user.is_student %}
+                        <a href="{% url 'manuscript_upload_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2">Upload</a>
+                    {% endif %}
+                </li>
+                <li>
+                    <a href="{% url user.is_adviser|default:'student_manuscripts' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2">Hello, {{ user.first_name }}</a>
+                </li>
+                <li>
+                    <a href="{% url 'logout' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2">Logout</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="max-w-4xl mx-auto my-8 p-6 bg-white rounded-lg shadow-lg">
+        <h1 class="text-3xl font-semibold text-center mb-4">{{ manuscript.title }}</h1>
+
+        <div class="search-container mb-4">
+            <form method="GET" class="flex justify-center">
+                <input type="text" name="search" placeholder="Search OCR text..." value="{{ search_term }}" class="border border-gray-300 rounded-lg p-2 w-80">
+                <button type="submit" class="ml-2 bg-[#3a6c24] text-white px-4 py-2 rounded-lg hover:bg-[#2c5219] transition duration-300">Search</button>
+            </form>
+        </div>
+
+        <div class="ocr-text-container">
+            <h3 class="text-xl font-semibold mb-2">Matching Pages: {{ matching_page_numbers|length }} Page found</h3>
+            {% for page_data in ocr_data %}
+                {% if page_data.page_num > 1 %}
+                <div class="ocr-page mb-4" data-page-number="{{ page_data.page_num }}" {% if page_data.page_num in matching_page_numbers %} class="highlight"{% endif %}>
+                    <h4 class="text-lg font-bold">Page {{ page_data.page_num }}:</h4>
+                    <img src="{{ page_data.image.url }}" alt="Page {{ page_data.page_num }} Image" class="mt-2 rounded shadow">
+                </div>
+                {% endif %}
+            {% empty %}
+                <p class="text-gray-600">No matching text found in manuscript pdf for this search term.</p>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+
+</html>

@@ -5,13 +5,36 @@ from django.utils import timezone
 import os
 from django.db.models import Q 
 import pytesseract
+from django.core.files.base import ContentFile
 from pdf2image import convert_from_path
-from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, Keyword
+from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from io import BytesIO
 
 
-#----------------Search System ------------------------/
+#----------------UTIL/Helper------------------------/
+def extract_pages_as_images(pdf_path, manuscript):
+    pages = convert_from_path(pdf_path, dpi=72)  # Converts PDF to PIL images
+    for i, page in enumerate(pages):
+        # Convert the page image to text using pytesseract
+        page_text = pytesseract.image_to_string(page).strip()
+
+        # Create a BytesIO object to save the image
+        image_io = BytesIO()
+        page.save(image_io, format='PNG')  # Save page as PNG
+        image_file = ContentFile(image_io.getvalue(), name=f"page_{i + 1}.png")
+
+        # Save the OCR data for the page, including the image
+        PageOCRData.objects.create(
+            manuscript=manuscript,
+            page_num=i + 1,
+            text=page_text,
+            image=image_file  # Save the image here
+        )
+#----------------UTIL/Helper------------------------/
+
+#----------------Search and Manuscript flow System ------------------------/
 def manuscript_search_page(request):
     search_query = request.GET.get('search', '')
 
@@ -40,11 +63,37 @@ def manuscript_search_page(request):
         'search_query': search_query,
     })
 
+#View Manuscript
 def view_manuscript(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     return render(request, 'ccsrepo_app/view_manuscript.html', {'manuscript': manuscript})
-#----------------End Search ------------------------/
 
+#View Pdf manuscript
+def view_pdf_manuscript(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    pdf_url = manuscript.pdf_file.url  # Adjust as per your field name
+
+    # Get the search term from GET parameters
+    search_term = request.GET.get('search', '')
+    
+    # Filter OCR data based on search term
+    if search_term:
+        ocr_data = manuscript.ocr_data.filter(text__icontains=search_term).order_by('page_num')
+    else:
+        ocr_data = manuscript.ocr_data.all().order_by('page_num')
+
+    # Extract page numbers that contain the search term
+    matching_page_numbers = [page.page_num for page in ocr_data]
+
+    return render(request, 'ccsrepo_app/view_pdf_manuscript.html', {
+        'manuscript': manuscript,
+        'pdf_url': pdf_url,
+        'ocr_data': ocr_data,
+        'search_term': search_term,
+        'matching_page_numbers': matching_page_numbers,  # Pass matching page numbers to the template
+    })
+
+#----------------End Search ------------------------/
 #dashboard
 @login_required(login_url='login')
 def dashboard_view(request):
@@ -86,7 +135,6 @@ def login_view(request):
     return render(request, 'ccsrepo_app/login.html')
 
 #----------------Student and Adviser ------------------------/
-
 #View of Request to Adviser
 def success_request_view(request):
     return render(request, 'ccsrepo_app/adviser_request_success.html')
@@ -310,8 +358,11 @@ def upload_manuscript(request):
 
             if os.path.exists(pdf_file_path):
                 try:
-                    pages = convert_from_path(pdf_file_path, dpi=72)
+                    # Extract pages and save images/text
+                    extract_pages_as_images(pdf_file_path, manuscript)
 
+                    # If you want to specifically extract the abstract from the second page
+                    pages = convert_from_path(pdf_file_path, dpi=72)  # You can reuse this if needed
                     if len(pages) >= 2:
                         abstract_image = pages[1]
                         abstract_text = pytesseract.image_to_string(abstract_image).strip()
@@ -332,9 +383,7 @@ def upload_manuscript(request):
 
     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
 
-
-
-
+#Final Confirmation
 def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
@@ -345,7 +394,6 @@ def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
         batch_id = request.POST.get('batch')
         manuscript_type_id = request.POST.get('manuscript_type')
         program_id = request.POST.get('program')
-        keywords = request.POST.get('keywords')
         adviser_id = request.POST.get('adviser')
 
         adviser = CustomUser.objects.get(id=adviser_id)
@@ -360,12 +408,6 @@ def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
         manuscript.publication_date = timezone.now().date()
 
         manuscript.save()
-
-        if keywords:
-            keywords_list = [keyword.strip() for keyword in keywords.split(',')]
-            for word in keywords_list:
-                keyword, _ = Keyword.objects.get_or_create(word=word)
-                manuscript.keywords.add(keyword)
 
         return redirect('dashboard')
 

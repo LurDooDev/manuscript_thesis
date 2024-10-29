@@ -19,6 +19,16 @@
             </div>
             <h4 class="manuscript-abstract-heading">Abstract:</h4>
             <p class="manuscript-abstract">{{ manuscript.abstracts }}</p>
+            
+            <!-- Add the button to view PDF in a dedicated viewer -->
+            <div class="mt-4">
+                <a href="{% url 'view_pdf_manuscript' manuscript.id %}" 
+                   class="w-full text-center block py-3 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 text-lg">
+                    View PDF
+                </a>
+            </div>
+
+            <!-- Back Button -->
             <a href="{% url 'manuscript_search_page' %}" class="back-button">
                 Back to Manuscripts
             </a>
