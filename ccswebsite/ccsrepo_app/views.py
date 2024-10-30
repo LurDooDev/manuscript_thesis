@@ -15,14 +15,14 @@ from io import BytesIO
 
 #----------------UTIL/Helper------------------------/
 def extract_pages_as_images(pdf_path, manuscript):
-    pages = convert_from_path(pdf_path, dpi=72)  # Converts PDF to PIL images
+    pages = convert_from_path(pdf_path, dpi=72)
     for i, page in enumerate(pages):
         # Convert the page image to text using pytesseract
         page_text = pytesseract.image_to_string(page).strip()
 
         # Create a BytesIO object to save the image
         image_io = BytesIO()
-        page.save(image_io, format='PNG')  # Save page as PNG
+        page.save(image_io, format='PNG')
         image_file = ContentFile(image_io.getvalue(), name=f"page_{i + 1}.png")
 
         # Save the OCR data for the page, including the image
@@ -30,7 +30,7 @@ def extract_pages_as_images(pdf_path, manuscript):
             manuscript=manuscript,
             page_num=i + 1,
             text=page_text,
-            image=image_file  # Save the image here
+            image=image_file
         )
 #----------------UTIL/Helper------------------------/
 
@@ -50,7 +50,7 @@ def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=N
             Q(adviser__last_name__icontains=search_query) |
             Q(authors__icontains=search_query) |
             Q(program__name__icontains=search_query) |
-            Q(manuscript_type__name__icontains=search_query)  # Filter by manuscript type
+            Q(manuscript_type__name__icontains=search_query)
         )
 
     # Filter by program, manuscript type, category, and batch if specified
@@ -77,7 +77,7 @@ def manuscript_search_page(request):
 
     # Retrieve additional filter options
     programs = Program.objects.all()
-    manuscript_types = ManuscriptType.objects.all()  # Fetch all manuscript types
+    manuscript_types = ManuscriptType.objects.all()
     categories = Category.objects.all()
     batches = Batch.objects.all()
 
@@ -120,7 +120,7 @@ def view_pdf_manuscript(request, manuscript_id):
         'pdf_url': pdf_url,
         'ocr_data': ocr_data,
         'search_term': search_term,
-        'matching_page_numbers': matching_page_numbers,  # Pass matching page numbers to the template
+        'matching_page_numbers': matching_page_numbers,
     })
 
 #----------------End Search ------------------------/
@@ -141,22 +141,22 @@ def login_view(request):
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
 
-        if user is not None and user.is_active:  # Check if the user exists and is active
-            login(request, user)  # Log the user in
+        if user is not None and user.is_active:
+            login(request, user)
 
             # Redirect based on user type
             if user.is_student:
-                return redirect('manuscript_search_page')  # Redirect to search page for students
+                return redirect('manuscript_search_page')
 
             elif user.is_adviser:
-                return redirect('adviser_approve_student')  # Redirect to adviser approval page
+                return redirect('adviser_approve_student')
 
             elif user.is_admin:
-                return redirect('manage_users')  # Redirect to manage users page
+                return redirect('manage_users')
 
             # If the user is active but does not fit into student, adviser, or admin roles
             messages.info(request, "Logged in successfully. You can send requests to advisers.")
-            return redirect('adviser_request')  # Redirect to adviser request page or wherever appropriate
+            return redirect('adviser_request')
 
         else:
             messages.error(request, "Invalid username or password. Please try again.")
@@ -171,15 +171,14 @@ def success_request_view(request):
 
 @login_required(login_url='login')
 def request_adviser_view(request):
-    print(f"Current user: {request.user}")  # Debug print
-    # Remove the is_student check
+    print(f"Current user: {request.user}")
 
     if request.method == 'POST':
-        adviser_email = request.POST.get('email')  # Use email instead of username
+        adviser_email = request.POST.get('email')
         student = request.user 
 
         try:
-            adviser = CustomUser.objects.get(email=adviser_email, is_adviser=True)  # Fetch adviser by email
+            adviser = CustomUser.objects.get(email=adviser_email, is_adviser=True)
 
             # Check to prevent duplicates
             if AdviserStudentRelationship.objects.filter(adviser=adviser, student=student).exists():
@@ -193,7 +192,7 @@ def request_adviser_view(request):
         except CustomUser.DoesNotExist:
             messages.error(request, "No adviser found with this email or they are not an adviser.")
         except Exception as e:
-            messages.error(request, f"An error occurred: {str(e)}")  # Show actual error message for debugging
+            messages.error(request, f"An error occurred: {str(e)}")
 
     return render(request, 'ccsrepo_app/adviser_request.html')
 
@@ -391,8 +390,7 @@ def upload_manuscript(request):
                     # Extract pages and save images/text
                     extract_pages_as_images(pdf_file_path, manuscript)
 
-                    # If you want to specifically extract the abstract from the second page
-                    pages = convert_from_path(pdf_file_path, dpi=72)  # You can reuse this if needed
+                    pages = convert_from_path(pdf_file_path, dpi=72)
                     if len(pages) >= 2:
                         abstract_image = pages[1]
                         abstract_text = pytesseract.image_to_string(abstract_image).strip()
@@ -460,7 +458,6 @@ def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
 
 #----------------Adviser System ------------------------/
 def adviser_manuscript(request):
-    # Fetch manuscripts where the adviser is the logged-in user
     manuscripts = Manuscript.objects.filter(adviser=request.user).exclude(student=request.user)
 
     return render(request, 'ccsrepo_app/adviser_manuscript.html', {
@@ -481,7 +478,6 @@ def adviser_review(request, manuscript_id):
         manuscript.is_approved = True if decision == "approve" else False
         manuscript.save()
 
-        # Redirect to adviser manuscripts page after submitting
         return redirect('adviser_manuscript')
 
     return render(request, 'ccsrepo_app/adviser_review.html', {'manuscript': manuscript})
@@ -490,7 +486,7 @@ def adviser_review(request, manuscript_id):
 
 #----------------Student System ------------------------/
 def student_manuscripts_view(request):
-    # Ensure the user is authenticated and is a student
+    # check and make sure user is authenticated and is_student
     if request.user.is_authenticated and request.user.is_student:
         # Get all manuscripts submitted by the logged-in student that have a non-empty title
         manuscripts = Manuscript.objects.filter(student=request.user, title__gt='')
@@ -500,7 +496,7 @@ def student_manuscripts_view(request):
         })
 
 def manuscript_detail_view(request, manuscript_id):
-    # Retrieve the manuscript using the provided ID
+    # Retrieve manuscript using ID
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
     return render(request, 'ccsrepo_app/manuscript_detail.html', {
@@ -585,9 +581,9 @@ def faculty_final_page(request, manuscript_id, extracted_abstract=""):
         manuscript.batch_id = batch_id
         manuscript.manuscript_type_id = manuscript_type_id
         manuscript.program_id = program_id
-        manuscript.adviser = adviser  # Automatically set the adviser to the current user
+        manuscript.adviser = adviser
         manuscript.publication_date = timezone.now().date()
-        manuscript.status = 'approved'  # Automatically set status to approved
+        manuscript.status = 'approved'
 
         manuscript.save()
 
