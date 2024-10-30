@@ -35,33 +35,66 @@ def extract_pages_as_images(pdf_path, manuscript):
 #----------------UTIL/Helper------------------------/
 
 #----------------Search and Manuscript flow System ------------------------/
-def manuscript_search_page(request):
-    search_query = request.GET.get('search', '')
-
+def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None, batch_id=None):
     # Get all approved manuscripts
     manuscripts = Manuscript.objects.filter(status='approved')
 
-    # Filter based on search query for title and related batch name
+    # Filter based on search query for title, abstracts, batch name, and category
     if search_query:
         manuscripts = manuscripts.filter(
             Q(title__icontains=search_query) |
             Q(abstracts__icontains=search_query) |
             Q(batch__name__icontains=search_query) |
-            Q(category__name__icontains=search_query) # Use 'name' or the appropriate field in Batch
+            Q(category__name__icontains=search_query) |
+            Q(adviser__first_name__icontains=search_query) |
+            Q(adviser__last_name__icontains=search_query) |
+            Q(authors__icontains=search_query) |
+            Q(program__name__icontains=search_query) |
+            Q(manuscript_type__name__icontains=search_query)  # Filter by manuscript type
         )
 
-    # Order by publication date
-    manuscripts = manuscripts.order_by('-publication_date')
+    # Filter by program, manuscript type, category, and batch if specified
+    if program_id:
+        manuscripts = manuscripts.filter(program_id=program_id)
+    if manuscript_type_id:
+        manuscripts = manuscripts.filter(manuscript_type_id=manuscript_type_id)
+    if category_id:
+        manuscripts = manuscripts.filter(category_id=category_id)
+    if batch_id:
+        manuscripts = manuscripts.filter(batch_id=batch_id)
 
-    # Pagination (example with 10 manuscripts per page)
-    paginator = Paginator(manuscripts, 10)
+    return manuscripts.order_by('-publication_date')
+
+def manuscript_search_page(request):
+    search_query = request.GET.get('search', '')
+    program_id = request.GET.get('program')
+    manuscript_type_id = request.GET.get('manuscript_type')
+    category_id = request.GET.get('category')
+    batch_id = request.GET.get('batch')
+
+    # Get filtered manuscripts based on search query and filters
+    manuscripts = get_filtered_manuscripts(search_query, program_id, manuscript_type_id, category_id, batch_id)
+
+    # Retrieve additional filter options
+    programs = Program.objects.all()
+    manuscript_types = ManuscriptType.objects.all()  # Fetch all manuscript types
+    categories = Category.objects.all()
+    batches = Batch.objects.all()
+
+    # Pagination
+    paginator = Paginator(manuscripts, 50)
     page_number = request.GET.get('page')
     manuscripts = paginator.get_page(page_number)
 
     return render(request, 'ccsrepo_app/manuscript_search_page.html', {
         'manuscripts': manuscripts,
         'search_query': search_query,
+        'programs': programs,
+        'manuscript_types': manuscript_types,
+        'categories': categories,
+        'batches': batches,
     })
+
 
 #View Manuscript
 def view_manuscript(request, manuscript_id):
@@ -71,18 +104,15 @@ def view_manuscript(request, manuscript_id):
 #View Pdf manuscript
 def view_pdf_manuscript(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
-    pdf_url = manuscript.pdf_file.url  # Adjust as per your field name
+    pdf_url = manuscript.pdf_file.url
 
-    # Get the search term from GET parameters
     search_term = request.GET.get('search', '')
     
-    # Filter OCR data based on search term
     if search_term:
         ocr_data = manuscript.ocr_data.filter(text__icontains=search_term).order_by('page_num')
     else:
         ocr_data = manuscript.ocr_data.all().order_by('page_num')
 
-    # Extract page numbers that contain the search term
     matching_page_numbers = [page.page_num for page in ocr_data]
 
     return render(request, 'ccsrepo_app/view_pdf_manuscript.html', {
@@ -426,12 +456,12 @@ def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
         'programs': programs,
         'advisers': advisers,
     })
-
 #----------------End Manuscript System ------------------------/
 
 #----------------Adviser System ------------------------/
 def adviser_manuscript(request):
-    manuscripts = Manuscript.objects.filter(adviser=request.user)
+    # Fetch manuscripts where the adviser is the logged-in user
+    manuscripts = Manuscript.objects.filter(adviser=request.user).exclude(student=request.user)
 
     return render(request, 'ccsrepo_app/adviser_manuscript.html', {
         'manuscripts': manuscripts,
@@ -478,6 +508,106 @@ def manuscript_detail_view(request, manuscript_id):
     })
 #----------------End Student System ------------------------/
 
+#----------------Faculty System ------------------------/
+def faculty_manuscripts_view(request):
+    if request.user.is_authenticated:
+        manuscripts = Manuscript.objects.filter(student=request.user, title__gt='')
+
+        return render(request, 'ccsrepo_app/faculty_manuscript.html', {
+            'manuscripts': manuscripts,
+        })
+
+def faculty_detail_view(request, manuscript_id):
+    # Retrieve the manuscript using the provided ID
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+
+    return render(request, 'ccsrepo_app/faculty_detail.html', {
+        'manuscript': manuscript,
+    })
+
+
+#----------------Faculty Upload System ------------------------/
+def faculty_upload_manuscript(request):
+    if request.method == 'POST':
+        pdf_file = request.FILES.get('pdf_file')
+
+        if pdf_file:
+            manuscript = Manuscript(
+                pdf_file=pdf_file,
+                student=request.user,
+            )
+            manuscript.save()
+
+            pdf_file_path = manuscript.pdf_file.path
+
+            if os.path.exists(pdf_file_path):
+                try:
+                    extract_pages_as_images(pdf_file_path, manuscript)
+
+                    pages = convert_from_path(pdf_file_path, dpi=72)
+                    if len(pages) >= 2:
+                        abstract_image = pages[1]
+                        abstract_text = pytesseract.image_to_string(abstract_image).strip()
+
+                        if "Abstract" in abstract_text:
+                            abstract_text = abstract_text.split("Abstract", 1)[1].strip()
+                        else:
+                            abstract_text = "No abstract found"
+
+                        manuscript.abstracts = abstract_text
+
+                except Exception as e:
+                    print(f"Error processing PDF: {e}")
+
+            manuscript.save()
+
+            return redirect('faculty_final_page', manuscript_id=manuscript.id, extracted_abstract=manuscript.abstracts)
+
+    return render(request, 'ccsrepo_app/faculty_upload_page.html')
+
+def faculty_final_page(request, manuscript_id, extracted_abstract=""):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        authors = request.POST.get('authors')
+        category_id = request.POST.get('category')
+        batch_id = request.POST.get('batch')
+        manuscript_type_id = request.POST.get('manuscript_type')
+        program_id = request.POST.get('program')
+        
+        # Set adviser to the currently logged-in user
+        adviser = request.user
+
+        manuscript.title = title
+        manuscript.authors = authors
+        manuscript.category_id = category_id
+        manuscript.batch_id = batch_id
+        manuscript.manuscript_type_id = manuscript_type_id
+        manuscript.program_id = program_id
+        manuscript.adviser = adviser  # Automatically set the adviser to the current user
+        manuscript.publication_date = timezone.now().date()
+        manuscript.status = 'approved'  # Automatically set status to approved
+
+        manuscript.save()
+
+        return redirect('dashboard')
+
+    categories = Category.objects.all()
+    batches = Batch.objects.all()
+    manuscript_types = ManuscriptType.objects.all()
+    programs = Program.objects.all()
+
+    return render(request, 'ccsrepo_app/faculty_final_page.html', {
+        'manuscript': manuscript,
+        'extracted_abstract': extracted_abstract,
+        'categories': categories,
+        'batches': batches,
+        'manuscript_types': manuscript_types,
+        'programs': programs,
+    })
+#----------------End Faculty Upload System ------------------------/
+#----------------End Faculty System ------------------------/
 
 
 

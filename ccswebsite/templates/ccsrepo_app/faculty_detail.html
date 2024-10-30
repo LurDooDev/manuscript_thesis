@@ -5,13 +5,6 @@
     <h2 class="text-3xl font-bold text-[#25580F] mb-6 text-center">Manuscript Details</h2>
 
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
-    <div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-6">
-        <h4 class="font-semibold text-[#25580F] mb-4">Feedback:</h4>
-        <p class="text-gray-700">{{ manuscript.feedback|default:"No feedback Yet." }}</p>
-    </div>
-</div>
-
-    <div class="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
 
         
         <h3 class="text-2xl font-semibold text-[#25580F] text-center mb-4">{{ manuscript.title }}</h3>
@@ -27,7 +20,7 @@
 
 
     <div class="text-center">
-        <a href="{% url 'student_manuscripts' %}" class="text-blue-500 hover:underline">Back to My Manuscripts</a>    
+        <a href="{% url 'faculty_manuscripts' %}" class="text-blue-500 hover:underline">Back to My Manuscripts</a>    
     </div>
 </div>
 

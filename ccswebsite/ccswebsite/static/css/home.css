@@ -87,52 +87,88 @@ button:hover {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
-.manuscript-title {
-    font-size: 3.75rem;
-    font-weight: 700;
+/* Enhanced Manuscript Table Styles */
+.table-container {
+    width: 100%;
+    margin-top: 1rem;
+    overflow-x: auto; /* Allows horizontal scrolling for smaller screens */
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-header {
+    background-color: #f1f1f1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-header th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #343a40;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-row {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.table-row:hover {
+    background-color: #e9ecef;
+    transform: scale(1.01); /* Slightly scales up on hover for effect */
+}
+
+.table-row:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+.table-row:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.table-cell {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.2s ease; /* Smooth transition for cell hover */
+}
+
+.table-cell:hover {
+    background-color: #f8f9fa; /* Subtle hover effect on cells */
+}
+
+.action-button {
     text-align: center;
-    margin-bottom: 1.5rem;
-    color: #343a40;
 }
 
-.manuscript-details {
-    font-size: 1rem;
-    color: #6c757d;
-    margin-bottom: 0.75rem;
-}
-
-.manuscript-label {
-    font-weight: 600;
-    color: #343a40;
-}
-
-.manuscript-abstract-heading {
-    font-size: 2rem;
-    font-weight: 600;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    color: #343a40;
-}
-
-.manuscript-abstract {
-    font-size: 1.125rem;
-    color: #495057;
-    line-height: 1.75;
-    margin-bottom: 2rem;
-}
-
-.back-button {
-    padding: 0.75rem 1.5rem;
-    font-size: 1.125rem;
+.action-button a {
+    text-decoration: none;
+    color: #ffffff;
     background-color: #25580F;
-    color: #fff;
-    border-radius: 0.5rem;
-    text-align: center;
-    display: inline-block;
-    transition: background-color 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #25580F;
+    transition: background-color 0.2s ease, transform 0.2s ease; /* Added transform */
 }
 
-.back-button:hover {
+.action-button a:hover {
     background-color: #1c4a0c;
+    transform: scale(1.05); /* Scale effect on hover */
 }
 
+.table-responsive {
+    overflow-x: auto; /* Ensures the table is scrollable on smaller screens */
+    margin: 1rem 0; /* Adds some margin */
+}
+
+.table-footer {
+    background-color: #f1f1f1;
+    font-weight: bold;
+}
+
+.table-footer td {
+    padding: 1rem;
+    text-align: right; /* Right-align footer cells */
+}

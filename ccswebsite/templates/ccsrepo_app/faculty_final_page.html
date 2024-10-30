@@ -20,7 +20,7 @@
                 </li>
                 <li>
                     {% if user.is_adviser %}
-                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Uploads</a>
+                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
                     {% elif user.is_admin %}
                         <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
                     {% else %}
@@ -53,7 +53,7 @@
                     <!-- Abstract Field -->
                     <div class="input-margin">
                         <label for="abstract" class="login-label">Abstract</label>
-                        <textarea id="abstract" name="abstract" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ extracted_abstract }}</textarea>
+                        <textarea id="abstract" name="abstract" class="login-input bg-gray-100" rows="4" placeholder="Extracted abstract will be shown here..." readonly>{{ extracted_abstract }}</textarea>
                     </div>
 
                     <!-- Authors Field -->
@@ -106,26 +106,8 @@
                         </select>
                     </div>
 
-                    <!-- Adviser Field -->
-                    <div class="input-margin">
-                        <label for="adviser" class="login-label">Adviser</label>
-                        <select id="adviser" name="adviser" class="login-input" required>
-                            <option value=""></option>
-                            {% for adviser in advisers %}
-                                <option value="{{ adviser.id }}" {% if adviser.id == manuscript.adviser.id %}selected{% endif %}>{{ adviser.first_name }} {{ adviser.last_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    {% comment %} <!-- Keywords Field -->
-                    <div class="input-margin">
-                        <label for="keywords" class="login-label">Keywords (comma-separated)</label>
-                        <input type="text" id="keywords" name="keywords" class="login-input" value="{% if manuscript.keywords.all %}{{ manuscript.keywords.all|join:',' }}{% endif %}">
-                    </div> {% endcomment %}
-
-                    <!-- Submit Button -->
                     <div class="pt-4">
-                        <button type="submit" class="login-button w-full">
+                        <button type="submit" class="login-button w-full bg-[#25580F] text-white rounded-lg py-2 hover:bg-[#1c4a0c] transition duration-300">
                             Finalize Manuscript
                         </button>
                     </div>

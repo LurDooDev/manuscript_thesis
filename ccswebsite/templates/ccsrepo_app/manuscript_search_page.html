@@ -1,45 +1,138 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-100 p-8">
-    <div class="max-w-6xl mx-auto">
-        <form method="get" class="flex items-center mb-8">
-            <input
-                type="text"
-                id="search-input"
-                name="search"
-                value="{{ search_query }}"
-                placeholder="Search for manuscripts..."
-                class="w-full px-6 py-3 rounded-lg border border-gray-300 focus:ring-[#25580F] focus:border-[#25580F] shadow-md text-lg"
-            >
-            <button
-                type="submit"
-                class="ml-4 px-6 py-3 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 shadow-lg text-lg"
-            >
-                Search
-            </button>
-        </form>
-        
-        <!--Manuscript Card-->
-        <div class="flex flex-wrap justify-between gap-8">
-            {% for manuscript in manuscripts %}
-            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300 border border-gray-200 flex flex-col w-full sm:w-[48%] lg:w-[30%]">
-                <h3 class="text-2xl font-semibold text-center mb-4">{{ manuscript.title }}</h3>
-                <div class="text-lg flex-grow mb-4">
-                    <p><span class="font-semibold">Author:</span> {{ manuscript.authors }}</p>
-                    <p><span class="font-semibold">Batch:</span> {{ manuscript.batch }}</p>
-                    <p><span class="font-semibold">Program:</span> {{ manuscript.program.name }}</p>
-                    <p><span class="font-semibold">Category:</span> {{ manuscript.category.name }}</p>
+<div class="min-h-screen bg-gray-50 py-10 px-4">
+    <div class="max-w-6xl mx-auto grid grid-cols-4 gap-6"> <!-- Adjusted gap for better spacing -->
+
+        <!-- Sidebar for Filters and Search Bar -->
+        <div class="col-span-1 bg-white p-6 rounded-lg shadow-lg h-[500px] overflow-y-auto"> <!-- Increased padding and shadow -->
+            <h2 class="font-semibold text-lg mb-6 border-b border-gray-300 pb-2">Search Manuscripts</h2>
+            <form method="get" class="flex items-center mb-4">
+                <input
+                    type="text"
+                    id="search-input"
+                    name="search"
+                    value="{{ search_query }}"
+                    placeholder="Search manuscripts..."
+                    autofocus
+                    class="w-full px-5 py-3 rounded-lg border border-gray-300 focus:ring-[#25580F] focus:border-[#25580F] text-lg shadow-sm transition duration-300"
+                >
+                <button
+                    type="submit"
+                    class="ml-2 px-6 py-3 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 shadow-sm"
+                >
+                    Search
+                </button>
+            </form>
+
+            <h2 class="font-semibold text-lg mb-4 border-b border-gray-300 pb-2">Filters</h2>
+
+            <form method="get" id="filter-form">
+                <div class="mb-4">
+                    <label for="program" class="block text-sm font-medium text-gray-700">Program</label>
+                    <select name="program" id="program" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <option value="">Select Program</option>
+                        {% for program in programs %}
+                            <option value="{{ program.id }}" {% if program.id|stringformat:"s" == request.GET.program %}selected{% endif %}>{{ program.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <h4 class="text-lg mt-2 font-semibold">Abstract:</h4>
-                <p class="text-lg">{{ manuscript.abstracts|truncatewords:50 }}{% if manuscript.abstract|length > 30 %}...{% endif %}</p>
-                <div class="mt-auto">
-                    <a href="{% url 'view_manuscript' manuscript.id %}" class="w-full text-center block mt-4 py-3 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 text-lg">View Manuscript</a>
+
+                <div class="mb-4">
+                    <label for="manuscript_type" class="block text-sm font-medium text-gray-700">Manuscript Type</label>
+                    <select name="manuscript_type" id="manuscript_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <option value="">Select Type</option>
+                        {% for manuscript_type in manuscript_types %}
+                            <option value="{{ manuscript_type.id }}" {% if manuscript_type.id|stringformat:"s" == request.GET.manuscript_type %}selected{% endif %}>{{ manuscript_type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
+                    <select name="category" id="category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id|stringformat:"s" == request.GET.category %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="batch" class="block text-sm font-medium text-gray-700">Batch</label>
+                    <select name="batch" id="batch" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <option value="">Select Batch</option>
+                        {% for batch in batches %}
+                            <option value="{{ batch.id }}" {% if batch.id|stringformat:"s" == request.GET.batch %}selected{% endif %}>{{ batch.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full px-4 py-2 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 shadow-sm">
+                    Apply Filters
+                </button>
+            </form>
+        </div>
+
+        <!-- Manuscripts Table -->
+        <div class="col-span-3"> <!-- Removed margin-left -->
+            <table class="min-w-full bg-white rounded-lg shadow-lg"> <!-- Added shadow and rounded corners -->
+                <thead class="bg-[#25580F] text-white">
+                    <tr>
+                        <th class="py-3 px-4 text-left">Type</th>
+                        <th class="py-3 px-4 text-left">Title</th>
+                        <th class="py-3 px-4 text-left">Batch</th>
+                        <th class="py-3 px-4 text-left">Author</th>
+                        <th class="py-3 px-4 text-left">Adviser</th>
+                        <th class="py-3 px-4 text-left">Program</th>
+                        <th class="py-3 px-4 text-left">Category</th>
+                        <th class="py-3 px-4 text-left">Abstract</th>
+                        <th class="py-3 px-4 text-left">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for manuscript in manuscripts %}
+                    <tr class="table-row hover:bg-gray-100 transition duration-300"> <!-- Added hover effect -->
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.manuscript_type.name }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.title }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.batch }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.authors }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.adviser.first_name }} {{ manuscript.adviser.last_name }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.program.name }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.category.name }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.abstracts|truncatechars:50 }}</td>
+                        <td class="table-cell py-2 px-4 border-b border-gray-300 action-button">
+                            <a href="{% url 'view_manuscript' manuscript.id %}" class="text-[#25580F] hover:text-[#1c4a0c] transition duration-300">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-gray-600 py-4">No manuscripts found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="flex justify-between items-center mt-6">
+                <div>
+                    <span class="text-gray-600">
+                        Showing {{ manuscripts.paginator.count }} manuscripts
+                    </span>
+                </div>
+                <div>
+                    {% if manuscripts.has_previous %}
+                    <a href="?page={{ manuscripts.previous_page_number }}&search={{ search_query }}" class="px-4 py-2 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300">
+                        Previous
+                    </a>
+                    {% endif %}
+                    {% if manuscripts.has_next %}
+                    <a href="?page={{ manuscripts.next_page_number }}&search={{ search_query }}" class="px-4 py-2 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300">
+                        Next
+                    </a>
+                    {% endif %}
                 </div>
             </div>
-            {% empty %}
-            <p class="text-lg text-gray-800 text-center col-span-full">No manuscripts found.</p>
-            {% endfor %}
         </div>
     </div>
 </div>

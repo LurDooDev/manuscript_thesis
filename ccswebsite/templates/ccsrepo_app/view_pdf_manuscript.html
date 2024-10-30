@@ -21,15 +21,13 @@
                     <a href="{% url 'manuscript_search_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg">Home</a>
                 </li>
                 <li>
-                    {% if request.user.is_authenticated and request.user.is_student %}
-                        <a href="{% url 'manuscript_upload_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2">Upload</a>
+                    {% if user.is_adviser %}
+                        <a href="{% url 'adviser_approve_student' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
+                    {% elif user.is_admin %}
+                        <a href="{% url 'manage_users' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
+                    {% else %}
+                        <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
                     {% endif %}
-                </li>
-                <li>
-                    <a href="{% url user.is_adviser|default:'student_manuscripts' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2">Hello, {{ user.first_name }}</a>
-                </li>
-                <li>
-                    <a href="{% url 'logout' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2">Logout</a>
                 </li>
             </ul>
         </nav>
@@ -46,9 +44,9 @@
         </div>
 
         <div class="ocr-text-container">
-            <h3 class="text-xl font-semibold mb-2">Matching Pages: {{ matching_page_numbers|length }} Page found</h3>
+            <h3 class="text-xl font-semibold mb-2">Matching text in Pages: {{ matching_page_numbers|length }} Page found</h3>
             {% for page_data in ocr_data %}
-                {% if page_data.page_num > 1 %}
+                {% if page_data.page_num > 0 %}
                 <div class="ocr-page mb-4" data-page-number="{{ page_data.page_num }}" {% if page_data.page_num in matching_page_numbers %} class="highlight"{% endif %}>
                     <h4 class="text-lg font-bold">Page {{ page_data.page_num }}:</h4>
                     <img src="{{ page_data.image.url }}" alt="Page {{ page_data.page_num }} Image" class="mt-2 rounded shadow">
