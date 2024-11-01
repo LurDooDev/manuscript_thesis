@@ -14,7 +14,7 @@
         <p class="text-lg mb-4"><strong>Batch:</strong> <span class="text-gray-600">{{ manuscript.batch }}</span></p>
         <p class="text-lg mb-4"><strong>Abstract:</strong> <span class="text-gray-600">{{ manuscript.abstracts }}</span></p>
         <p class="text-lg mb-2"><strong>Status:</strong> <span class="font-medium {{ manuscript.is_approved|yesno:'text-green-600,text-red-600' }}">{{ manuscript.status }}</span></p>
-        <p class="text-lg mb-4"><strong>Submission Date:</strong> <span class="text-gray-600">{{ manuscript.publication_date }}</span></p>
+        <p class="text-lg mb-4"><strong>Uploaded Date:</strong> <span class="text-gray-600">{{ manuscript.publication_date }}</span></p>
         <a href="{{ manuscript.pdf_file.url }}" target="_blank" class="text-[#25580F] hover:underline mt-2 inline-block">View PDF</a>
     </div>
 
