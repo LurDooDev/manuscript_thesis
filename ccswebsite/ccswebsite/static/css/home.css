@@ -172,3 +172,10 @@ button:hover {
     padding: 1rem;
     text-align: right; /* Right-align footer cells */
 }
+
+.non-selectable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}

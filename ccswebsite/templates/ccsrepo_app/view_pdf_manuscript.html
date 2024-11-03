@@ -49,9 +49,9 @@
                         <h4 class="text-lg font-bold">Page {{ page_data.page_num }}:</h4>
                         <p class="text-gray-800">{{ page_data.highlighted_text|safe }}</p>
                     </div>
-                    <div class="ocr-image">
+                    {% comment %} <div class="ocr-image">
                         <img src="{{ page_data.image.url }}" alt="Page {{ page_data.page_num }} Image" class="rounded shadow">
-                    </div>
+                    </div> {% endcomment %}
                 </div>
                 {% endif %}
             {% empty %}
