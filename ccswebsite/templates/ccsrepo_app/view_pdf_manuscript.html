@@ -1,7 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,9 +16,7 @@
         <h1 class="text-2xl font-bold">College of Computing Studies Repository</h1>
         <nav>
             <ul class="flex space-x-6 text-lg">
-                <li>
-                    <a href="{% url 'manuscript_search_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg">Home</a>
-                </li>
+                <li><a href="{% url 'manuscript_search_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg">Home</a></li>
                 <li>
                     {% if user.is_adviser %}
                         <a href="{% url 'adviser_approve_student' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
@@ -43,13 +40,18 @@
             </form>
         </div>
 
-        <div class="ocr-text-container">
-            <h3 class="text-xl font-semibold mb-2">Matching text in Pages: {{ matching_page_numbers|length }} Page found</h3>
+        <div class="ocr-text-container non-selectable">
+            <h3 class="text-xl font-semibold mb-8">Matching text in Pages: {{ matching_page_numbers|length }} Page found</h3>
             {% for page_data in ocr_data %}
                 {% if page_data.page_num > 0 %}
-                <div class="ocr-page mb-4" data-page-number="{{ page_data.page_num }}" {% if page_data.page_num in matching_page_numbers %} class="highlight"{% endif %}>
-                    <h4 class="text-lg font-bold">Page {{ page_data.page_num }}:</h4>
-                    <img src="{{ page_data.image.url }}" alt="Page {{ page_data.page_num }} Image" class="mt-2 rounded shadow">
+                <div class="ocr-page" data-page-number="{{ page_data.page_num }}">
+                    <div class="matching-text">
+                        <h4 class="text-lg font-bold">Page {{ page_data.page_num }}:</h4>
+                        <p class="text-gray-800">{{ page_data.highlighted_text|safe }}</p>
+                    </div>
+                    <div class="ocr-image">
+                        <img src="{{ page_data.image.url }}" alt="Page {{ page_data.page_num }} Image" class="rounded shadow">
+                    </div>
                 </div>
                 {% endif %}
             {% empty %}
@@ -58,5 +60,4 @@
         </div>
     </main>
 </body>
-
 </html>

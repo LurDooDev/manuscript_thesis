@@ -119,19 +119,37 @@ def view_manuscript(request, manuscript_id):
         'has_access': has_access,
     })
 
+from django.utils.html import mark_safe
+import re
 
-#View Pdf manuscript
+# View PDF manuscript
 def view_pdf_manuscript(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     pdf_url = manuscript.pdf_file.url
 
-    search_term = request.GET.get('search', '')
+    search_term = request.GET.get('search', '').strip()
     
+    # Prepare OCR data
     if search_term:
+        # Filter OCR data to include all text (headings + body)
         ocr_data = manuscript.ocr_data.filter(text__icontains=search_term).order_by('page_num')
+        
+        for page in ocr_data:
+            # Highlight both headings and body text
+            highlighted_text = re.sub(
+                f"({re.escape(search_term)})",
+                r'<span class="highlight">\1</span>',
+                page.text,
+                flags=re.IGNORECASE  # Ensure highlighting is case-insensitive
+            )
+            page.highlighted_text = mark_safe(highlighted_text)  # Mark as safe for HTML rendering
     else:
+        # If no search term, use the original text
         ocr_data = manuscript.ocr_data.all().order_by('page_num')
+        for page in ocr_data:
+            page.highlighted_text = page.text  # Assign original text without highlighting
 
+    # Collect matching page numbers
     matching_page_numbers = [page.page_num for page in ocr_data]
 
     return render(request, 'ccsrepo_app/view_pdf_manuscript.html', {

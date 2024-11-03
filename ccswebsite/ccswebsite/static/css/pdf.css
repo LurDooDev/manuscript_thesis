@@ -77,6 +77,19 @@
     border: 1px solid #cddc39;
 }
 
+.matching-text {
+    background-color: #f3f4f6;
+    padding: 10px;
+    border-left: 4px solid #3a6c24;
+}
+
+.non-selectable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 img {
     max-width: 100%;
     height: auto;
