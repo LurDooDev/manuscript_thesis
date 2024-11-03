@@ -11,7 +11,9 @@ from .models import CustomUser, Program, Category, ManuscriptType, Batch, Advise
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from io import BytesIO
+from django.db.models import Count
 
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Update this path accordingly
 
 #----------------UTIL/Helper------------------------/
 def extract_pages_as_images(pdf_path, manuscript):
@@ -319,6 +321,58 @@ def manage_program(request):
     programs = Program.objects.all() 
     return render(request, 'ccsrepo_app/manage_program.html', {'programs': programs})
 
+#Dashboard Page
+def dashboard_page(request):
+    # Get manuscripts with specific statuses
+    advisers = CustomUser.objects.filter(is_adviser=True).annotate(manuscript_count=Count('manuscripts')
+    )
+    batches = Batch.objects.annotate(
+        manuscript_count=Count('manuscript', distinct=True) 
+    )
+    programs = Program.objects.annotate(
+        manuscript_count=Count('manuscript')  # Count all manuscripts related to each program
+    )
+    types = ManuscriptType.objects.annotate(
+        manuscript_count=Count('manuscript')  # Count all manuscripts related to each program
+    )
+    manusripts = Manuscript.objects.all()
+    
+    manuscripts = Manuscript.objects.all()
+    approved_manuscripts = Manuscript.objects.filter(status='approved')
+    pending_manuscripts = Manuscript.objects.filter(status='pending')
+    rejected_manuscript = Manuscript.objects.filter(status = 'rejected')
+    adviser_names = [adviser.first_name + ' ' + adviser.last_name for adviser in advisers]
+    
+    # Count manuscripts by status
+    pending_count = pending_manuscripts.count()
+    approved_count = approved_manuscripts.count()
+    rejected_count = rejected_manuscript.count()
+    adviser_count = advisers.count()
+    manuscript_counts = [adviser.manuscript_count for adviser in advisers]
+    total_records = Manuscript.objects.all().count()  # Total manuscripts count
+
+    # Pass manuscripts and counts to the template
+    context = {
+        'approved_count': approved_count,
+        'pending_count': pending_count,
+        'rejected_count': rejected_count,
+        'adviser_count': adviser_count,
+        'manuscript_counts': manuscript_counts,
+        
+        
+        'manuscripts': manuscripts,
+        'total_records': total_records,
+        'advisers': advisers,
+        'adviser_names': adviser_names,
+        'batches': batches,
+        'programs': programs,
+        'types': types,
+        
+        
+    }
+
+    return render(request, 'ccsrepo_app/dashboard_page.html', context)
+
 #Category
 def manage_category(request):
     if request.method == 'POST':
@@ -427,7 +481,7 @@ def upload_manuscript(request):
                     # Extract pages and save images/text
                     extract_pages_as_images(pdf_file_path, manuscript)
 
-                    pages = convert_from_path(pdf_file_path, dpi=72)
+                    pages = convert_from_path(pdf_file_path, dpi=72, poppler_path=r'C:\Program Files\poppler-24.08.0\Library\bin')
                     if len(pages) >= 2:
                         abstract_image = pages[1]
                         abstract_text = pytesseract.image_to_string(abstract_image).strip()
@@ -577,7 +631,7 @@ def faculty_upload_manuscript(request):
                 try:
                     extract_pages_as_images(pdf_file_path, manuscript)
 
-                    pages = convert_from_path(pdf_file_path, dpi=72)
+                    pages = convert_from_path(pdf_file_path, dpi=72, poppler_path=r'C:\Program Files\poppler-24.08.0\Library\bin')
                     if len(pages) >= 2:
                         abstract_image = pages[1]
                         abstract_text = pytesseract.image_to_string(abstract_image).strip()

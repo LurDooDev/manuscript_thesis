@@ -30,6 +30,7 @@ urlpatterns = [
     path('adviser-review/<int:manuscript_id>/', views.adviser_review, name='adviser_review'),
     #admin
     path('manage-users/', views.ManageAdviser, name='manage_users'),
+    path('manage-dashboard/', views.dashboard_page, name='dashboard_page'), # new url
     path('manage-program/', views.manage_program, name='manage_program'),
     path('manage-category/', views.manage_category, name='manage_category'),
     path('manage-batch/', views.manage_batch, name='manage_batch'),
