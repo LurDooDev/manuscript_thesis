@@ -15,7 +15,12 @@ urlpatterns = [
     path('manuscript/<int:manuscript_id>/', views.view_manuscript, name='view_manuscript'),
     path('finalize/<int:manuscript_id>/<str:extracted_abstract>/', views.final_manuscript_page, name='final_manuscript_page'),
     path('manuscript-search/', views.manuscript_search_page, name='manuscript_search_page'),
+    path('request-manuscript/<int:manuscript_id>/', views.request_access, name='request_access'),
     path('view_pdf/<int:manuscript_id>/', views.view_pdf_manuscript, name='view_pdf_manuscript'),
+    #Request Access
+    path('manuscript-access-requests/', views.manuscript_access_requests, name='manuscript_access_requests'),
+    path('manage-access-request/', views.manage_access_request, name='manage_access_request'),
+    path('request-access/<int:manuscript_id>/', views.request_access, name='request_access'),
     #User to verify
     path('adviser-request/', views.request_adviser_view, name='adviser_request'),
     path('adviser-request-success/', views.success_request_view, name='adviser_request_success'),

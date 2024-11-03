@@ -45,12 +45,19 @@
                     </div>
                 </div>
 
-                <!-- View PDF or Request Access Button -->
-                <div class="mt-8 flex justify-center">
-                    <a href="{% url 'view_pdf_manuscript' manuscript.id %}" 
-                       class="py-4 px-6 bg-[#25580F] text-white font-semibold rounded-lg shadow-md hover:bg-[#1c4a0c] transition duration-300 transform hover:scale-105">
-                        Full Search View
-                    </a>
+                <!-- Buttons for PDF View and Access Request -->
+                <div class="mt-8 flex justify-center space-x-4">
+                    {% if has_access %}
+                        <a href="{% url 'view_pdf_manuscript' manuscript.id %}" 
+                           class="py-4 px-6 bg-[#25580F] text-white font-semibold rounded-lg shadow-md hover:bg-[#1c4a0c] transition duration-300 transform hover:scale-105">
+                            Full Search View
+                        </a>
+                    {% else %}
+                        <a href="{% url 'request_access' manuscript.id %}" 
+                           class="py-4 px-6 bg-[#25580F] text-white font-semibold rounded-lg shadow-md hover:bg-[#1c4a0c] transition duration-300 transform hover:scale-105">
+                            Request Full Search
+                        </a>
+                    {% endif %}
                 </div>
 
                 <!-- Back Button -->

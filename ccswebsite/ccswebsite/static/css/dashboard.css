@@ -77,6 +77,34 @@ html, body {
   padding: .75rem 1rem;
 }
 
+.custom-approve {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.custom-approve:hover {
+  background-color: #388E3C;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.custom-deny {
+  background-color: #F44336;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.custom-deny:hover {
+  background-color: #C62828;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 /* Mobile-specific styles */
 @media (max-width: 991.98px) {
   .col-lg-3 {

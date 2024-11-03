@@ -7,7 +7,7 @@ from django.db.models import Q
 import pytesseract
 from django.core.files.base import ContentFile
 from pdf2image import convert_from_path
-from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData
+from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from io import BytesIO
@@ -95,11 +95,30 @@ def manuscript_search_page(request):
         'batches': batches,
     })
 
-
-#View Manuscript
 def view_manuscript(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
-    return render(request, 'ccsrepo_app/view_manuscript.html', {'manuscript': manuscript})
+
+    # Check if the user is the student or adviser of the manuscript
+    is_student = request.user == manuscript.student
+    is_adviser = request.user == manuscript.adviser
+    
+    # Check if the user has an approved access request
+    access_request = ManuscriptAccessRequest.objects.filter(
+        manuscript=manuscript,
+        student=request.user,
+        status='approved',
+        access_start_date__lte=timezone.now(),
+        access_end_date__gte=timezone.now()
+    ).first()
+    
+    # Set has_access to True if the user is the student, adviser, or has an approved request
+    has_access = is_student or is_adviser or (access_request is not None)
+
+    return render(request, 'ccsrepo_app/view_manuscript.html', {
+        'manuscript': manuscript,
+        'has_access': has_access,
+    })
+
 
 #View Pdf manuscript
 def view_pdf_manuscript(request, manuscript_id):
@@ -603,9 +622,54 @@ def faculty_final_page(request, manuscript_id, extracted_abstract=""):
         'programs': programs,
     })
 #----------------End Faculty Upload System ------------------------/
-#----------------End Faculty System ------------------------/
 
+# ----------------Request Access System ------------------------/
+def request_access(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    
+    # Check if the user is the assigned student or already has access
+    if request.user.is_student and request.user == manuscript.student:
+        messages.info(request, "You already have access to this manuscript.")
+        return redirect('view_pdf', manuscript_id=manuscript.id)
 
+    # Check if an access request already exists for this student and manuscript
+    existing_request = ManuscriptAccessRequest.objects.filter(
+        manuscript=manuscript, student=request.user, status='pending'
+    ).exists()
 
+    if not existing_request:
+        # Create a new access request if none exists
+        ManuscriptAccessRequest.objects.create(
+            manuscript=manuscript,
+            student=request.user,
+        )
+        messages.success(request, "Your access request has been sent to the adviser for approval.")
+    else:
+        messages.info(request, "You have already requested access to this manuscript.")
 
+    return redirect('manuscript_detail', manuscript_id=manuscript.id)
 
+def manuscript_access_requests(request):
+    # List all access requests for the adviser's manuscripts
+    access_requests = ManuscriptAccessRequest.objects.filter(manuscript__adviser=request.user)
+    return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'access_requests': access_requests})
+
+def manage_access_request(request):
+    # Manage approval or denial of a request via a single endpoint
+    if request.method == "POST":
+        request_id = request.POST.get("request_id")
+        action = request.POST.get("action")
+        
+        # Retrieve the access request and verify the adviser is responsible
+        access_request = get_object_or_404(ManuscriptAccessRequest, id=request_id, manuscript__adviser=request.user)
+        
+        if action == "approve":
+            # Approve and set the access duration
+            access_request.approve(duration_days=7)
+            messages.success(request, "Access request approved successfully.")
+        elif action == "deny":
+            # Deny the access request
+            access_request.deny()
+            messages.success(request, "Access request denied successfully.")
+        
+    return redirect("manuscript_access_requests")

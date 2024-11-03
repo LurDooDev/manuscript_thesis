@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 
@@ -108,5 +110,42 @@ class PageOCRData(models.Model):
         
     def __str__(self):
         return f"Page {self.page_num} of {self.manuscript.title}"
-    
+
+#Request Access PDF
+class ManuscriptAccessRequest(models.Model):
+    manuscript = models.ForeignKey('Manuscript', on_delete=models.CASCADE, related_name='access_requests')
+    student = models.ForeignKey('CustomUser', on_delete=models.CASCADE, related_name='access_requests')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(
+        max_length=10,
+        choices=[('pending', 'Pending'), ('approved', 'Approved'), ('denied', 'Denied')],
+        default='pending'
+    )
+    access_start_date = models.DateTimeField(null=True, blank=True)
+    access_end_date = models.DateTimeField(null=True, blank=True)
+
+    def approve(self, duration_days=7):
+        """Approve the request and set access duration."""
+        self.status = 'approved'
+        self.approved_at = timezone.now()
+        self.access_start_date = timezone.now()
+        self.access_end_date = timezone.now() + timedelta(days=duration_days)
+        self.save()
+
+    def deny(self):
+        """Deny the access request."""
+        self.status = 'denied'
+        self.save()
+
+    def is_accessible(self):
+        """Check if access is currently active."""
+        if self.status == 'approved' and self.access_start_date and self.access_end_date:
+            return self.access_start_date <= timezone.now() <= self.access_end_date
+        return False
+
+    @property
+    def adviser(self):
+        """Retrieve the adviser from the associated manuscript."""
+        return self.manuscript.adviser
     
