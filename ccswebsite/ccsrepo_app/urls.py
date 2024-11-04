@@ -37,6 +37,7 @@ urlpatterns = [
     path('manage-type/', views.manage_type, name='manage_type'),
     #Student
     path('my-manuscripts/', views.student_manuscripts_view, name='student_manuscripts'),
+    path('my-access-requests/', views.student_access_requests, name='student_access_requests'),
     path('manuscripts-details/<int:manuscript_id>/', views.manuscript_detail_view, name='manuscript_detail'),
     #Redirecting
     path('login/', views.login_view, name='login'),
