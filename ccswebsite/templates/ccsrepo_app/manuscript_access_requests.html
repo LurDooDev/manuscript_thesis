@@ -8,6 +8,8 @@
                 <th class="px-4 py-2">Student Name</th>
                 <th class="px-4 py-2">Requested At</th>
                 <th class="px-4 py-2">Status</th>
+                <th class="px-4 py-2">Approved At</th>
+                <th class="px-4 py-2">Access End Date</th>
                 <th class="px-4 py-2">Actions</th>
             </tr>
         </thead>
@@ -17,6 +19,20 @@
                     <td class="border px-4 py-2">{{ request.student.first_name }} {{ request.student.last_name }}</td>
                     <td class="border px-4 py-2">{{ request.requested_at }}</td>
                     <td class="border px-4 py-2">{{ request.get_status_display }}</td>
+                    <td class="border px-4 py-2">
+                        {% if request.approved_at %}
+                            {{ request.approved_at|date:"Y-m-d H:i" }}
+                        {% else %}
+                            <span class="text-gray-500">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="border px-4 py-2">
+                        {% if request.access_end_date %}
+                            {{ request.access_end_date|date:"Y-m-d H:i" }}
+                        {% else %}
+                            <span class="text-gray-500">N/A</span>
+                        {% endif %}
+                    </td>
                     <td class="border px-4 py-2">
                         {% if request.status == 'pending' %}
                             <form method="post" action="{% url 'manage_access_request' %}" class="inline">
@@ -38,7 +54,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="4" class="border px-4 py-2 text-center">No access requests found.</td>
+                    <td colspan="6" class="border px-4 py-2 text-center">No access requests found.</td>
                 </tr>
             {% endfor %}
         </tbody>
