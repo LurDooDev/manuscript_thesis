@@ -147,14 +147,14 @@ def view_pdf_manuscript(request, manuscript_id):
                 f"({re.escape(search_term)})",
                 r'<span class="highlight">\1</span>',
                 page.text,
-                flags=re.IGNORECASE  # Ensure highlighting is case-insensitive
+                flags=re.IGNORECASE
             )
-            page.highlighted_text = mark_safe(highlighted_text)  # Mark as safe for HTML rendering
+            page.highlighted_text = mark_safe(highlighted_text)
     else:
         # If no search term, use the original text
         ocr_data = manuscript.ocr_data.all().order_by('page_num')
         for page in ocr_data:
-            page.highlighted_text = page.text  # Assign original text without highlighting
+            page.highlighted_text = page.text
 
     # Collect matching page numbers
     matching_page_numbers = [page.page_num for page in ocr_data]
@@ -917,8 +917,8 @@ def request_access(request, manuscript_id):
         messages.success(request, "Your access request has been sent to the adviser for approval.")
     else:
         messages.info(request, "You have already requested access to this manuscript.")
-
-    return redirect('manuscript_detail', manuscript_id=manuscript.id)
+    return redirect('manuscript_search_page')
+    # return redirect('view_manuscript', manuscript_id=manuscript.id)
 
 def manuscript_access_requests(request):
     # List all access requests for the adviser's manuscripts
@@ -944,3 +944,12 @@ def manage_access_request(request):
             messages.success(request, "Access request denied successfully.")
         
     return redirect("manuscript_access_requests")
+
+def student_access_requests(request):
+    if request.user.is_student:
+        # Fetch access requests for the logged-in student
+        access_requests = ManuscriptAccessRequest.objects.filter(student=request.user)
+    else:
+        access_requests = []  # No requests if the user is not a student
+
+    return render(request, 'ccsrepo_app/student_access_requests.html', {'access_requests': access_requests})
