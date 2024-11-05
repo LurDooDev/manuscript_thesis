@@ -822,6 +822,19 @@ video {
   color: rgb(255 255 255 / var(--tw-text-opacity));
 }
 
+.text-error{
+  --tw-text-opacity: 1;
+  color: crimson;
+  border: 1px solid crimson;
+  border-radius: 5px;
+  padding: 0.5em;
+  margin-bottom: 1em;
+}
+
+.margin-b-1{
+  margin-bottom: 0.5em;
+}
+
 .shadow-lg {
   --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);

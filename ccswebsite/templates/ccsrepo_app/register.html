@@ -1,78 +1,131 @@
-{% extends "base_auth.html" %}
-
+{% extends "base_auth.html" %} 
 {% block content %}
 <div id="registration-form" class="login-form-container">
-    <form method="POST" class="login-form">
-        {% csrf_token %}
-        <h1 class="text-2xl font-bold mb-4 text-center text-gray-900">Registration</h1>
+  <form method="POST" class="login-form">
+    {% csrf_token %}
+    <h1 class="text-2xl font-bold mb-4 text-center text-gray-900">
+      Registration
+    </h1>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="bg-red-100 text-red-700 border border-red-400 rounded p-4 mb-4">
-                    {{ message }}
-                </div>
-            {% endfor %}
+    <div class="flex flex-wrap mb-4">
+      <div class="w-full md:w-1/2 input-margin">
+        <label for="first_name" class="login-label">First Name</label>
+        <input
+          type="text"
+          name="first_name"
+          id="first_name"
+          required
+          class="login-input"
+          placeholder="Enter your first name"
+          value="{{ first_name|default:'' }}"  
+        />
+        {% if errors.first_name %}
+        <div class="text-error text-sm">{{ errors.first_name.0 }}</div>
         {% endif %}
-        <div class="flex flex-wrap mb-4">
-            <div class="w-full md:w-1/2 input-margin">
-                <label for="first_name" class="login-label">First Name</label>
-                <input type="text" name="first_name" id="first_name" required
-                    class="login-input"
-                    placeholder="Enter your first name">
-            </div>
+      </div>
 
-            <div class="w-full md:w-1/2 input-margin">
-                <label for="last_name" class="login-label">Last Name</label>
-                <input type="text" name="last_name" id="last_name" required
-                    class="login-input"
-                    placeholder="Enter your last name">
-            </div>
-        </div>
+      <div class="w-full md:w-1/2 input-margin">
+        <label for="last_name" class="login-label">Last Name</label>
+        <input
+          type="text"
+          name="last_name"
+          id="last_name"
+          required
+          class="login-input"
+          placeholder="Enter your last name"
+          value="{{ last_name|default:'' }}"  
+        />
+        {% if errors.last_name %}
+        <div class="text-error text-sm">{{ errors.last_name.0 }}</div>
+        {% endif %}
+      </div>
+    </div>
 
-        <div class="mb-4">
-            <label for="program" class="login-label">Program</label>
-            <select name="program" id="program" required class="login-input">
-                <option value="">Select a program</option>
-                {% for program in programs %}
-                    <option value="{{ program.id }}">{{ program.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+    <div class="mb-4">
+      <label for="program" class="login-label">Program</label>
+      {% if errors.program %}
+      <div class="text-error text-sm">{{ errors.program.0 }}</div>
+      {% endif %}
+      <select name="program" id="program" required class="login-input">
+        <option value="">Select a program</option>
+        {% for program in programs %}
+        <option value="{{ program.id }}" {% if program.id == program_id %}selected{% endif %}>
+          {{ program.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
 
-        <div class="mb-4">
-            <label for="username" class="login-label">Username</label>
-            <input type="text" name="username" id="username" required
-                class="login-input"
-                placeholder="Choose a username">
-        </div>
+    <div class="mb-4">
+      <label for="username" class="login-label">Username</label>
+      <input
+        type="text"
+        name="username"
+        id="username"
+        required
+        class="login-input"
+        placeholder="Choose a username"
+        value="{{ username|default:'' }}"  
+      />
+      {% if errors.username %}
+      <div class="text-error text-sm">{{ errors.username.0 }}</div>
+      {% endif %}
+    </div>
 
-        <div class="mb-4">
-            <label for="email" class="login-label">Email</label>
-            <input type="email" name="email" id="email" required
-                class="login-input"
-                placeholder="Enter your email">
-        </div>
+    <div class="mb-4">
+      <label for="email" class="login-label">Email</label>
+      <input
+        type="email"
+        name="email"
+        id="email"
+        required
+        class="login-input"
+        placeholder="Enter your email"
+        value="{{ email|default:'' }}"  
+      />
+      {% if errors.email %}
+      <div class="text-error text-sm">{{ errors.email.0 }}</div>
+      {% endif %}
+    </div>
 
-        <div class="mb-4">
-            <label for="password1" class="login-label">Password</label>
-            <input type="password" name="password1" id="password1" required
-                class="login-input"
-                placeholder="Create a password">
-        </div>
+    <div class="mb-4">
+      <label for="password1" class="login-label">Password</label>
+      <input
+        type="password"
+        name="password1"
+        id="password1"
+        required
+        class="login-input"
+        placeholder="Create a password"
+      />
+      {% if errors.password1 %}
+      <div class="text-error text-sm">{{ errors.password1.0 }}</div>
+      {% endif %}
+    </div>
 
-        <div class="mb-4">
-            <label for="password2" class="login-label">Confirm Password</label>
-            <input type="password" name="password2" id="password2" required
-                class="login-input"
-                placeholder="Confirm your password">
-        </div>
-        <button type="submit" class="login-button mb-2">Register</button>
+    <div class="mb-4">
+      <label for="password2" class="login-label">Confirm Password</label>
+      <input
+        type="password"
+        name="password2"
+        id="password2"
+        required
+        class="login-input"
+        placeholder="Confirm your password"
+      />
+      {% if errors.password2 %}
+      <div class="text-error text-sm">{{ errors.password2.0 }}</div>
+      {% endif %}
+    </div>
 
-        <div class="px-6 py-4 text-center rounded-lg">
-            <p class="text-sm">Already have an account? 
-                <a class="signup-link" href="{% url 'login' %}">Login Now</a>
-            </p>
-        </div>
-    </form>
+    <button type="submit" class="login-button mb-2">Register</button>
+
+    <div class="px-6 py-4 text-center rounded-lg">
+      <p class="text-sm">
+        Already have an account?
+        <a class="signup-link" href="{% url 'login' %}">Login Now</a>
+      </p>
+    </div>
+  </form>
 </div>
 {% endblock %}

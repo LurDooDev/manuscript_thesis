@@ -13,7 +13,12 @@ from django.core.paginator import Paginator
 from io import BytesIO
 from django.db.models import Count
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Update this path accordingly
+# these are for validations
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext as _
+
 
 #----------------UTIL/Helper------------------------/
 def extract_pages_as_images(pdf_path, manuscript):
@@ -263,29 +268,149 @@ def approve_student_view(request):
 #----------------End Student and Adviser ------------------------/
 
 #Register Student
+# def StudentRegister(request):
+#     if request.method == 'POST':
+#         email = request.POST.get('email')
+#         username = request.POST.get('username')
+#         first_name = request.POST.get('first_name')
+#         last_name = request.POST.get('last_name')
+#         password1 = request.POST.get('password1')
+#         password2 = request.POST.get('password2')
+#         program_id = request.POST.get('program')
+
+#         #validation
+        
+#         #password validation
+#         try:
+#             validate_password(password1)  # Validates according to `AUTH_PASSWORD_VALIDATORS`
+#         except ValidationError as e:
+#             messages.error(request, e.messages)
+#             return render(request, 'register')
+        
+#         if password1 != password2:
+#             messages.error(request, "Passwords do not match.")
+#             return redirect('register')
+        
+#         if CustomUser.objects.filter(email=email).exists():
+#             messages.error(request, "Email already exists.")
+#             return redirect('register')
+
+#         if CustomUser.objects.filter(username=username).exists():
+#             messages.error(request, "Username already exists.")
+#             return redirect('register')
+
+#         user = CustomUser(
+#             email=email,
+#             username=username,
+#             first_name=first_name,
+#             last_name=last_name,
+#             is_student=False,
+#             program_id=program_id
+#         )
+#         user.set_password(password1)
+#         user.save()
+        
+#         messages.success(request, "Registration successful!")
+#         return redirect('login')
+    
+#     programs = Program.objects.all()
+#     return render(request, 'ccsrepo_app/register.html', {'programs': programs})
+
+
+#new student register
+def validate_user_data(email, username, password1, password2):
+    errors = {}
+
+    # Password validation
+    try:
+        password_validation.validate_password(password1)
+    except ValidationError as e:
+        errors['password1'] = list(e.messages)
+
+    # Check if passwords match
+    if password1 != password2:
+        errors['password2'] = ["Passwords do not match."]
+
+    # Check if email or username already exists
+    if CustomUser.objects.filter(email=email).exists():
+        errors['email'] = ["Email already exists."]
+    if CustomUser.objects.filter(username=username).exists():
+        errors['username'] = ["Username already exists."]
+
+    return errors
+
+
+
+def validate_user_password(password):
+    errors = []
+    if len(password) < 8:
+        errors.append(_("Password must be at least 8 characters long."))
+    if not any(char.isupper() for char in password):
+        errors.append(_("Password must contain at least one uppercase letter."))
+    if not any(char.islower() for char in password):
+        errors.append(_("Password must contain at least one lowercase letter."))
+    if not any(char.isdigit() for char in password):
+        errors.append(_("Password must contain at least one digit."))
+    if not any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?/' for char in password):
+        errors.append(_("Password must contain at least one special character."))
+    
+    return errors
+
+def validate_user_data(email, username, password1, password2):
+    errors = {}
+
+    # Validate password with custom rules
+    password_errors = validate_user_password(password1)
+    if password_errors:
+        errors['password1'] = password_errors
+
+    # Check if passwords match
+    if password1 != password2:
+        errors['password2'] = [_("Passwords do not match.")]
+
+    # Validate using Django's built-in password validators
+    try:
+        password_validation.validate_password(password1)
+    except ValidationError as e:
+        errors['password1'] = errors.get('password1', []) + list(e.messages)
+
+    # Check if email or username already exists
+    if CustomUser.objects.filter(email=email).exists():
+        errors['email'] = [_("Email already exists.")]
+    if CustomUser.objects.filter(username=username).exists():
+        errors['username'] = [_("Username already exists.")]
+
+    return errors
+
 def StudentRegister(request):
     if request.method == 'POST':
-        email = request.POST.get('email')
-        username = request.POST.get('username')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
+        # Retrieve and strip form data
+        email = request.POST.get('email', '').strip()
+        username = request.POST.get('username', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        password1 = request.POST.get('password1', '').strip()
+        password2 = request.POST.get('password2', '').strip()
         program_id = request.POST.get('program')
 
-        #validation
-        if password1 != password2:
-            messages.error(request, "Passwords do not match.")
-            return redirect('register')
-        
-        if CustomUser.objects.filter(email=email).exists():
-            messages.error(request, "Email already exists.")
-            return redirect('register')
+        # Validate user data
+        errors = validate_user_data(email, username, password1, password2)
 
-        if CustomUser.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
-            return redirect('register')
+        # If there are errors, re-render the form with errors and the previously entered data
+        if errors:
+            programs = Program.objects.all()
+            # Add the current form data to the context
+            return render(request, 'ccsrepo_app/register.html', {
+                'programs': programs,
+                'errors': errors,
+                'email': email,
+                'username': username,
+                'first_name': first_name,
+                'last_name': last_name,
+                'program_id': program_id
+            })
 
+        # If validation passes, create the user
         user = CustomUser(
             email=email,
             username=username,
@@ -294,7 +419,7 @@ def StudentRegister(request):
             is_student=False,
             program_id=program_id
         )
-        user.set_password(password1)
+        user.set_password(password1)  # Use the hashed password method
         user.save()
         
         messages.success(request, "Registration successful!")
@@ -302,6 +427,7 @@ def StudentRegister(request):
     
     programs = Program.objects.all()
     return render(request, 'ccsrepo_app/register.html', {'programs': programs})
+
 #----------------Admin Managing ------------------------/
 
 #Program
@@ -422,28 +548,75 @@ def manage_type(request):
     return render(request, 'ccsrepo_app/manage_type.html', {'type': type})
 
 #Register Advisers And Manage
+# def ManageAdviser(request):
+#     if request.method == 'POST':
+#         email = request.POST.get('email')
+#         username = request.POST.get('username')
+#         first_name = request.POST.get('first_name')
+#         last_name = request.POST.get('last_name')
+#         password1 = request.POST.get('password1')
+#         password2 = request.POST.get('password2')
+#         program_id = request.POST.get('program')
+#         # Validation
+#         if password1 != password2:
+#             messages.error(request, "Passwords do not match.")
+#             return redirect('manage_users')
+        
+#         if CustomUser.objects.filter(email=email).exists():
+#             messages.error(request, "Email already exists.")
+#             return redirect('manage_users')
+
+#         if CustomUser.objects.filter(username=username).exists():
+#             messages.error(request, "Username already exists.")
+#             return redirect('manage_users')
+        
+#         user = CustomUser(
+#             email=email,
+#             username=username,
+#             first_name=first_name,
+#             last_name=last_name,
+#             is_adviser=True,
+#             program_id=program_id
+#         )
+#         user.set_password(password1)
+#         user.save()
+
+#         messages.success(request, "Registration successful! You can now log in.")
+#         return redirect('manage_users')
+#     programs = Program.objects.all()
+#     advisers = CustomUser.objects.filter(is_adviser=True).values('first_name', 'last_name', 'email')
+#     return render(request, 'ccsrepo_app/manage_users.html', {'advisers': advisers , 'programs': programs})
+
+#new manage adviser
 def ManageAdviser(request):
     if request.method == 'POST':
-        email = request.POST.get('email')
-        username = request.POST.get('username')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
+        email = request.POST.get('email').strip()
+        username = request.POST.get('username').strip()
+        first_name = request.POST.get('first_name').strip()
+        last_name = request.POST.get('last_name').strip()
+        password1 = request.POST.get('password1').strip()
+        password2 = request.POST.get('password2').strip()
         program_id = request.POST.get('program')
-        # Validation
-        if password1 != password2:
-            messages.error(request, "Passwords do not match.")
-            return redirect('manage_users')
-        
-        if CustomUser.objects.filter(email=email).exists():
-            messages.error(request, "Email already exists.")
-            return redirect('manage_users')
 
-        if CustomUser.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
-            return redirect('manage_users')
-        
+        # Validate user data
+        errors = validate_user_data(email, username, password1, password2)
+
+        # If there are errors, re-render the form with errors and the previously entered data
+        if errors:
+            programs = Program.objects.all()
+            advisers = CustomUser.objects.filter(is_adviser = True)
+            return render(request, 'ccsrepo_app/manage_users.html', {
+                'programs': programs,
+                'advisers': advisers,
+                'errors': errors,
+                'email': email,
+                'username': username,
+                'first_name': first_name,
+                'last_name': last_name,
+                'program_id': program_id
+            })
+
+        # Create the user if validation passes
         user = CustomUser(
             email=email,
             username=username,
@@ -457,9 +630,36 @@ def ManageAdviser(request):
 
         messages.success(request, "Registration successful! You can now log in.")
         return redirect('manage_users')
+
     programs = Program.objects.all()
     advisers = CustomUser.objects.filter(is_adviser=True).values('first_name', 'last_name', 'email')
-    return render(request, 'ccsrepo_app/manage_users.html', {'advisers': advisers , 'programs': programs})
+    return render(request, 'ccsrepo_app/manage_users.html', {
+        'advisers': advisers,
+        'programs': programs
+    })
+
+def validate_adviser_data(email, username, password1, password2):
+    errors = {}
+    
+    # Password validation
+    try:
+        password_validation.validate_password(password1)
+    except ValidationError as e:
+        errors['password1'] = list(e.messages)
+
+    # Check if passwords match
+    if password1 != password2:
+        errors['password2'] = ["Passwords do not match."]
+
+    # Check if email already exists
+    if CustomUser.objects.filter(email=email).exists():
+        errors['email'] = ["Email already exists."]
+
+    # Check if username already exists
+    if CustomUser.objects.filter(username=username).exists():
+        errors['username'] = ["Username already exists."]
+    
+    return errors
 #----------------End Admin Managing ------------------------/
 
 #----------------Manuscript System ------------------------/
@@ -481,7 +681,7 @@ def upload_manuscript(request):
                     # Extract pages and save images/text
                     extract_pages_as_images(pdf_file_path, manuscript)
 
-                    pages = convert_from_path(pdf_file_path, dpi=72, poppler_path=r'C:\Program Files\poppler-24.08.0\Library\bin')
+
                     if len(pages) >= 2:
                         abstract_image = pages[1]
                         abstract_text = pytesseract.image_to_string(abstract_image).strip()
@@ -631,7 +831,6 @@ def faculty_upload_manuscript(request):
                 try:
                     extract_pages_as_images(pdf_file_path, manuscript)
 
-                    pages = convert_from_path(pdf_file_path, dpi=72, poppler_path=r'C:\Program Files\poppler-24.08.0\Library\bin')
                     if len(pages) >= 2:
                         abstract_image = pages[1]
                         abstract_text = pytesseract.image_to_string(abstract_image).strip()
