@@ -216,17 +216,21 @@ def request_adviser_view(request):
 
     return render(request, 'ccsrepo_app/adviser_request.html')
 
-#Approve Student View for Adviser
+# Approve Student View for Adviser
 def approve_student_view(request):
     if not request.user.is_adviser:
         messages.error(request, "You are not authorized to approve students.")
         return redirect('dashboard')
     
-    relationships = AdviserStudentRelationship.objects.filter(adviser=request.user)
+    # Order relationships by 'created_at' in descending order
+    relationships = AdviserStudentRelationship.objects.filter(
+        adviser=request.user
+    ).order_by('-created_at')  # Latest requests first
 
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
         try:
+            # Retrieve the student relationship for the adviser
             student_relationship = get_object_or_404(AdviserStudentRelationship, id=student_id, adviser=request.user)
             student = student_relationship.student
             student.is_student = True
