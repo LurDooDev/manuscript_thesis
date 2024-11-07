@@ -240,9 +240,7 @@ def approve_student_view(request):
 
     return render(request, 'ccsrepo_app/adviser_approve_student.html', {'relationships': relationships})
 #----------------End Student and Adviser ------------------------/
-
-#new student register
-
+#----------------Register ------------------------/
 def validate_user_password(password):
     errors = []
     if len(password) < 8:
@@ -295,6 +293,7 @@ def StudentRegister(request):
         email = request.POST.get('email', '').strip()
         username = request.POST.get('username', '').strip()
         first_name = request.POST.get('first_name', '').strip()
+        middle_name = request.POST.get('middle_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         password1 = request.POST.get('password1', '').strip()
         password2 = request.POST.get('password2', '').strip()
@@ -313,6 +312,7 @@ def StudentRegister(request):
                 'email': email,
                 'username': username,
                 'first_name': first_name,
+                'middle_name': middle_name,
                 'last_name': last_name,
                 'program_id': program_id
             })
@@ -322,6 +322,7 @@ def StudentRegister(request):
             email=email,
             username=username,
             first_name=first_name,
+            middle_name=middle_name,
             last_name=last_name,
             is_student=False,
             program_id=program_id
@@ -334,9 +335,9 @@ def StudentRegister(request):
     
     programs = Program.objects.all()
     return render(request, 'ccsrepo_app/register.html', {'programs': programs})
+#----------------End Register------------------------/
 
 #----------------Admin Managing ------------------------/
-
 #Program
 def manage_program(request):
     if request.method == 'POST':

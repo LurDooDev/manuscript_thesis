@@ -8,7 +8,7 @@
     </h1>
 
     <div class="flex flex-wrap mb-4">
-      <div class="w-full md:w-1/2 input-margin">
+      <div class="w-full md:w-1/3 input-margin">
         <label for="first_name" class="login-label">First Name</label>
         <input
           type="text"
@@ -24,7 +24,23 @@
         {% endif %}
       </div>
 
-      <div class="w-full md:w-1/2 input-margin">
+      <!-- Middle Name -->
+      <div class="w-full md:w-1/3 input-margin">
+        <label for="middle_name" class="login-label">Middle Name</label>
+        <input
+          type="text"
+          name="middle_name"
+          id="middle_name"
+          class="login-input"
+          placeholder="Enter your middle name (optional)"
+          value="{{ middle_name|default:'' }}"
+        />
+        {% if errors.middle_name %}
+        <div class="text-error text-sm">{{ errors.middle_name.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="w-full md:w-1/3 input-margin">
         <label for="last_name" class="login-label">Last Name</label>
         <input
           type="text"

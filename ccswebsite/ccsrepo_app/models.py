@@ -52,6 +52,7 @@ class CustomUser(AbstractBaseUser):
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=30, unique=True, default='bryan')
     first_name = models.CharField(max_length=30)
+    middle_name = models.CharField(max_length=30, null=True, blank=True)
     last_name = models.CharField(max_length=30)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
@@ -103,7 +104,6 @@ class PageOCRData(models.Model):
     manuscript = models.ForeignKey(Manuscript, related_name='ocr_data', on_delete=models.CASCADE)
     page_num = models.PositiveIntegerField()
     text = models.TextField()
-    image = models.ImageField(upload_to='page_images/', null=True, blank=True) 
 
     class Meta:
         unique_together = ('manuscript', 'page_num')

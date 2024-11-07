@@ -1,10 +1,10 @@
 {% extends "base_adviser.html" %}
 
 {% block content %}
-<div class="login-form-container">
-    <form method="POST" class="login-form">
+<div class="login-form-container login-form">
+    <form method="POST">
         {% csrf_token %}
-        <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]">{{ user.first_name }}</h2>
+        <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]">{{ user.first_name }} {{ user.middle_name }} {{ user.last_name }}</h2>
     
         {% if messages %}
             {% for message in messages %}
@@ -20,9 +20,11 @@
                    class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                    placeholder="Enter adviser email">
         </div>
-    
         <button type="submit" class="login-button mb-2">Send</button>
     </form>
+    <a href="{% url 'logout' %}" class="login-button absolute top-0 right-0 mt-4 mr-4">
+        Back
+    </a>
     
 </div>
 {% endblock %}
