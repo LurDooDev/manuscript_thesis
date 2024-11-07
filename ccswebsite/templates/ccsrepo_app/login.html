@@ -1,12 +1,15 @@
-{% extends "base_auth.html" %} {% block content %}
+{% extends "base_auth.html" %} 
+{% block content %}
 <div class="login-form-container">
   <form method="POST" class="login-form">
     {% csrf_token %}
     <h1 class="text-2xl font-bold mb-4 text-center text-gray-900">Login</h1>
 
-    {% if messages %} {% for message in messages %}
+    {% if messages %} 
+    {% for message in messages %}
     <div class="text-error">{{ message }}</div>
-    {% endfor %} {% endif %}
+    {% endfor %} 
+    {% endif %}
 
     <div class="mb-4">
       <label for="username" class="login-label">Username</label>
@@ -32,6 +35,12 @@
       />
     </div>
 
+    <!-- Show Password Checkbox -->
+    <div class="mb-4 flex items-center">
+      <input type="checkbox" id="show-password" class="mr-2" onclick="togglePasswordVisibility()" />
+      <label for="show-password" class="text-sm text-gray-700">Show Password</label>
+    </div>
+
     <button type="submit" class="login-button mb-2">Login</button>
 
     <div class="px-6 py-4 text-center rounded-lg">
@@ -42,4 +51,11 @@
     </div>
   </form>
 </div>
+
+<script>
+  function togglePasswordVisibility() {
+    const password = document.getElementById("password");
+    password.type = password.type === "password" ? "text" : "password";
+  }
+</script>
 {% endblock %}
