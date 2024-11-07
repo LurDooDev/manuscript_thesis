@@ -1,4 +1,6 @@
-{% extends "base_dashboard.html" %} {% block content %}
+{% extends "base_dashboard.html" %} 
+
+{% block content %}
 <h2 class="text-2xl font-semibold text-[#25580F] mb-6">Manage Adviser</h2>
 
 <div class="flex">
@@ -7,120 +9,75 @@
     <form method="POST" action="{% url 'manage_users' %}">
       {% csrf_token %}
       <div class="mb-4">
-        <label for="first_name" class="block text-gray-700 font-medium mb-2"
-          >First Name</label
-        >
-        <input
-          type="text"
-          id="first_name"
-          name="first_name"
-          class="border border-gray-300 p-2 rounded w-full"
-          value="{{ first_name|default:'' }}"
-          required
-        />
+        <label for="first_name" class="block text-gray-700 font-medium mb-2">First Name</label>
+        <input type="text" id="first_name" name="first_name" class="border border-gray-300 p-2 rounded w-full" value="{{ first_name|default:'' }}" required />
       </div>
+      
       <div class="mb-4">
-        <label
-          for="last_name"
-          class="block text-gray-700 font-medium margin-b-1"
-          >Last Name</label
-        >
-        <input
-          type="text"
-          id="last_name"
-          name="last_name"
-          class="border border-gray-300 p-2 rounded w-full"
-          value="{{ last_name|default:'' }}"
-          required
-        />
+        <label for="middle_name" class="block text-gray-700 font-medium mb-2">Middle Name</label>
+        <input type="text" id="middle_name" name="middle_name" class="border border-gray-300 p-2 rounded w-full" value="{{ middle_name|default:'' }}" />
       </div>
+      
+      <div class="mb-4">
+        <label for="last_name" class="block text-gray-700 font-medium mb-2">Last Name</label>
+        <input type="text" id="last_name" name="last_name" class="border border-gray-300 p-2 rounded w-full" value="{{ last_name|default:'' }}" required />
+      </div>
+
       <div class="mb-4">
         <label for="program" class="login-label">Program</label>
-        <select
-          name="program"
-          id="program"
-          required
-          class="login-input"
-          value="{{ program_id|default:'' }}"
-        >
+        <select name="program" id="program" required class="border border-gray-300 p-2 rounded w-full">
           <option value="">Select a program</option>
           {% for program in programs %}
-          <option value="{{ program.id }}">{{ program.name }}</option>
+          <option value="{{ program.id }}" {% if program.id == program_id %}selected{% endif %}>{{ program.name }}</option>
           {% endfor %}
         </select>
       </div>
+
       <div class="mb-4">
-        <label for="username" class="block text-gray-700 font-medium mb-2"
-          >Username</label
-        >
-        <input
-          type="text"
-          id="username"
-          name="username"
-          class="border border-gray-300 p-2 rounded w-full margin-b-2 margin-b-1"
-          value="{{ username|default:'' }}"
-          required
-        />
+        <label for="username" class="block text-gray-700 font-medium mb-2">Username</label>
+        <input type="text" id="username" name="username" class="border border-gray-300 p-2 rounded w-full" value="{{ username|default:'' }}" required />
         {% if errors.username %}
         <div class="text-error text-sm">{{ errors.username.0 }}</div>
         {% endif %}
       </div>
+
       <div class="mb-4">
-        <label for="email" class="block text-gray-700 font-medium mb-2"
-          >Email</label
-        >
-        <input
-          type="email"
-          id="email"
-          name="email"
-          class="border border-gray-300 p-2 rounded w-full margin-b-1"
-          value="{{ email|default:'' }}"
-          required
-        />
-        {% if errors.username %}
+        <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
+        <input type="email" id="email" name="email" class="border border-gray-300 p-2 rounded w-full" value="{{ email|default:'' }}" required />
+        {% if errors.email %}
         <div class="text-error text-sm">{{ errors.email.0 }}</div>
         {% endif %}
       </div>
+
       <div class="mb-4">
-        <label for="password" class="block text-gray-700 font-medium mb-2"
-          >Password</label
-        >
-        <input
-          type="password"
-          id="password"
-          name="password1"
-          class="border border-gray-300 p-2 rounded w-full margin-b-1"
-          required
-        />
+        <label for="password1" class="block text-gray-700 font-medium mb-2">Password</label>
+        <input type="password" id="password1" name="password1" class="border border-gray-300 p-2 rounded w-full" required />
         {% if errors.password1 %}
         <div class="text-error text-sm">{{ errors.password1.0 }}</div>
         {% endif %}
       </div>
+
       <div class="mb-4">
-        <label
-          for="confirm_password"
-          class="block text-gray-700 font-medium mb-2"
-          >Confirm Password</label
-        >
-        <input
-          type="password"
-          id="confirm_password"
-          name="password2"
-          class="border border-gray-300 p-2 rounded w-full margin-b-1"
-          required
-        />
+        <label for="password2" class="block text-gray-700 font-medium mb-2">Confirm Password</label>
+        <input type="password" id="password2" name="password2" class="border border-gray-300 p-2 rounded w-full" required />
         {% if errors.password2 %}
         <div class="text-error text-sm">{{ errors.password2.0 }}</div>
         {% endif %}
       </div>
+
+      <!-- Show Password Checkbox -->
+      <div class="mb-4 flex items-center">
+        <input type="checkbox" id="show-password" class="mr-2" onclick="togglePasswordVisibility()" />
+        <label for="show-password" class="text-sm text-gray-700">Show Password</label>
+      </div>
+
       <div class="flex justify-end">
-        <button type="submit" class="bg-[#25580F] text-white px-4 py-2 rounded">
-          Submit
-        </button>
+        <button type="submit" class="bg-[#25580F] text-white px-4 py-2 rounded">Submit</button>
       </div>
     </form>
   </div>
-  <div class="flex-1 mr-4">
+
+  <div class="flex-1 ml-4">
     <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
       <thead>
         <tr class="bg-[#25580F] text-white">
@@ -131,9 +88,7 @@
       <tbody>
         {% for adviser in advisers %}
         <tr class="text-center">
-          <td class="border px-4 py-2">
-            {{ adviser.first_name }} {{ adviser.last_name }}
-          </td>
+          <td class="border px-4 py-2">{{ adviser.first_name }} {{ adviser.middle_name }} {{ adviser.last_name }}</td>
           <td class="border px-4 py-2">{{ adviser.email }}</td>
         </tr>
         {% empty %}
@@ -145,4 +100,15 @@
     </table>
   </div>
 </div>
+
+<script>
+  function togglePasswordVisibility() {
+    const password1 = document.getElementById("password1");
+    const password2 = document.getElementById("password2");
+    const type = password1.type === "password" ? "text" : "password";
+    password1.type = type;
+    password2.type = type;
+  }
+</script>
+
 {% endblock %}

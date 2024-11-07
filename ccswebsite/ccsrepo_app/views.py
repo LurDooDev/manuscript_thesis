@@ -454,52 +454,13 @@ def manage_type(request):
     type = ManuscriptType.objects.all() 
     return render(request, 'ccsrepo_app/manage_type.html', {'type': type})
 
-#Register Advisers And Manage
-# def ManageAdviser(request):
-#     if request.method == 'POST':
-#         email = request.POST.get('email')
-#         username = request.POST.get('username')
-#         first_name = request.POST.get('first_name')
-#         last_name = request.POST.get('last_name')
-#         password1 = request.POST.get('password1')
-#         password2 = request.POST.get('password2')
-#         program_id = request.POST.get('program')
-#         # Validation
-#         if password1 != password2:
-#             messages.error(request, "Passwords do not match.")
-#             return redirect('manage_users')
-        
-#         if CustomUser.objects.filter(email=email).exists():
-#             messages.error(request, "Email already exists.")
-#             return redirect('manage_users')
-
-#         if CustomUser.objects.filter(username=username).exists():
-#             messages.error(request, "Username already exists.")
-#             return redirect('manage_users')
-        
-#         user = CustomUser(
-#             email=email,
-#             username=username,
-#             first_name=first_name,
-#             last_name=last_name,
-#             is_adviser=True,
-#             program_id=program_id
-#         )
-#         user.set_password(password1)
-#         user.save()
-
-#         messages.success(request, "Registration successful! You can now log in.")
-#         return redirect('manage_users')
-#     programs = Program.objects.all()
-#     advisers = CustomUser.objects.filter(is_adviser=True).values('first_name', 'last_name', 'email')
-#     return render(request, 'ccsrepo_app/manage_users.html', {'advisers': advisers , 'programs': programs})
-
 #new manage adviser
 def ManageAdviser(request):
     if request.method == 'POST':
         email = request.POST.get('email').strip()
         username = request.POST.get('username').strip()
         first_name = request.POST.get('first_name').strip()
+        middle_name = request.POST.get('middle_name').strip()
         last_name = request.POST.get('last_name').strip()
         password1 = request.POST.get('password1').strip()
         password2 = request.POST.get('password2').strip()
@@ -519,6 +480,7 @@ def ManageAdviser(request):
                 'email': email,
                 'username': username,
                 'first_name': first_name,
+                'middle_name': middle_name,
                 'last_name': last_name,
                 'program_id': program_id
             })
@@ -528,6 +490,7 @@ def ManageAdviser(request):
             email=email,
             username=username,
             first_name=first_name,
+            middle_name=middle_name,
             last_name=last_name,
             is_adviser=True,
             program_id=program_id
@@ -553,6 +516,11 @@ def validate_adviser_data(email, username, password1, password2):
         password_validation.validate_password(password1)
     except ValidationError as e:
         errors['password1'] = list(e.messages)
+
+    # Updated email pattern: two letters, a four-digit year, five digits, and the domain
+    email_pattern = r"^[a-zA-Z]{2}\d{4}\d{5}@wmsu\.edu\.ph$"
+    if not re.match(email_pattern, email):
+        errors['email'] = [_("Email must be wmsu email")]
 
     # Check if passwords match
     if password1 != password2:
