@@ -118,6 +118,12 @@
       {% endif %}
     </div>
 
+    <!-- Show Password Checkbox -->
+    <div class="mb-4 flex items-center">
+      <input type="checkbox" id="show-password" class="mr-2" onclick="togglePasswordVisibility()" />
+      <label for="show-password" class="text-sm text-gray-700">Show Password</label>
+    </div>
+
     <button type="submit" class="login-button mb-2">Register</button>
 
     <div class="px-6 py-4 text-center rounded-lg">
@@ -128,4 +134,13 @@
     </div>
   </form>
 </div>
+<script>
+  function togglePasswordVisibility() {
+    const password1 = document.getElementById("password1");
+    const password2 = document.getElementById("password2");
+    const type = password1.type === "password" ? "text" : "password";
+    password1.type = type;
+    password2.type = type;
+  }
+</script>
 {% endblock %}

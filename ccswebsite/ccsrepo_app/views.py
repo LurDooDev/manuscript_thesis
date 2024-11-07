@@ -216,8 +216,6 @@ def request_adviser_view(request):
 
     return render(request, 'ccsrepo_app/adviser_request.html')
 
-
-
 #Approve Student View for Adviser
 def approve_student_view(request):
     if not request.user.is_adviser:
@@ -243,79 +241,7 @@ def approve_student_view(request):
     return render(request, 'ccsrepo_app/adviser_approve_student.html', {'relationships': relationships})
 #----------------End Student and Adviser ------------------------/
 
-#Register Student
-# def StudentRegister(request):
-#     if request.method == 'POST':
-#         email = request.POST.get('email')
-#         username = request.POST.get('username')
-#         first_name = request.POST.get('first_name')
-#         last_name = request.POST.get('last_name')
-#         password1 = request.POST.get('password1')
-#         password2 = request.POST.get('password2')
-#         program_id = request.POST.get('program')
-
-#         #validation
-        
-#         #password validation
-#         try:
-#             validate_password(password1)  # Validates according to `AUTH_PASSWORD_VALIDATORS`
-#         except ValidationError as e:
-#             messages.error(request, e.messages)
-#             return render(request, 'register')
-        
-#         if password1 != password2:
-#             messages.error(request, "Passwords do not match.")
-#             return redirect('register')
-        
-#         if CustomUser.objects.filter(email=email).exists():
-#             messages.error(request, "Email already exists.")
-#             return redirect('register')
-
-#         if CustomUser.objects.filter(username=username).exists():
-#             messages.error(request, "Username already exists.")
-#             return redirect('register')
-
-#         user = CustomUser(
-#             email=email,
-#             username=username,
-#             first_name=first_name,
-#             last_name=last_name,
-#             is_student=False,
-#             program_id=program_id
-#         )
-#         user.set_password(password1)
-#         user.save()
-        
-#         messages.success(request, "Registration successful!")
-#         return redirect('login')
-    
-#     programs = Program.objects.all()
-#     return render(request, 'ccsrepo_app/register.html', {'programs': programs})
-
-
 #new student register
-def validate_user_data(email, username, password1, password2):
-    errors = {}
-
-    # Password validation
-    try:
-        password_validation.validate_password(password1)
-    except ValidationError as e:
-        errors['password1'] = list(e.messages)
-
-    # Check if passwords match
-    if password1 != password2:
-        errors['password2'] = ["Passwords do not match."]
-
-    # Check if email or username already exists
-    if CustomUser.objects.filter(email=email).exists():
-        errors['email'] = ["Email already exists."]
-    if CustomUser.objects.filter(username=username).exists():
-        errors['username'] = ["Username already exists."]
-
-    return errors
-
-
 
 def validate_user_password(password):
     errors = []
@@ -335,6 +261,11 @@ def validate_user_password(password):
 def validate_user_data(email, username, password1, password2):
     errors = {}
 
+    # Updated email pattern: two letters, a four-digit year, five digits, and the domain
+    email_pattern = r"^[a-zA-Z]{2}\d{4}\d{5}@wmsu\.edu\.ph$"
+    if not re.match(email_pattern, email):
+        errors['email'] = [_("Email must be wmsu email")]
+
     # Validate password with custom rules
     password_errors = validate_user_password(password1)
     if password_errors:
@@ -352,7 +283,7 @@ def validate_user_data(email, username, password1, password2):
 
     # Check if email or username already exists
     if CustomUser.objects.filter(email=email).exists():
-        errors['email'] = [_("Email already exists.")]
+        errors['email'] = errors.get('email', []) + [_("Email already exists.")]
     if CustomUser.objects.filter(username=username).exists():
         errors['username'] = [_("Username already exists.")]
 
@@ -437,7 +368,6 @@ def dashboard_page(request):
     types = ManuscriptType.objects.annotate(
         manuscript_count=Count('manuscript')  # Count all manuscripts related to each program
     )
-    manusripts = Manuscript.objects.all()
     
     manuscripts = Manuscript.objects.all()
     approved_manuscripts = Manuscript.objects.filter(status='approved')

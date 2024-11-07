@@ -7,3 +7,4 @@ node_modules/
 dist/
 my_venv/
 media/
+__init__.py
