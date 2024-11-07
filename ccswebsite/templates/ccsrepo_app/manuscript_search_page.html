@@ -2,10 +2,10 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-10 px-4">
-    <div class="max-w-6xl mx-auto flex gap-6"> <!-- Use flex instead of grid -->
+    <div class="max-w-6xl mx-auto flex gap-6">
 
         <!-- Sidebar for Filters and Search Bar -->
-        <div class="w-1/4 bg-white p-6 rounded-lg shadow-lg h-[500px] overflow-y-auto"> <!-- Adjusted width to 1/4 -->
+        <div class="w-1/4 bg-white p-6 rounded-lg shadow-lg h-[500px] overflow-y-auto">
             <h2 class="font-semibold text-lg mb-6 border-b border-gray-300 pb-2">Search Manuscripts</h2>
             <form method="get" class="flex items-center mb-4">
                 <input
@@ -26,8 +26,8 @@
             </form>
 
             <h2 class="font-semibold text-lg mb-4 border-b border-gray-300 pb-2">Filters</h2>
-
             <form method="get" id="filter-form">
+                <!-- Program Filter -->
                 <div class="mb-4">
                     <label for="program" class="block text-sm font-medium text-gray-700">Program</label>
                     <select name="program" id="program" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
@@ -38,6 +38,7 @@
                     </select>
                 </div>
 
+                <!-- Manuscript Type Filter -->
                 <div class="mb-4">
                     <label for="manuscript_type" class="block text-sm font-medium text-gray-700">Manuscript Type</label>
                     <select name="manuscript_type" id="manuscript_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
@@ -48,6 +49,7 @@
                     </select>
                 </div>
 
+                <!-- Category Filter -->
                 <div class="mb-4">
                     <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
                     <select name="category" id="category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
@@ -58,6 +60,7 @@
                     </select>
                 </div>
 
+                <!-- Batch Filter -->
                 <div class="mb-4">
                     <label for="batch" class="block text-sm font-medium text-gray-700">Batch</label>
                     <select name="batch" id="batch" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
@@ -75,14 +78,14 @@
         </div>
 
         <!-- Manuscripts Table -->
-        <div class="flex-1"> <!-- Use flex-1 to take remaining space -->
-            <table class="min-w-full bg-white rounded-lg shadow-lg"> <!-- Added shadow and rounded corners -->
+        <div class="flex-1">
+            <table class="min-w-full bg-white rounded-lg shadow-lg">
                 <thead class="bg-[#25580F] text-white">
                     <tr>
                         <th class="py-3 px-4 text-left">Type</th>
-                        <th class="py-3 px-4 text-left">Title</th>
+                        <th class="py-3 px-6 text-left w-1/4">Title</th>
                         <th class="py-3 px-4 text-left">Batch</th>
-                        <th class="py-3 px-4 text-left">Author</th>
+                        <th class="py-3 px-6 text-left w-1/5">Author</th>
                         <th class="py-3 px-4 text-left">Adviser</th>
                         <th class="py-3 px-4 text-left">Program</th>
                         <th class="py-3 px-4 text-left">Category</th>
@@ -92,11 +95,11 @@
                 </thead>
                 <tbody>
                     {% for manuscript in manuscripts %}
-                    <tr class="table-row hover:bg-gray-100 transition duration-300"> <!-- Added hover effect -->
+                    <tr class="table-row hover:bg-gray-100 transition duration-300">
                         <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.manuscript_type.name }}</td>
-                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.title }}</td>
+                        <td class="table-cell py-2 px-6 border-b border-gray-300 truncate max-w-xs">{{ manuscript.title|truncatechars:70 }}</td>
                         <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.batch }}</td>
-                        <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.authors }}</td>
+                        <td class="table-cell py-2 px-6 border-b border-gray-300 truncate max-w-xs">{{ manuscript.authors|truncatechars:50 }}</td>
                         <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.adviser.first_name }} {{ manuscript.adviser.last_name }}</td>
                         <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.program.name }}</td>
                         <td class="table-cell py-2 px-4 border-b border-gray-300">{{ manuscript.category.name }}</td>

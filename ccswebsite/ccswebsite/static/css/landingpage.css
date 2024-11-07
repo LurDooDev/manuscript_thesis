@@ -5,3 +5,16 @@ main {
     align-items: center;
     padding: 2rem;
 }
+
+.text-error{
+    --tw-text-opacity: 1;
+    color: crimson;
+    border: 1px solid crimson;
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 1em;
+  }
+  
+  .margin-b-1{
+    margin-bottom: 0.5em;
+  }

@@ -5,41 +5,17 @@ from django.utils import timezone
 import os
 from django.db.models import Q 
 import pytesseract
-from django.core.files.base import ContentFile
-from pdf2image import convert_from_path
 from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from io import BytesIO
 from django.db.models import Count
 
-# these are for validations
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
-
-#----------------UTIL/Helper------------------------/
-def extract_pages_as_images(pdf_path, manuscript):
-    pages = convert_from_path(pdf_path, dpi=72)
-    for i, page in enumerate(pages):
-        # Convert the page image to text using pytesseract
-        page_text = pytesseract.image_to_string(page).strip()
-
-        # Create a BytesIO object to save the image
-        image_io = BytesIO()
-        page.save(image_io, format='PNG')
-        image_file = ContentFile(image_io.getvalue(), name=f"page_{i + 1}.png")
-
-        # Save the OCR data for the page, including the image
-        PageOCRData.objects.create(
-            manuscript=manuscript,
-            page_num=i + 1,
-            text=page_text,
-            image=image_file
-        )
-#----------------UTIL/Helper------------------------/
 
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None, batch_id=None):
@@ -662,7 +638,39 @@ def validate_adviser_data(email, username, password1, password2):
     return errors
 #----------------End Admin Managing ------------------------/
 
+
 #----------------Manuscript System ------------------------/
+#----------------UTIL/Helper------------------------/
+import fitz  # PyMuPDF
+from PIL import Image
+
+def extract_pages_as_text(pdf_path, manuscript):
+    # Open the PDF file using PyMuPDF
+    doc = fitz.open(pdf_path)
+    
+    # List to collect OCR data for batch insertion
+    ocr_data_list = []
+
+    for i in range(len(doc)):
+        # Render each page as an image at a lower DPI (80 DPI for faster processing)
+        page = doc.load_page(i)
+        pix = page.get_pixmap(dpi=80)  
+        img = Image.open(BytesIO(pix.tobytes("png")))
+        
+        # Extract text from the page using pytesseract
+        page_text = pytesseract.image_to_string(img).strip()
+        
+        # Collect data for bulk insertion
+        ocr_data_list.append(PageOCRData(
+            manuscript=manuscript,
+            page_num=i + 1,
+            text=page_text,
+            image=None  # If you're not saving the images, you can leave this as None
+        ))
+
+    # Bulk insert all OCR data after processing all pages
+    PageOCRData.objects.bulk_create(ocr_data_list)
+
 def upload_manuscript(request):
     if request.method == 'POST':
         pdf_file = request.FILES.get('pdf_file')
@@ -673,34 +681,39 @@ def upload_manuscript(request):
                 student=request.user,
             )
             manuscript.save()
-
             pdf_file_path = manuscript.pdf_file.path
 
+            # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
-                    # Extract pages and save images/text
-                    extract_pages_as_images(pdf_file_path, manuscript)
+                    # Extract text from the PDF pages (via PyMuPDF and Tesseract)
+                    extract_pages_as_text(pdf_file_path, manuscript)
 
+                    # Extract abstract from the second page (since it's always there)
+                    doc = fitz.open(pdf_file_path)
+                    if doc.page_count > 1:  # Ensure there are at least 2 pages
+                        second_page = doc.load_page(1)  # Load the second page (index 1)
+                        pix = second_page.get_pixmap(dpi=80)  # Render page as image
+                        img = Image.open(BytesIO(pix.tobytes("png")))
+                        abstract_text = pytesseract.image_to_string(img).strip()
 
-                    if len(pages) >= 2:
-                        abstract_image = pages[1]
-                        abstract_text = pytesseract.image_to_string(abstract_image).strip()
-
+                        # Extract the abstract text if found
                         if "Abstract" in abstract_text:
                             abstract_text = abstract_text.split("Abstract", 1)[1].strip()
                         else:
                             abstract_text = "No abstract found"
 
                         manuscript.abstracts = abstract_text
-
+                        
                 except Exception as e:
                     print(f"Error processing PDF: {e}")
 
             manuscript.save()
-
             return redirect('final_manuscript_page', manuscript_id=manuscript.id, extracted_abstract=manuscript.abstracts)
 
     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
+
+
 
 #Final Confirmation
 def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
@@ -824,24 +837,30 @@ def faculty_upload_manuscript(request):
                 student=request.user,
             )
             manuscript.save()
-
             pdf_file_path = manuscript.pdf_file.path
 
+            # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
-                    extract_pages_as_images(pdf_file_path, manuscript)
+                    # Extract text from the PDF pages (via PyMuPDF and Tesseract)
+                    extract_pages_as_text(pdf_file_path, manuscript)
 
-                    if len(pages) >= 2:
-                        abstract_image = pages[1]
-                        abstract_text = pytesseract.image_to_string(abstract_image).strip()
+                    # Extract abstract from the second page (since it's always there)
+                    doc = fitz.open(pdf_file_path)
+                    if doc.page_count > 1:  # Ensure there are at least 2 pages
+                        second_page = doc.load_page(1)  # Load the second page (index 1)
+                        pix = second_page.get_pixmap(dpi=80)  # Render page as image
+                        img = Image.open(BytesIO(pix.tobytes("png")))
+                        abstract_text = pytesseract.image_to_string(img).strip()
 
+                        # Extract the abstract text if found
                         if "Abstract" in abstract_text:
                             abstract_text = abstract_text.split("Abstract", 1)[1].strip()
                         else:
                             abstract_text = "No abstract found"
 
                         manuscript.abstracts = abstract_text
-
+                        
                 except Exception as e:
                     print(f"Error processing PDF: {e}")
 
@@ -850,6 +869,9 @@ def faculty_upload_manuscript(request):
             return redirect('faculty_final_page', manuscript_id=manuscript.id, extracted_abstract=manuscript.abstracts)
 
     return render(request, 'ccsrepo_app/faculty_upload_page.html')
+
+
+
 
 def faculty_final_page(request, manuscript_id, extracted_abstract=""):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
