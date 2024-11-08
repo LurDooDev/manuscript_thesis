@@ -755,6 +755,11 @@ def upload_manuscript(request):
                             if abstract_text.lower().startswith(prefix):
                                 abstract_text = abstract_text[len(prefix):].strip()
 
+                        # Stop extraction at the word "Keywords" (case-insensitive)
+                        if "keywords" in abstract_text.lower():
+                            # Find the position of the word "keywords" and slice text before it
+                            abstract_text = abstract_text.lower().split("keywords")[0].strip()
+
                         # Update the abstract text from page 2 if found
                         manuscript.abstracts = abstract_text or "No abstract found"
                         manuscript.save()  # Save the abstract to the manuscript
@@ -767,6 +772,7 @@ def upload_manuscript(request):
 
     # Show the upload form
     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
+
 
 
 # Final Confirmation
@@ -921,6 +927,11 @@ def faculty_upload_manuscript(request):
                         for prefix in ["abstract", "executive summary"]:
                             if abstract_text.lower().startswith(prefix):
                                 abstract_text = abstract_text[len(prefix):].strip()
+
+                        # Stop extraction at the word "Keywords" (case-insensitive)
+                        if "keywords" in abstract_text.lower():
+                            # Find the position of the word "keywords" and slice text before it
+                            abstract_text = abstract_text.lower().split("keywords")[0].strip()
 
                         # Update the abstract text from page 2 if found
                         manuscript.abstracts = abstract_text or "No abstract found"
