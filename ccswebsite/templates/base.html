@@ -11,7 +11,8 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
-<body>
+<body class="bg-gray-100">
+
     <!-- Header section with enhanced navbar design -->
     <header class="flex justify-between items-center bg-[#25580F] text-white p-4 shadow-md">
         <h1 class="text-2xl font-bold">College of Computing Studies Repository</h1>
@@ -46,9 +47,13 @@
     </header>
 
     <!-- Main Content Block -->
-    {% block content %}
-    <!-- Content will go here when extended -->
-    {% endblock %}
+    <main class="py-10 px-4">
+        <div class="max-w-screen-xl mx-auto">
+            {% block content %}
+            <!-- Content will go here when extended -->
+            {% endblock %}
+        </div>
+    </main>
 </body>
 
 </html>

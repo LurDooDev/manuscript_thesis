@@ -389,17 +389,13 @@ def dashboard_page(request):
         'adviser_count': adviser_count,
         'manuscript_counts': manuscript_counts,
         
-        
         'manuscripts': manuscripts,
         'total_records': total_records,
         'advisers': advisers,
         'adviser_names': adviser_names,
         'programs': programs,
         'types': types,
-        
-        
     }
-
     return render(request, 'ccsrepo_app/dashboard_page.html', context)
 
 #Category
