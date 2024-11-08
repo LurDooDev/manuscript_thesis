@@ -18,7 +18,7 @@ from django.db.models import Count
 
 
 #----------------Search and Manuscript flow System ------------------------/
-def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None, batch_id=None):
+def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
     # Get all approved manuscripts
     manuscripts = Manuscript.objects.filter(status='approved')
 
@@ -27,7 +27,7 @@ def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=N
         manuscripts = manuscripts.filter(
             Q(title__icontains=search_query) |
             Q(abstracts__icontains=search_query) |
-            Q(batch__name__icontains=search_query) |
+            Q(year__icontains=search_query) |
             Q(category__name__icontains=search_query) |
             Q(adviser__first_name__icontains=search_query) |
             Q(adviser__last_name__icontains=search_query) |
@@ -43,8 +43,6 @@ def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=N
         manuscripts = manuscripts.filter(manuscript_type_id=manuscript_type_id)
     if category_id:
         manuscripts = manuscripts.filter(category_id=category_id)
-    if batch_id:
-        manuscripts = manuscripts.filter(batch_id=batch_id)
 
     return manuscripts.order_by('-publication_date')
 
@@ -53,19 +51,17 @@ def manuscript_search_page(request):
     program_id = request.GET.get('program')
     manuscript_type_id = request.GET.get('manuscript_type')
     category_id = request.GET.get('category')
-    batch_id = request.GET.get('batch')
 
     # Get filtered manuscripts based on search query and filters
-    manuscripts = get_filtered_manuscripts(search_query, program_id, manuscript_type_id, category_id, batch_id)
+    manuscripts = get_filtered_manuscripts(search_query, program_id, manuscript_type_id, category_id)
 
     # Retrieve additional filter options
     programs = Program.objects.all()
     manuscript_types = ManuscriptType.objects.all()
     categories = Category.objects.all()
-    batches = Batch.objects.all()
 
     # Pagination
-    paginator = Paginator(manuscripts, 50)
+    paginator = Paginator(manuscripts, 5)
     page_number = request.GET.get('page')
     manuscripts = paginator.get_page(page_number)
 
@@ -75,7 +71,6 @@ def manuscript_search_page(request):
         'programs': programs,
         'manuscript_types': manuscript_types,
         'categories': categories,
-        'batches': batches,
     })
 
 def view_manuscript(request, manuscript_id):
@@ -798,7 +793,7 @@ def final_manuscript_page(request, manuscript_id):
             return redirect('final_manuscript_page', manuscript_id=manuscript.id)
 
         # Set publication date and update upload_show to True
-        manuscript.publication_date = timezone.now().date()
+        manuscript.publication_date = timezone.now()
         manuscript.upload_show = True
 
         manuscript.save()
@@ -840,6 +835,7 @@ def adviser_review(request, manuscript_id):
         manuscript.feedback = feedback
         manuscript.status = "approved" if decision == "approve" else "rejected"
         manuscript.is_approved = True if decision == "approve" else False
+        manuscript.publication_date = timezone.now()
         manuscript.save()
 
         return redirect('adviser_manuscript')
@@ -964,7 +960,7 @@ def faculty_final_page(request, manuscript_id):
         manuscript.adviser = adviser
 
         # Set publication date and update upload_show to True
-        manuscript.publication_date = timezone.now().date()
+        manuscript.publication_date = timezone.now()
         manuscript.status = 'approved'
         manuscript.upload_show = True
 

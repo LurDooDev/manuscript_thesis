@@ -85,7 +85,7 @@ class Manuscript(models.Model):
     abstracts = models.TextField(null=True, blank=True)
     authors = models.CharField(max_length=255)
     category = models.ForeignKey(Category, null=True, on_delete=models.CASCADE)
-    publication_date = models.DateField(null=True, blank=True)
+    publication_date = models.DateTimeField(null=True, blank=True)
     pdf_file = models.FileField(upload_to='manuscripts/')
     manuscript_type = models.ForeignKey(ManuscriptType, null=True, on_delete=models.CASCADE)
     program = models.ForeignKey(Program, null=True, on_delete=models.CASCADE)

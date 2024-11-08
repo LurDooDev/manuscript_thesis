@@ -60,17 +60,6 @@
                     </select>
                 </div>
 
-                <!-- Batch Filter -->
-                <div class="mb-6">
-                    <label for="batch" class="block text-sm font-medium text-gray-700">Batch</label>
-                    <select name="batch" id="batch" class="mt-1 block w-full py-3 px-4 border-gray-300 rounded-md shadow-sm text-lg">
-                        <option value="">Select Batch</option>
-                        {% for batch in batches %}
-                            <option value="{{ batch.id }}" {% if batch.id|stringformat:"s" == request.GET.batch %}selected{% endif %}>{{ batch.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
                 <button type="submit" class="w-full px-6 py-4 bg-[#25580F] text-white rounded-lg hover:bg-[#1c4a0c] transition duration-300 shadow-sm text-lg">
                     Apply Filters
                 </button>
