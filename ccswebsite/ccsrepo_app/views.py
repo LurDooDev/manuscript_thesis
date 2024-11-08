@@ -947,6 +947,9 @@ def faculty_final_page(request, manuscript_id):
         manuscript_type_id = request.POST.get('manuscript_type')
         program_id = request.POST.get('program')
 
+         # Set adviser to the currently logged-in user
+        adviser = request.user
+
         # Assign the manuscript fields from form data
         manuscript.title = title
         manuscript.abstracts = abstracts
@@ -955,9 +958,11 @@ def faculty_final_page(request, manuscript_id):
         manuscript.category_id = category_id
         manuscript.manuscript_type_id = manuscript_type_id
         manuscript.program_id = program_id
+        manuscript.adviser = adviser
 
         # Set publication date and update upload_show to True
         manuscript.publication_date = timezone.now().date()
+        manuscript.status = 'approved'
         manuscript.upload_show = True
 
         manuscript.save()

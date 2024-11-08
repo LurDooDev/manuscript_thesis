@@ -9,7 +9,8 @@
                 <thead>
                     <tr class="bg-[#25580F] text-white">
                         <th class="px-4 py-2">Title</th>
-                        <th class="px-4 py-2">Status</th>
+                        <th class="px-4 py-2">Batch</th>
+                        <th class="px-4 py-2">Type</th>
                         <th class="px-4 py-2">Actions</th>
                     </tr>
                 </thead>
@@ -17,9 +18,10 @@
                     {% for manuscript in manuscripts %}
                     <tr class="text-center">
                         <td class="border px-4 py-2">{{ manuscript.title }}</td>
-                        <td class="border px-4 py-2">Approved</td>
+                        <td class="border px-4 py-2">{{ manuscript.year }}</td>
+                        <td class="border px-4 py-2">{{ manuscript.manuscript_type }}</td>
                         <td class="border px-4 py-2">
-                            <a href="{% url 'faculty_detail' manuscript.id %}" class="bg-[#25580F] text-white px-4 py-2 rounded hover:bg-[#3b8a12] transition duration-200">View Details</a>
+                            <a href="{% url 'faculty_detail' manuscript.id %}" class="bg-[#25580F] text-white px-4 py-2 rounded hover:bg-[#3b8a12] transition duration-200">Details</a>
                         </td>
                     </tr>
                     {% empty %}
