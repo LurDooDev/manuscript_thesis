@@ -360,9 +360,6 @@ def dashboard_page(request):
     # Get manuscripts with specific statuses
     advisers = CustomUser.objects.filter(is_adviser=True).annotate(manuscript_count=Count('manuscripts')
     )
-    batches = Batch.objects.annotate(
-        manuscript_count=Count('manuscript', distinct=True) 
-    )
     programs = Program.objects.annotate(
         manuscript_count=Count('manuscript')  # Count all manuscripts related to each program
     )
@@ -397,7 +394,6 @@ def dashboard_page(request):
         'total_records': total_records,
         'advisers': advisers,
         'adviser_names': adviser_names,
-        'batches': batches,
         'programs': programs,
         'types': types,
         
