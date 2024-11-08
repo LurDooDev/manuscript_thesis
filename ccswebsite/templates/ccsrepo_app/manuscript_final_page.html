@@ -47,19 +47,25 @@
                     <!-- Title Field -->
                     <div class="input-margin">
                         <label for="title" class="login-label">Title</label>
-                        <input type="text" id="title" name="title" class="login-input" value="{{ manuscript.title }}" required>
+                        <textarea id="title" name="title" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ manuscript.title }}</textarea>
                     </div>
 
                     <!-- Abstract Field -->
                     <div class="input-margin">
-                        <label for="abstract" class="login-label">Abstract</label>
-                        <textarea id="abstract" name="abstract" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ extracted_abstract }}</textarea>
+                        <label for="abstracts" class="login-label">Abstract</label>
+                        <textarea id="abstracts" name="abstracts" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ manuscript.abstracts }}</textarea>
                     </div>
 
                     <!-- Authors Field -->
                     <div class="input-margin">
                         <label for="authors" class="login-label">Researchers (comma-separated)</label>
                         <input type="text" id="authors" name="authors" class="login-input" value="{{ manuscript.authors }}" required>
+                    </div>
+
+                    <!-- Authors Field -->
+                    <div class="input-margin">
+                        <label for="year" class="login-label">Batch</label>
+                        <input type="text" id="year" name="year" class="login-input" value="{{ manuscript.year }}" required>
                     </div>
 
                     <!-- Category Field -->
@@ -69,17 +75,6 @@
                             <option value=""></option>
                             {% for category in categories %}
                                 <option value="{{ category.id }}" {% if category.id == manuscript.category_id %}selected{% endif %}>{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Batch Field -->
-                    <div class="input-margin">
-                        <label for="batch" class="login-label">Batch</label>
-                        <select id="batch" name="batch" class="login-input" required>
-                            <option value=""></option>
-                            {% for batch in batches %}
-                                <option value="{{ batch.id }}" {% if batch.id == manuscript.batch_id %}selected{% endif %}>{{ batch.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -117,11 +112,6 @@
                         </select>
                     </div>
 
-                    {% comment %} <!-- Keywords Field -->
-                    <div class="input-margin">
-                        <label for="keywords" class="login-label">Keywords (comma-separated)</label>
-                        <input type="text" id="keywords" name="keywords" class="login-input" value="{% if manuscript.keywords.all %}{{ manuscript.keywords.all|join:',' }}{% endif %}">
-                    </div> {% endcomment %}
 
                     <!-- Submit Button -->
                     <div class="pt-4">

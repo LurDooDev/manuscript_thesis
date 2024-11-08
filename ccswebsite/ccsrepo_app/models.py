@@ -81,14 +81,12 @@ class AdviserStudentRelationship(models.Model):
 
 #Manuscripts
 class Manuscript(models.Model):
-    title = models.CharField(max_length=255)
-    abstracts = models.TextField()
-    citations = models.TextField()
+    title = models.TextField(max_length=255, null=True)
+    abstracts = models.TextField(null=True, blank=True)
     authors = models.CharField(max_length=255)
     category = models.ForeignKey(Category, null=True, on_delete=models.CASCADE)
     publication_date = models.DateField(null=True, blank=True)
     pdf_file = models.FileField(upload_to='manuscripts/')
-    batch = models.ForeignKey(Batch, null=True, on_delete=models.CASCADE)
     manuscript_type = models.ForeignKey(ManuscriptType, null=True, on_delete=models.CASCADE)
     program = models.ForeignKey(Program, null=True, on_delete=models.CASCADE)
     adviser = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='manuscripts')
@@ -96,6 +94,8 @@ class Manuscript(models.Model):
     status = models.CharField(max_length=10, default='pending')
     allowed_student = models.BooleanField(default=False)
     feedback = models.TextField(null=True, blank=True)
+    year = models.IntegerField(null=True, blank=True)
+    upload_show= models.BooleanField(default=False)
 
     def __str__(self):
         return self.title

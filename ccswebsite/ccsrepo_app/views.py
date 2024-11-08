@@ -1,20 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext as _
 from django.contrib import messages
 from django.utils import timezone
 import os
 from django.db.models import Q 
 import pytesseract
+from django.core.files.base import ContentFile
 from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from io import BytesIO
 from django.db.models import Count
-
-from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth import password_validation
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext as _
 
 
 #----------------Search and Manuscript flow System ------------------------/
@@ -216,21 +216,17 @@ def request_adviser_view(request):
 
     return render(request, 'ccsrepo_app/adviser_request.html')
 
-# Approve Student View for Adviser
+#Approve Student View for Adviser
 def approve_student_view(request):
     if not request.user.is_adviser:
         messages.error(request, "You are not authorized to approve students.")
         return redirect('dashboard')
     
-    # Order relationships by 'created_at' in descending order
-    relationships = AdviserStudentRelationship.objects.filter(
-        adviser=request.user
-    ).order_by('-created_at')  # Latest requests first
+    relationships = AdviserStudentRelationship.objects.filter(adviser=request.user)
 
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
         try:
-            # Retrieve the student relationship for the adviser
             student_relationship = get_object_or_404(AdviserStudentRelationship, id=student_id, adviser=request.user)
             student = student_relationship.student
             student.is_student = True
@@ -544,123 +540,286 @@ def validate_adviser_data(email, username, password1, password2):
 
 #----------------Manuscript System ------------------------/
 #----------------UTIL/Helper------------------------/
-import fitz  # PyMuPDF
+
 from PIL import Image
+import fitz  # PyMuPDF
 
-def extract_pages_as_text(pdf_path, manuscript):
-    # Open the PDF file using PyMuPDF
+def extract_ocr_data(pdf_path, manuscript):
+    """Extract OCR data from the PDF and create PageOCRData objects."""
     doc = fitz.open(pdf_path)
-    
-    # List to collect OCR data for batch insertion
     ocr_data_list = []
+    start_page = 1
+    end_page = min(5, len(doc))
 
-    for i in range(len(doc)):
-        # Render each page as an image at a lower DPI (80 DPI for faster processing)
+    for i in range(start_page, end_page):
         page = doc.load_page(i)
-        pix = page.get_pixmap(dpi=80)  
+        pix = page.get_pixmap(dpi=100)
         img = Image.open(BytesIO(pix.tobytes("png")))
-        
-        # Extract text from the page using pytesseract
         page_text = pytesseract.image_to_string(img).strip()
-        
-        # Collect data for bulk insertion
-        ocr_data_list.append(PageOCRData(
-            manuscript=manuscript,
-            page_num=i + 1,
-            text=page_text,
-            image=None  # If you're not saving the images, you can leave this as None
-        ))
+        ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=i + 1, text=page_text))
 
-    # Bulk insert all OCR data after processing all pages
+    return ocr_data_list
+
+def extract_title_from_first_page(first_page_text):
+    """Extract and format the title from the first page."""
+    title_text = first_page_text.replace('\n', ' ').strip()
+    title_text = re.sub(r'\s+', ' ', title_text)  # Normalize spaces to a single space
+
+    # Define possible start and end keywords for the title extraction
+    title_start_keywords = [
+        "Zamboanga City",
+        "Department of Information Technology"
+    ]
+    title_end_keywords = [
+        "A thesis presented to the faculty",
+        "In partial fulfillment",
+        "A capstone project",
+        "A CAPSTONE PROJECT"
+    ]
+    title_exclude_keywords = [
+        "A CAPSTONE PROJECT Presented to the Faculty of the College of Computing Studies Western Mindanao State University",
+        "A CAPSTONE PROJECT Presented to the Faculty of the College of Computing Studies Western Mindanao State University"
+    ]
+
+    # Try to find the title using the start and end keywords
+    start_idx = -1
+    end_idx = -1
+
+    # Find the start keyword
+    for start_keyword in title_start_keywords:
+        start_idx = title_text.lower().find(start_keyword.lower())
+        if start_idx != -1:
+            break
+
+    # Find the end keyword
+    for end_keyword in title_end_keywords:
+        temp_end_idx = title_text.lower().find(end_keyword.lower())
+        if temp_end_idx != -1:
+            end_idx = temp_end_idx
+            break
+
+    # Remove any part of the title that includes the exclusion keywords
+    for exclude_keyword in title_exclude_keywords:
+        exclude_idx = title_text.lower().find(exclude_keyword.lower())
+        if exclude_idx != -1:
+            end_idx = exclude_idx  # Adjust the end index to exclude the unwanted part
+            break
+
+    # Extract title if both start and end keywords are found
+    if start_idx != -1 and end_idx != -1:
+        title = title_text[start_idx + len(title_start_keywords[0]): end_idx].strip()
+        
+        # Remove unwanted prefixes (like "INFORMATION TECHNOLOGY") from the start of the title
+        unwanted_prefixes = ["INFORMATION TECHNOLOGY", "Information Technology"]
+        for prefix in unwanted_prefixes:
+            if title.lower().startswith(prefix.lower()):
+                title = title[len(prefix):].strip()
+                break
+        
+        # Remove the '&' symbol from the title
+        title = title.replace("&", "").strip()
+        
+        return title if title else "No title found"
+    else:
+        return "No title found"
+
+
+def extract_year_from_first_page(first_page_text):
+    """Extract the year from the first page."""
+    year_match = re.search(r'\b(19|20)\d{2}\b', first_page_text)
+    return year_match.group(0) if year_match else "Year not found"
+
+def extract_authors_from_first_page(first_page_text):
+    """Extract authors from the first page."""
+    author_end_keywords = ["Researchers", "Researcher"]
+    author_start_keywords = [
+        "Bachelor of Science in Computer Science",
+        "presented to the faculty of department of computer science college of computing studies"
+    ]
+    
+    # Check for both "Researchers" and "Researcher" as the end keyword
+    author_end_idx = -1
+    for end_keyword in author_end_keywords:
+        temp_end_idx = first_page_text.lower().find(end_keyword.lower())
+        if temp_end_idx != -1:
+            author_end_idx = temp_end_idx
+            break
+
+    # Try to locate authors using the start and end keywords
+    if author_end_idx != -1:
+        author_start_idx = -1
+        for start_keyword in author_start_keywords:
+            temp_start_idx = first_page_text.lower().rfind(start_keyword.lower(), 0, author_end_idx)
+            if temp_start_idx != -1:
+                author_start_idx = temp_start_idx + len(start_keyword)
+                break
+
+        if author_start_idx != -1:
+            authors_text = first_page_text[author_start_idx:author_end_idx].strip()
+
+            # Use regex to group sequences of words that appear to form names (e.g., "ERVEN S. IDJAD")
+            author_pattern = re.compile(r'([A-Z][a-z]*\.? ?){2,}')
+            authors = [match.group(0).strip() for match in author_pattern.finditer(authors_text)]
+
+            # Filter out non-name keywords
+            disallowed_keywords = ["Science", "Studies", "Computer"]
+            authors = [
+                author for author in authors
+                if not any(keyword in author for keyword in disallowed_keywords)
+            ]
+            if authors:
+                return ', '.join(authors)
+
+    # Fallback method: look for "By" and extract authors from the following lines
+    by_index = first_page_text.lower().find("by")
+    if by_index != -1:
+        # Extract the text following "By" and split by newlines
+        following_text = first_page_text[by_index + len("by"):].strip()
+        lines = following_text.splitlines()
+        
+        # Get the next three non-empty lines (assuming they represent author names)
+        raw_authors = [line.strip() for line in lines if line.strip()][:3]  # Limit to 3 authors
+        
+        # Reformat each name to "First Middle Last" format if needed
+        formatted_authors = []
+        for raw_author in raw_authors:
+            # Split the name into parts and assume the last part is the surname
+            parts = raw_author.split(', ')
+            if len(parts) == 2:
+                surname, given_names = parts[0], parts[1]
+                formatted_authors.append(f"{given_names} {surname}")
+            else:
+                formatted_authors.append(raw_author)  # Fallback if the format is unexpected
+
+        if formatted_authors:
+            return ', '.join(formatted_authors)
+
+    return "No authors found"
+
+def process_manuscript(pdf_path, manuscript):
+    """Process the manuscript by extracting title, year, authors, and OCR data."""
+    # Extract OCR data
+    ocr_data_list = extract_ocr_data(pdf_path, manuscript)
+
+    # Extract title, year, and authors from the first page
+    first_page = fitz.open(pdf_path).load_page(0)
+    pix = first_page.get_pixmap(dpi=140)
+    img = Image.open(BytesIO(pix.tobytes("png")))
+    first_page_text = pytesseract.image_to_string(img).strip()
+
+    title = extract_title_from_first_page(first_page_text)
+    year = extract_year_from_first_page(first_page_text)
+    authors = extract_authors_from_first_page(first_page_text)
+
+    # Save title, year, and authors to manuscript
+    manuscript.title = title
+    manuscript.year = year
+    manuscript.authors = authors
+    manuscript.save()
+
+    # Bulk insert OCR data for pages
     PageOCRData.objects.bulk_create(ocr_data_list)
+
+from django.core.exceptions import ObjectDoesNotExist
 
 def upload_manuscript(request):
     if request.method == 'POST':
         pdf_file = request.FILES.get('pdf_file')
 
         if pdf_file:
+            # Initialize the manuscript with a default "No abstract found" for abstracts
             manuscript = Manuscript(
                 pdf_file=pdf_file,
                 student=request.user,
+                abstracts="No abstract found"  # Set a default value here
             )
-            manuscript.save()
+            manuscript.save()  # Save the manuscript first to generate an ID
             pdf_file_path = manuscript.pdf_file.path
 
             # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
                     # Extract text from the PDF pages (via PyMuPDF and Tesseract)
-                    extract_pages_as_text(pdf_file_path, manuscript)
+                    process_manuscript(pdf_file_path, manuscript)
 
-                    # Extract abstract from the second page (since it's always there)
+                    # Extract the abstract (from the second page)
                     doc = fitz.open(pdf_file_path)
                     if doc.page_count > 1:  # Ensure there are at least 2 pages
                         second_page = doc.load_page(1)  # Load the second page (index 1)
-                        pix = second_page.get_pixmap(dpi=80)  # Render page as image
+                        pix = second_page.get_pixmap(dpi=120)  # Render page as image
                         img = Image.open(BytesIO(pix.tobytes("png")))
                         abstract_text = pytesseract.image_to_string(img).strip()
 
-                        # Extract the abstract text if found
-                        if "Abstract" in abstract_text:
-                            abstract_text = abstract_text.split("Abstract", 1)[1].strip()
-                        else:
-                            abstract_text = "No abstract found"
+                        # Remove leading words if present
+                        for prefix in ["abstract", "executive summary"]:
+                            if abstract_text.lower().startswith(prefix):
+                                abstract_text = abstract_text[len(prefix):].strip()
 
-                        manuscript.abstracts = abstract_text
-                        
+                        # Update the abstract text from page 2 if found
+                        manuscript.abstracts = abstract_text or "No abstract found"
+                        manuscript.save()  # Save the abstract to the manuscript
+
                 except Exception as e:
                     print(f"Error processing PDF: {e}")
 
-            manuscript.save()
-            return redirect('final_manuscript_page', manuscript_id=manuscript.id, extracted_abstract=manuscript.abstracts)
+            # Redirect to the final confirmation page with the manuscript object
+            return redirect('final_manuscript_page', manuscript_id=manuscript.id)
 
+    # Show the upload form
     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
 
 
-
-#Final Confirmation
-def final_manuscript_page(request, manuscript_id, extracted_abstract=""):
+# Final Confirmation
+def final_manuscript_page(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
     if request.method == 'POST':
         title = request.POST.get('title')
+        abstracts = request.POST.get('abstracts')
         authors = request.POST.get('authors')
+        year = request.POST.get('year')
         category_id = request.POST.get('category')
-        batch_id = request.POST.get('batch')
         manuscript_type_id = request.POST.get('manuscript_type')
         program_id = request.POST.get('program')
         adviser_id = request.POST.get('adviser')
 
-        adviser = CustomUser.objects.get(id=adviser_id)
-
+        # Assign the manuscript fields from form data
         manuscript.title = title
+        manuscript.abstracts = abstracts
         manuscript.authors = authors
+        manuscript.year = year
         manuscript.category_id = category_id
-        manuscript.batch_id = batch_id
         manuscript.manuscript_type_id = manuscript_type_id
         manuscript.program_id = program_id
-        manuscript.adviser = adviser
+
+        # Lookup adviser and handle if adviser is not found
+        try:
+            manuscript.adviser = CustomUser.objects.get(id=adviser_id, is_adviser=True)
+        except ObjectDoesNotExist:
+            print("Adviser not found. Please check the adviser ID.")
+            return redirect('final_manuscript_page', manuscript_id=manuscript.id)
+
+        # Set publication date and update upload_show to True
         manuscript.publication_date = timezone.now().date()
+        manuscript.upload_show = True
 
         manuscript.save()
-
         return redirect('dashboard')
 
+    # Load choices for form
     categories = Category.objects.all()
-    batches = Batch.objects.all()
     manuscript_types = ManuscriptType.objects.all()
     programs = Program.objects.all()
     advisers = CustomUser.objects.filter(is_adviser=True)
 
     return render(request, 'ccsrepo_app/manuscript_final_page.html', {
         'manuscript': manuscript,
-        'extracted_abstract': extracted_abstract,
         'categories': categories,
-        'batches': batches,
         'manuscript_types': manuscript_types,
         'programs': programs,
         'advisers': advisers,
     })
+
 #----------------End Manuscript System ------------------------/
 
 #----------------Adviser System ------------------------/
@@ -746,7 +905,7 @@ def faculty_upload_manuscript(request):
             if os.path.exists(pdf_file_path):
                 try:
                     # Extract text from the PDF pages (via PyMuPDF and Tesseract)
-                    extract_pages_as_text(pdf_file_path, manuscript)
+                    process_manuscript(pdf_file_path, manuscript)
 
                     # Extract abstract from the second page (since it's always there)
                     doc = fitz.open(pdf_file_path)
@@ -878,3 +1037,28 @@ def student_access_requests(request):
         access_requests = []  # No requests if the user is not a student
 
     return render(request, 'ccsrepo_app/student_access_requests.html', {'access_requests': access_requests})
+
+def delete_unpublished_manuscripts(request):
+    if request.method == 'POST':
+        # Filter manuscripts where upload_show is False
+        manuscripts_to_delete = Manuscript.objects.filter(upload_show=False)
+
+        for manuscript in manuscripts_to_delete:
+            # Delete related PageOCR records
+            PageOCRData.objects.filter(manuscript=manuscript).delete()
+
+            # Delete the PDF file from the filesystem
+            if manuscript.pdf_file and os.path.isfile(manuscript.pdf_file.path):
+                try:
+                    os.remove(manuscript.pdf_file.path)
+                    print(f"Deleted PDF file: {manuscript.pdf_file.path}")
+                except Exception as e:
+                    print(f"Failed to delete PDF file {manuscript.pdf_file.path}: {e}")
+
+            # Delete the Manuscript itself
+            manuscript.delete()
+            print(f"Deleted manuscript: {manuscript.title}")
+
+        messages.success(request, "Unpublished manuscripts have been successfully deleted.")
+        return redirect('delete_unpublished_manuscripts')  # Redirect to your desired page after deletion
+    return render(request, 'ccsrepo_app/delete_unpublished_manuscript.html')
