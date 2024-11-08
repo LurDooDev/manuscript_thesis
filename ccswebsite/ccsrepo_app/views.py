@@ -873,7 +873,7 @@ def manuscript_detail_view(request, manuscript_id):
 #----------------Faculty System ------------------------/
 def faculty_manuscripts_view(request):
     if request.user.is_authenticated:
-        manuscripts = Manuscript.objects.filter(student=request.user, title__gt='')
+        manuscripts = Manuscript.objects.filter(student=request.user,  upload_show=True)
 
         return render(request, 'ccsrepo_app/faculty_manuscript.html', {
             'manuscripts': manuscripts,
