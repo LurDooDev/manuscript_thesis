@@ -852,10 +852,10 @@ def adviser_review(request, manuscript_id):
 
 #----------------Student System ------------------------/
 def student_manuscripts_view(request):
-    # check and make sure user is authenticated and is_student
+    # Check if the user is authenticated and is a student
     if request.user.is_authenticated and request.user.is_student:
-        # Get all manuscripts submitted by the logged-in student that have a non-empty title
-        manuscripts = Manuscript.objects.filter(student=request.user, title__gt='')
+        # Get all manuscripts submitted by the logged-in student with upload_show=True
+        manuscripts = Manuscript.objects.filter(student=request.user, upload_show=True)
 
         return render(request, 'ccsrepo_app/student_manuscript.html', {
             'manuscripts': manuscripts,
