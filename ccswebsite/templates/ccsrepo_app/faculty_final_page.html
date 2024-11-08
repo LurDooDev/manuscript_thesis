@@ -20,7 +20,7 @@
                 </li>
                 <li>
                     {% if user.is_adviser %}
-                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
+                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Uploads</a>
                     {% elif user.is_admin %}
                         <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
                     {% else %}
@@ -47,19 +47,25 @@
                     <!-- Title Field -->
                     <div class="input-margin">
                         <label for="title" class="login-label">Title</label>
-                        <input type="text" id="title" name="title" class="login-input" value="{{ manuscript.title }}" required>
+                        <textarea id="title" name="title" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ manuscript.title }}</textarea>
                     </div>
 
                     <!-- Abstract Field -->
                     <div class="input-margin">
-                        <label for="abstract" class="login-label">Abstract</label>
-                        <textarea id="abstract" name="abstract" class="login-input bg-gray-100" rows="4" placeholder="Extracted abstract will be shown here..." readonly>{{ extracted_abstract }}</textarea>
+                        <label for="abstracts" class="login-label">Abstract</label>
+                        <textarea id="abstracts" name="abstracts" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ manuscript.abstracts }}</textarea>
                     </div>
 
                     <!-- Authors Field -->
                     <div class="input-margin">
                         <label for="authors" class="login-label">Researchers (comma-separated)</label>
                         <input type="text" id="authors" name="authors" class="login-input" value="{{ manuscript.authors }}" required>
+                    </div>
+
+                    <!-- Authors Field -->
+                    <div class="input-margin">
+                        <label for="year" class="login-label">Batch</label>
+                        <input type="text" id="year" name="year" class="login-input" value="{{ manuscript.year }}" required>
                     </div>
 
                     <!-- Category Field -->
@@ -69,17 +75,6 @@
                             <option value=""></option>
                             {% for category in categories %}
                                 <option value="{{ category.id }}" {% if category.id == manuscript.category_id %}selected{% endif %}>{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Batch Field -->
-                    <div class="input-margin">
-                        <label for="batch" class="login-label">Batch</label>
-                        <select id="batch" name="batch" class="login-input" required>
-                            <option value=""></option>
-                            {% for batch in batches %}
-                                <option value="{{ batch.id }}" {% if batch.id == manuscript.batch_id %}selected{% endif %}>{{ batch.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -106,8 +101,10 @@
                         </select>
                     </div>
 
+
+                    <!-- Submit Button -->
                     <div class="pt-4">
-                        <button type="submit" class="login-button w-full bg-[#25580F] text-white rounded-lg py-2 hover:bg-[#1c4a0c] transition duration-300">
+                        <button type="submit" class="login-button w-full">
                             Finalize Manuscript
                         </button>
                     </div>

@@ -9,7 +9,7 @@ urlpatterns = [
     path('my-faculty-manuscripts/', views.faculty_manuscripts_view, name='faculty_manuscripts'),
     path('manuscripts-faculty-details/<int:manuscript_id>/', views.faculty_detail_view, name='faculty_detail'),
     path('faculty-page/', views.faculty_upload_manuscript, name='faculty_upload_page'),
-    path('faculty-finalize/<int:manuscript_id>/<str:extracted_abstract>/', views.faculty_final_page, name='faculty_final_page'),
+    path('faculty-finalize/<int:manuscript_id>/', views.faculty_final_page, name='faculty_final_page'),
     #Manuscript
     path('manuscript-page/', views.upload_manuscript, name='manuscript_upload_page'),
     path('manuscript/<int:manuscript_id>/', views.view_manuscript, name='view_manuscript'),

@@ -894,11 +894,13 @@ def faculty_upload_manuscript(request):
         pdf_file = request.FILES.get('pdf_file')
 
         if pdf_file:
+            # Initialize the manuscript with a default "No abstract found" for abstracts
             manuscript = Manuscript(
                 pdf_file=pdf_file,
                 student=request.user,
+                abstracts="No abstract found"  # Set a default value here
             )
-            manuscript.save()
+            manuscript.save()  # Save the manuscript first to generate an ID
             pdf_file_path = manuscript.pdf_file.path
 
             # Check if the file exists
@@ -907,72 +909,68 @@ def faculty_upload_manuscript(request):
                     # Extract text from the PDF pages (via PyMuPDF and Tesseract)
                     process_manuscript(pdf_file_path, manuscript)
 
-                    # Extract abstract from the second page (since it's always there)
+                    # Extract the abstract (from the second page)
                     doc = fitz.open(pdf_file_path)
                     if doc.page_count > 1:  # Ensure there are at least 2 pages
                         second_page = doc.load_page(1)  # Load the second page (index 1)
-                        pix = second_page.get_pixmap(dpi=80)  # Render page as image
+                        pix = second_page.get_pixmap(dpi=120)  # Render page as image
                         img = Image.open(BytesIO(pix.tobytes("png")))
                         abstract_text = pytesseract.image_to_string(img).strip()
 
-                        # Extract the abstract text if found
-                        if "Abstract" in abstract_text:
-                            abstract_text = abstract_text.split("Abstract", 1)[1].strip()
-                        else:
-                            abstract_text = "No abstract found"
+                        # Remove leading words if present
+                        for prefix in ["abstract", "executive summary"]:
+                            if abstract_text.lower().startswith(prefix):
+                                abstract_text = abstract_text[len(prefix):].strip()
 
-                        manuscript.abstracts = abstract_text
-                        
+                        # Update the abstract text from page 2 if found
+                        manuscript.abstracts = abstract_text or "No abstract found"
+                        manuscript.save()  # Save the abstract to the manuscript
+
                 except Exception as e:
                     print(f"Error processing PDF: {e}")
 
-            manuscript.save()
-
-            return redirect('faculty_final_page', manuscript_id=manuscript.id, extracted_abstract=manuscript.abstracts)
+            # Redirect to the final confirmation page with the manuscript object
+            return redirect('faculty_final_page', manuscript_id=manuscript.id)
 
     return render(request, 'ccsrepo_app/faculty_upload_page.html')
 
 
-
-
-def faculty_final_page(request, manuscript_id, extracted_abstract=""):
+def faculty_final_page(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
     if request.method == 'POST':
         title = request.POST.get('title')
+        abstracts = request.POST.get('abstracts')
         authors = request.POST.get('authors')
+        year = request.POST.get('year')
         category_id = request.POST.get('category')
-        batch_id = request.POST.get('batch')
         manuscript_type_id = request.POST.get('manuscript_type')
         program_id = request.POST.get('program')
-        
-        # Set adviser to the currently logged-in user
-        adviser = request.user
 
+        # Assign the manuscript fields from form data
         manuscript.title = title
+        manuscript.abstracts = abstracts
         manuscript.authors = authors
+        manuscript.year = year
         manuscript.category_id = category_id
-        manuscript.batch_id = batch_id
         manuscript.manuscript_type_id = manuscript_type_id
         manuscript.program_id = program_id
-        manuscript.adviser = adviser
+
+        # Set publication date and update upload_show to True
         manuscript.publication_date = timezone.now().date()
-        manuscript.status = 'approved'
+        manuscript.upload_show = True
 
         manuscript.save()
-
         return redirect('dashboard')
 
+    # Load choices for form
     categories = Category.objects.all()
-    batches = Batch.objects.all()
     manuscript_types = ManuscriptType.objects.all()
     programs = Program.objects.all()
 
     return render(request, 'ccsrepo_app/faculty_final_page.html', {
         'manuscript': manuscript,
-        'extracted_abstract': extracted_abstract,
         'categories': categories,
-        'batches': batches,
         'manuscript_types': manuscript_types,
         'programs': programs,
     })
