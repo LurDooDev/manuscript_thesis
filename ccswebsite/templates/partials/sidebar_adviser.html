@@ -1,28 +1,43 @@
 {% load static %}
 <aside class="w-64 bg-white shadow-md p-6 rounded-lg">
-    <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]"> {{user.first_name }}</h2>
+    <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]">{{ user.first_name }}</h2>
     <div>
         <ul class="mt-6 space-y-4">
             <li class="mb-4">
                 <a href="{% url 'manuscript_search_page' %}" class="sidebar-link">Home</a>
             </li>
             <li class="mb-4">
-                <a href="{% url 'adviser_approve_student' %}" class="sidebar-link">Approve Student</a>
+                <a href="{% url 'adviser_approve_student' %}" 
+                   class="sidebar-link {% if pending_student_approvals > 0 %}bg-yellow-100 text-yellow-700 font-bold{% endif %}">
+                   Approve Student
+                   {% if pending_student_approvals > 0 %}
+                       <span class="text-red-500 font-semibold">({{ pending_student_approvals }})</span>
+                   {% endif %}
+                </a>
             </li>
             <li class="mb-4">
-                <a href="{% url 'manuscript_access_requests' %}" class="sidebar-link">Manuscript Access Request</a>
+                <a href="{% url 'manuscript_access_requests' %}" 
+                   class="sidebar-link {% if pending_access_requests > 0 %}bg-yellow-100 text-yellow-700 font-bold{% endif %}">
+                   Manuscript Access Request
+                   {% if pending_access_requests > 0 %}
+                       <span class="text-red-500 font-semibold">({{ pending_access_requests }})</span>
+                   {% endif %}
+                </a>
             </li>
             <li class="mb-4">
                 <a href="{% url 'faculty_manuscripts' %}" class="sidebar-link">My Manuscripts</a>
             </li>
             <li class="mb-4">
-                <a href="{% url 'adviser_manuscript' %}" class="sidebar-link">Review Manuscripts</a>
+                <a href="{% url 'adviser_manuscript' %}" 
+                   class="sidebar-link bg-yellow-100 text-yellow-700">
+                   Review Manuscripts
+                </a>
             </li>
             <li class="mb-4">
-                <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+                <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">
+                    Logout
+                </a>
             </li>
         </ul>
     </div>
 </aside>
-
-

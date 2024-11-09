@@ -16,7 +16,6 @@ from django.core.paginator import Paginator
 from io import BytesIO
 from django.db.models import Count
 
-
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
     # Get all approved manuscripts
@@ -195,12 +194,17 @@ def request_adviser_view(request):
         try:
             adviser = CustomUser.objects.get(email=adviser_email, is_adviser=True)
 
-            # Check to prevent duplicates
-            if AdviserStudentRelationship.objects.filter(adviser=adviser, student=student).exists():
-                messages.warning(request, "You have already sent a request to this adviser.")
+            # Check if there's already an approved relationship with the adviser
+            existing_relationship = AdviserStudentRelationship.objects.filter(adviser=adviser, student=student).first()
+
+            if existing_relationship:
+                if existing_relationship.status == 'approved':
+                    messages.warning(request, "You have already been approved by this adviser.")
+                else:
+                    messages.warning(request, "You have already sent a request to this adviser.")
             else:
-                # Create adviser-student relationship
-                AdviserStudentRelationship.objects.create(adviser=adviser, student=student)
+                # Create a new adviser-student relationship with 'pending' status
+                AdviserStudentRelationship.objects.create(adviser=adviser, student=student, status='pending')
                 messages.success(request, "Your request has been sent to your adviser.")
                 return redirect('adviser_request_success')
 
@@ -211,29 +215,49 @@ def request_adviser_view(request):
 
     return render(request, 'ccsrepo_app/adviser_request.html')
 
-#Approve Student View for Adviser
 def approve_student_view(request):
     if not request.user.is_adviser:
         messages.error(request, "You are not authorized to approve students.")
         return redirect('dashboard')
-    
-    relationships = AdviserStudentRelationship.objects.filter(adviser=request.user)
+
+    # Get all relationships where the logged-in user is the adviser, ordered by created_at
+    relationships = AdviserStudentRelationship.objects.filter(adviser=request.user).order_by('-created_at')
+
+    # Pagination setup: Show 5 relationships per page
+    paginator = Paginator(relationships, 5)  # 5 relationships per page
+    page_number = request.GET.get('page')  # Get the page number from URL
+    page_obj = paginator.get_page(page_number)
 
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
         try:
+            # Get the student relationship for the adviser
             student_relationship = get_object_or_404(AdviserStudentRelationship, id=student_id, adviser=request.user)
+            
+            # Get the student from the relationship
             student = student_relationship.student
-            student.is_student = True
-            student.save()
 
-            messages.success(request, f"{student.username} has been approved as a student.")
+            # Check if the status is already approved before updating
+            if student_relationship.status != 'approved':
+                # Update the status of the relationship to approved
+                student_relationship.status = AdviserStudentRelationship.APPROVED  # Assuming you added the constant 'APPROVED'
+                student_relationship.save()
+
+                # Optionally, set the student role to True if needed (e.g., if your CustomUser model has is_student)
+                student.is_student = True  # Set the is_student flag
+                student.save()  # Save the student object
+
+                messages.success(request, f"{student.username} has been approved as a student.")
+            else:
+                messages.info(request, f"{student.username} has already been approved.")
+
             return redirect('adviser_approve_student')
 
         except Exception as e:
-            messages.error(request, "An error occurred. Please try again.")
+            messages.error(request, f"An error occurred: {str(e)}")
 
-    return render(request, 'ccsrepo_app/adviser_approve_student.html', {'relationships': relationships})
+    return render(request, 'ccsrepo_app/adviser_approve_student.html', {'page_obj': page_obj})
+
 #----------------End Student and Adviser ------------------------/
 #----------------Register ------------------------/
 def validate_user_password(password):
@@ -1008,8 +1032,20 @@ def request_access(request, manuscript_id):
 
 def manuscript_access_requests(request):
     # List all access requests for the adviser's manuscripts
-    access_requests = ManuscriptAccessRequest.objects.filter(manuscript__adviser=request.user)
-    return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'access_requests': access_requests})
+    access_requests = ManuscriptAccessRequest.objects.filter(manuscript__adviser=request.user).order_by('-requested_at')
+    
+    # Debug: print the number of access requests
+    print(f"Number of access requests: {access_requests.count()}")
+    
+    # Pagination setup: Show 5 requests per page
+    paginator = Paginator(access_requests, 5)  # 5 requests per page
+    page_number = request.GET.get('page')  # Get the page number from URL
+    page_obj = paginator.get_page(page_number)
+    
+    # Debug: Check the page object
+    print(f"Page object: {page_obj}")
+    
+    return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'page_obj': page_obj})
 
 def manage_access_request(request):
     # Manage approval or denial of a request via a single endpoint

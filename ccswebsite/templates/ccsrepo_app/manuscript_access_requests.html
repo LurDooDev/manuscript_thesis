@@ -1,6 +1,15 @@
 {% extends "base_dashboard.html" %}
+
 {% block content %}
 <h2 class="text-2xl font-semibold text-[#25580F] mb-6">Manuscript Access Requests</h2>
+
+<!-- Pagination Controls -->
+<div class="flex justify-between mb-6">
+    <div>
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    </div>
+</div>
+
 <div class="flex-1 mr-4">
     <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
         <thead>
@@ -14,9 +23,9 @@
             </tr>
         </thead>
         <tbody>
-            {% for request in access_requests %}
+            {% for request in page_obj %}
                 <tr class="text-center">
-                    <td class="border px-4 py-2">{{ request.student.first_name }} {{ request.student.last_name }}</td>
+                    <td class="border px-4 py-2">{{ request.student.first_name }} {{ request.student.middle_name }} {{ request.student.last_name }}</td>
                     <td class="border px-4 py-2">{{ request.requested_at }}</td>
                     <td class="border px-4 py-2">{{ request.get_status_display }}</td>
                     <td class="border px-4 py-2">
@@ -60,4 +69,29 @@
         </tbody>
     </table>
 </div>
+
+<!-- Pagination Links -->
+<div class="flex justify-between">
+    <div>
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
+                First
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
+                Previous
+            </a>
+        {% endif %}
+    </div>
+    <div>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
+                Next
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
+                Last
+            </a>
+        {% endif %}
+    </div>
+</div>
+
 {% endblock %}

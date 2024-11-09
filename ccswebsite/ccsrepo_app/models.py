@@ -71,10 +71,18 @@ class CustomUser(AbstractBaseUser):
 
 #Student and Adviser    
 class AdviserStudentRelationship(models.Model):
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    STATUS_CHOICES = [
+        (PENDING, 'Pending'),
+        (APPROVED, 'Approved'),
+    ]
+
     adviser = models.ForeignKey(CustomUser, related_name='adviser_relationships', on_delete=models.CASCADE)
     student = models.ForeignKey(CustomUser, related_name='student_relationships', on_delete=models.CASCADE)
     start_date = models.DateField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
 
     def __str__(self):
         return f"{self.adviser.username} advises {self.student.username}"
