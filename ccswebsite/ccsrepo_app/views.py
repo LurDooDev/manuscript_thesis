@@ -1031,19 +1031,15 @@ def request_access(request, manuscript_id):
     # return redirect('view_manuscript', manuscript_id=manuscript.id)
 
 def manuscript_access_requests(request):
-    # List all access requests for the adviser's manuscripts
-    access_requests = ManuscriptAccessRequest.objects.filter(manuscript__adviser=request.user).order_by('-requested_at')
+    # Query access requests, ordering by latest, and select related manuscript
+    access_requests = ManuscriptAccessRequest.objects.filter(
+        manuscript__adviser=request.user
+    ).select_related('manuscript').order_by('-requested_at')
     
-    # Debug: print the number of access requests
-    print(f"Number of access requests: {access_requests.count()}")
-    
-    # Pagination setup: Show 5 requests per page
-    paginator = Paginator(access_requests, 5)  # 5 requests per page
-    page_number = request.GET.get('page')  # Get the page number from URL
+    # Paginate to show 5 requests per page
+    paginator = Paginator(access_requests, 5)
+    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    # Debug: Check the page object
-    print(f"Page object: {page_obj}")
     
     return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'page_obj': page_obj})
 

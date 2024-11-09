@@ -3,15 +3,17 @@ from .models import AdviserStudentRelationship, ManuscriptAccessRequest, Manuscr
 def pending_requests_counts(request):
     # Ensure the user is authenticated
     if request.user.is_authenticated:
-        # Count the pending student approvals where the logged-in user is the adviser
+        # Count pending student approvals where the logged-in user is the adviser
         pending_student_approvals = AdviserStudentRelationship.objects.filter(
             adviser=request.user, status='pending'
         ).count()
 
-        # Count the pending manuscript access requests
-        pending_access_requests = ManuscriptAccessRequest.objects.filter(status='pending').count()
+        # Count pending manuscript access requests where the manuscript's adviser is the logged-in user
+        pending_access_requests = ManuscriptAccessRequest.objects.filter(
+            manuscript__adviser=request.user, status='pending'
+        ).count()
 
-        # # Count the pending manuscript reviews where the logged-in user is the adviser
+        # Uncomment the below section if manuscript reviews are also tied to the adviser
         # pending_manuscript_reviews = Manuscript.objects.filter(
         #     reviewer=request.user, status='pending'
         # ).count()
