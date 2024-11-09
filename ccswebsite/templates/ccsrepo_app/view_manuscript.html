@@ -46,19 +46,24 @@
                 </div>
 
                <!-- Buttons for PDF View and Access Request -->
-<div class="mt-8 flex justify-center space-x-4">
-    {% if has_access or request.user.is_admin or request.user.is_adviser %}
-        <a href="{% url 'view_pdf_manuscript' manuscript.id %}" 
-           class="py-4 px-6 bg-[#25580F] text-white font-semibold rounded-lg shadow-md hover:bg-[#1c4a0c] transition duration-300 transform hover:scale-105">
-            Full Search View
-        </a>
-    {% else %}
-        <a href="{% url 'request_access' manuscript.id %}" 
-           class="py-4 px-6 bg-[#25580F] text-white font-semibold rounded-lg shadow-md hover:bg-[#1c4a0c] transition duration-300 transform hover:scale-105">
-            Request Full Search
-        </a>
-    {% endif %}
-</div>
+            <div class="mt-8 flex justify-center space-x-4">
+                {% if has_access %}
+                    <a href="{% url 'view_pdf_manuscript' manuscript.id %}" 
+                       class="py-4 px-6 bg-[#25580F] text-white font-semibold rounded-lg shadow-md hover:bg-[#1c4a0c] transition duration-300 transform hover:scale-105">
+                        Full Search View
+                    </a>
+                {% elif has_pending_request %}
+                    <a disabled 
+                    class=" bg-[#25580F]  py-4 px-6 text-white font-semibold rounded-lg">
+                        Wait for Approval
+                </a>
+                {% else %}
+                    <a href="{% url 'request_access' manuscript.id %}" 
+                       class="py-4 px-6 bg-[#25580F] text-white font-semibold rounded-lg shadow-md hover:bg-[#1c4a0c] transition duration-300 transform hover:scale-105">
+                        Request Full Search
+                    </a>
+                {% endif %}
+            </div>
                 <!-- Back Button -->
                 <div class="mt-6 text-center">
                     <a href="{% url 'manuscript_search_page' %}" class="text-blue-600 hover:text-blue-700 font-semibold transition duration-300">

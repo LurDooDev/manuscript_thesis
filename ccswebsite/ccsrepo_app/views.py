@@ -88,12 +88,20 @@ def view_manuscript(request, manuscript_id):
         access_end_date__gte=timezone.now()
     ).first()
     
+    # Check if the user has a pending access request
+    has_pending_request = ManuscriptAccessRequest.objects.filter(
+        manuscript=manuscript,
+        student=request.user,
+        status='pending'
+    ).exists()
+
     # Set has_access to True if the user is the student, adviser, or has an approved request
     has_access = is_student or is_adviser or (access_request is not None)
 
     return render(request, 'ccsrepo_app/view_manuscript.html', {
         'manuscript': manuscript,
         'has_access': has_access,
+        'has_pending_request': has_pending_request,
     })
 
 from django.utils.html import mark_safe
@@ -1010,7 +1018,6 @@ def request_access(request, manuscript_id):
     
     # Check if the user is the assigned student or already has access
     if request.user.is_student and request.user == manuscript.student:
-        messages.info(request, "You already have access to this manuscript.")
         return redirect('view_pdf', manuscript_id=manuscript.id)
 
     # Check if an access request already exists for this student and manuscript
@@ -1024,11 +1031,7 @@ def request_access(request, manuscript_id):
             manuscript=manuscript,
             student=request.user,
         )
-        messages.success(request, "Your access request has been sent to the adviser for approval.")
-    else:
-        messages.info(request, "You have already requested access to this manuscript.")
-    return redirect('manuscript_search_page')
-    # return redirect('view_manuscript', manuscript_id=manuscript.id)
+    return redirect('view_manuscript', manuscript_id=manuscript_id)
 
 def manuscript_access_requests(request):
     # Query access requests, ordering by latest, and select related manuscript
