@@ -18,7 +18,6 @@ urlpatterns = [
     path('request-manuscript/<int:manuscript_id>/', views.request_access, name='request_access'),
     path('view_pdf/<int:manuscript_id>/', views.view_pdf_manuscript, name='view_pdf_manuscript'),
     path('delete_unpublished_manuscripts/', views.delete_unpublished_manuscripts, name='delete_unpublished_manuscripts'),
-
     #Request Access
     path('manuscript-access-requests/', views.manuscript_access_requests, name='manuscript_access_requests'),
     path('manage-access-request/', views.manage_access_request, name='manage_access_request'),
@@ -41,6 +40,8 @@ urlpatterns = [
     path('my-manuscripts/', views.student_manuscripts_view, name='student_manuscripts'),
     path('my-access-requests/', views.student_access_requests, name='student_access_requests'),
     path('manuscripts-details/<int:manuscript_id>/', views.manuscript_detail_view, name='manuscript_detail'),
+    #CRUD
+    path('edit-category/<int:category_id>/', views.edit_category, name='edit_category'),
     #Redirecting
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),

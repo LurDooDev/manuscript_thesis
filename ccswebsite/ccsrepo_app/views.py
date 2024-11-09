@@ -425,21 +425,37 @@ def dashboard_page(request):
     }
     return render(request, 'ccsrepo_app/dashboard_page.html', context)
 
-#Category
 def manage_category(request):
     if request.method == 'POST':
         name = request.POST.get('name')
-        
+
         if Category.objects.filter(name=name).exists():
             messages.error(request, "A category with this name already exists.")
             return redirect('manage_category')
-        
+
         Category.objects.create(name=name)
         messages.success(request, "Category added successfully.")
         return redirect('manage_category')
 
-    category = Category.objects.all() 
+    category = Category.objects.all()
     return render(request, 'ccsrepo_app/manage_category.html', {'category': category})
+
+def edit_category(request, category_id):
+    category = get_object_or_404(Category, id=category_id)
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+
+        if Category.objects.filter(name=name).exists() and name != category.name:
+            messages.error(request, "A category with this name already exists.")
+            return redirect('edit_category', category_id=category.id)
+
+        category.name = name
+        category.save()
+        messages.success(request, "Category updated successfully.")
+        return redirect('manage_category')
+
+    return render(request, 'ccsrepo_app/edit_category.html', {'category': category})
 
 #Batch
 def manage_batch(request):
