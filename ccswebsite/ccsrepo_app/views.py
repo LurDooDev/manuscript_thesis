@@ -109,14 +109,13 @@ def view_manuscript(request, manuscript_id):
 
 from django.utils.html import mark_safe
 import re
-
+from django.http import JsonResponse
 # View PDF manuscript
 def view_pdf_manuscript(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     pdf_url = manuscript.pdf_file.url
-
     search_term = request.GET.get('search', '').strip()
-    
+
     # Prepare OCR data
     if search_term:
         # Filter OCR data to include all text (headings + body)
@@ -137,6 +136,13 @@ def view_pdf_manuscript(request, manuscript_id):
         for page in ocr_data:
             page.highlighted_text = page.text
 
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # Return only the OCR data in JSON format for AJAX requests
+        response_data = [
+            {'page_num': page.page_num, 'highlighted_text': page.highlighted_text} for page in ocr_data
+        ]
+        return JsonResponse({'ocr_data': response_data})
+
     # Collect matching page numbers
     matching_page_numbers = [page.page_num for page in ocr_data]
 
@@ -147,7 +153,6 @@ def view_pdf_manuscript(request, manuscript_id):
         'search_term': search_term,
         'matching_page_numbers': matching_page_numbers,
     })
-
 #----------------End Search ------------------------/
 #dashboard
 @login_required(login_url='login')
