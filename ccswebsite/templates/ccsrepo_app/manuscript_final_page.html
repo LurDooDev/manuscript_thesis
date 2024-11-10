@@ -44,6 +44,14 @@
                 <form method="POST" enctype="multipart/form-data" class="space-y-4">
                     {% csrf_token %}
 
+                    {% if errors %}
+    <div class="error-messages">
+        {% for error in errors %}
+            <p class="text-red-500">{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
                     <!-- Title Field -->
                     <div class="input-margin">
                         <label for="title" class="login-label">Title</label>

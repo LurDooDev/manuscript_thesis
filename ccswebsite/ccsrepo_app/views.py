@@ -579,6 +579,15 @@ def validate_adviser_data(email, username, password1, password2):
 #----------------Manuscript System ------------------------/
 #----------------UTIL/Helper------------------------/
 
+def validate_user_title(title):
+    errors = []
+    
+    # Check if any other manuscript with the same title has upload_show=True
+    if Manuscript.objects.filter(title=title, upload_show=True).exists():
+        errors.append(_("A manuscript with this title is already published (upload_show=True). Please choose a different title."))
+    
+    return errors
+
 from PIL import Image
 import fitz  # PyMuPDF
 
@@ -810,9 +819,9 @@ def upload_manuscript(request):
     # Show the upload form
     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
 
-# Final Confirmation
 def final_manuscript_page(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    errors = []
 
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -824,7 +833,32 @@ def final_manuscript_page(request, manuscript_id):
         program_id = request.POST.get('program')
         adviser_id = request.POST.get('adviser')
 
-        # Assign the manuscript fields from form data
+        # Validate title uniqueness if upload_show=True
+        if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
+            errors.append(_("A manuscript with this title is already published. Please choose a different title."))
+
+        # Lookup adviser and handle if adviser is not found
+        try:
+            adviser = CustomUser.objects.get(id=adviser_id, is_adviser=True)
+        except ObjectDoesNotExist:
+            errors.append(_("Adviser not found. Please check the adviser ID."))
+
+        # If there are errors, return them to the template
+        if errors:
+            categories = Category.objects.all()
+            manuscript_types = ManuscriptType.objects.all()
+            programs = Program.objects.all()
+            advisers = CustomUser.objects.filter(is_adviser=True)
+            return render(request, 'ccsrepo_app/manuscript_final_page.html', {
+                'manuscript': manuscript,
+                'categories': categories,
+                'manuscript_types': manuscript_types,
+                'programs': programs,
+                'advisers': advisers,
+                'errors': errors,
+            })
+
+        # Assign validated fields to manuscript
         manuscript.title = title
         manuscript.abstracts = abstracts
         manuscript.authors = authors
@@ -832,13 +866,7 @@ def final_manuscript_page(request, manuscript_id):
         manuscript.category_id = category_id
         manuscript.manuscript_type_id = manuscript_type_id
         manuscript.program_id = program_id
-
-        # Lookup adviser and handle if adviser is not found
-        try:
-            manuscript.adviser = CustomUser.objects.get(id=adviser_id, is_adviser=True)
-        except ObjectDoesNotExist:
-            print("Adviser not found. Please check the adviser ID.")
-            return redirect('final_manuscript_page', manuscript_id=manuscript.id)
+        manuscript.adviser = adviser  # Set adviser after validation
 
         # Set publication date and update upload_show to True
         manuscript.publication_date = timezone.now()
@@ -847,7 +875,7 @@ def final_manuscript_page(request, manuscript_id):
         manuscript.save()
         return redirect('manuscript_search_page')
 
-    # Load choices for form
+    # Load choices for form in GET request
     categories = Category.objects.all()
     manuscript_types = ManuscriptType.objects.all()
     programs = Program.objects.all()
@@ -981,9 +1009,9 @@ def faculty_upload_manuscript(request):
 
     return render(request, 'ccsrepo_app/faculty_upload_page.html')
 
-
 def faculty_final_page(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    errors = []
 
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -994,7 +1022,24 @@ def faculty_final_page(request, manuscript_id):
         manuscript_type_id = request.POST.get('manuscript_type')
         program_id = request.POST.get('program')
 
-         # Set adviser to the currently logged-in user
+        # Validate title uniqueness if upload_show=True
+        if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
+            errors.append(_("A manuscript with this title is already published. Please choose a different title."))
+
+        # If there are errors, return them to the template
+        if errors:
+            categories = Category.objects.all()
+            manuscript_types = ManuscriptType.objects.all()
+            programs = Program.objects.all()
+            return render(request, 'ccsrepo_app/faculty_final_page.html', {
+                'manuscript': manuscript,
+                'categories': categories,
+                'manuscript_types': manuscript_types,
+                'programs': programs,
+                'errors': errors,
+            })
+
+        # Set adviser to the currently logged-in user
         adviser = request.user
 
         # Assign the manuscript fields from form data
@@ -1007,7 +1052,7 @@ def faculty_final_page(request, manuscript_id):
         manuscript.program_id = program_id
         manuscript.adviser = adviser
 
-        # Set publication date and update upload_show to True
+        # Set publication date and update status and upload_show
         manuscript.publication_date = timezone.now()
         manuscript.status = 'approved'
         manuscript.upload_show = True
@@ -1015,7 +1060,7 @@ def faculty_final_page(request, manuscript_id):
         manuscript.save()
         return redirect('manuscript_search_page')
 
-    # Load choices for form
+    # Load choices for form in GET request
     categories = Category.objects.all()
     manuscript_types = ManuscriptType.objects.all()
     programs = Program.objects.all()
