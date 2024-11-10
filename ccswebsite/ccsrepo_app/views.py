@@ -77,8 +77,11 @@ def view_manuscript(request, manuscript_id):
 
     # Check if the user is the student or adviser of the manuscript
     is_student = request.user == manuscript.student
-    is_adviser = request.user == manuscript.adviser
     
+    # Check if the user is an admin
+    is_admin = request.user.is_admin
+    is_adviser = request.user.is_adviser
+
     # Check if the user has an approved access request
     access_request = ManuscriptAccessRequest.objects.filter(
         manuscript=manuscript,
@@ -95,8 +98,8 @@ def view_manuscript(request, manuscript_id):
         status='pending'
     ).exists()
 
-    # Set has_access to True if the user is the student, adviser, or has an approved request
-    has_access = is_student or is_adviser or (access_request is not None)
+    # Set has_access to True if the user is the student, adviser, admin, or has an approved request
+    has_access = is_student or is_adviser or is_admin or (access_request is not None)
 
     return render(request, 'ccsrepo_app/view_manuscript.html', {
         'manuscript': manuscript,
@@ -588,7 +591,7 @@ def extract_ocr_data(pdf_path, manuscript):
 
     for i in range(start_page, end_page):
         page = doc.load_page(i)
-        pix = page.get_pixmap(dpi=100)
+        pix = page.get_pixmap(dpi=80)
         img = Image.open(BytesIO(pix.tobytes("png")))
         page_text = pytesseract.image_to_string(img).strip()
         ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=i + 1, text=page_text))
@@ -804,11 +807,8 @@ def upload_manuscript(request):
 
             # Redirect to the final confirmation page with the manuscript object
             return redirect('final_manuscript_page', manuscript_id=manuscript.id)
-
     # Show the upload form
     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
-
-
 
 # Final Confirmation
 def final_manuscript_page(request, manuscript_id):
@@ -845,7 +845,7 @@ def final_manuscript_page(request, manuscript_id):
         manuscript.upload_show = True
 
         manuscript.save()
-        return redirect('dashboard')
+        return redirect('manuscript_search_page')
 
     # Load choices for form
     categories = Category.objects.all()
@@ -1013,7 +1013,7 @@ def faculty_final_page(request, manuscript_id):
         manuscript.upload_show = True
 
         manuscript.save()
-        return redirect('dashboard')
+        return redirect('manuscript_search_page')
 
     # Load choices for form
     categories = Category.objects.all()
