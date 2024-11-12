@@ -15,6 +15,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from io import BytesIO
 from django.db.models import Count
+from django.http import JsonResponse
+from django.utils.html import mark_safe
+import re
 
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
@@ -44,6 +47,8 @@ def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=N
         manuscripts = manuscripts.filter(category_id=category_id)
 
     return manuscripts.order_by('-publication_date')
+
+from django.template.loader import render_to_string
 
 def manuscript_search_page(request):
     search_query = request.GET.get('search', '')
@@ -107,9 +112,6 @@ def view_manuscript(request, manuscript_id):
         'has_pending_request': has_pending_request,
     })
 
-from django.utils.html import mark_safe
-import re
-from django.http import JsonResponse
 # View PDF manuscript
 def view_pdf_manuscript(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
@@ -596,12 +598,12 @@ def validate_user_title(title):
 from PIL import Image
 import fitz  # PyMuPDF
 
-def extract_ocr_data(pdf_path, manuscript):
-    """Extract OCR data from the PDF and create PageOCRData objects."""
+CHUNK_SIZE = 5  # Number of pages to process at a time
+
+def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
+    """Extract OCR data from a chunk of pages in the PDF."""
     doc = fitz.open(pdf_path)
     ocr_data_list = []
-    start_page = 1
-    end_page = min(5, len(doc))
 
     for i in range(start_page, end_page):
         page = doc.load_page(i)
@@ -610,7 +612,8 @@ def extract_ocr_data(pdf_path, manuscript):
         page_text = pytesseract.image_to_string(img).strip()
         ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=i + 1, text=page_text))
 
-    return ocr_data_list
+    # Bulk insert OCR data for the current chunk
+    PageOCRData.objects.bulk_create(ocr_data_list)
 
 def extract_title_from_first_page(first_page_text):
     """Extract and format the title from the first page."""
@@ -749,10 +752,7 @@ def extract_authors_from_first_page(first_page_text):
     return "No authors found"
 
 def process_manuscript(pdf_path, manuscript):
-    """Process the manuscript by extracting title, year, authors, and OCR data."""
-    # Extract OCR data
-    ocr_data_list = extract_ocr_data(pdf_path, manuscript)
-
+    """Process the manuscript by extracting title, year, authors, and OCR data in chunks."""
     # Extract title, year, and authors from the first page
     first_page = fitz.open(pdf_path).load_page(0)
     pix = first_page.get_pixmap(dpi=140)
@@ -769,8 +769,12 @@ def process_manuscript(pdf_path, manuscript):
     manuscript.authors = authors
     manuscript.save()
 
-    # Bulk insert OCR data for pages
-    PageOCRData.objects.bulk_create(ocr_data_list)
+    # Process OCR data in chunks
+    doc = fitz.open(pdf_path)
+    num_pages = len(doc)
+    for start_page in range(1, num_pages, CHUNK_SIZE):
+        end_page = min(start_page + CHUNK_SIZE, num_pages)
+        extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page)
 
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -791,7 +795,7 @@ def upload_manuscript(request):
             # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
-                    # Extract text from the PDF pages (via PyMuPDF and Tesseract)
+                    # Extract text from the PDF pages (via PyMuPDF and Tesseract) in chunks
                     process_manuscript(pdf_file_path, manuscript)
 
                     # Extract the abstract (from the second page)
@@ -981,7 +985,7 @@ def faculty_upload_manuscript(request):
             # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
-                    # Extract text from the PDF pages (via PyMuPDF and Tesseract)
+                    # Extract text from the PDF pages (via PyMuPDF and Tesseract) in chunks
                     process_manuscript(pdf_file_path, manuscript)
 
                     # Extract the abstract (from the second page)
