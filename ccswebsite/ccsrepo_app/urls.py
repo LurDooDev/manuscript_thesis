@@ -11,7 +11,7 @@ urlpatterns = [
     path('faculty-page/', views.faculty_upload_manuscript, name='faculty_upload_page'),
     path('faculty-finalize/<int:manuscript_id>/', views.faculty_final_page, name='faculty_final_page'),
     #Manuscript
-    path('manuscript-page/', views.upload_manuscript, name='manuscript_upload_page'),
+    path('upload/', views.upload_manuscript, name='manuscript_upload_page'),
     path('manuscript/<int:manuscript_id>/', views.view_manuscript, name='view_manuscript'),
     path('finalize/<int:manuscript_id>/', views.final_manuscript_page, name='final_manuscript_page'),
     path('manuscript-search/', views.manuscript_search_page, name='manuscript_search_page'),
@@ -36,6 +36,7 @@ urlpatterns = [
     path('manage-category/', views.manage_category, name='manage_category'),
     path('manage-batch/', views.manage_batch, name='manage_batch'),
     path('manage-type/', views.manage_type, name='manage_type'),
+    #AJAX
     #Student
     path('my-manuscripts/', views.student_manuscripts_view, name='student_manuscripts'),
     path('my-access-requests/', views.student_access_requests, name='student_access_requests'),

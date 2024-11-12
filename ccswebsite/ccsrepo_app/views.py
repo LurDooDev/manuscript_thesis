@@ -598,7 +598,7 @@ def validate_user_title(title):
 from PIL import Image
 import fitz  # PyMuPDF
 
-CHUNK_SIZE = 5  # Number of pages to process at a time
+CHUNK_SIZE = 2  # Number of pages to process at a time
 
 def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
     """Extract OCR data from a chunk of pages in the PDF."""
@@ -751,22 +751,47 @@ def extract_authors_from_first_page(first_page_text):
 
     return "No authors found"
 
+def extract_abstract_from_second_page(pdf_path):
+    """Extract the abstract from the second page of the PDF."""
+    doc = fitz.open(pdf_path)
+    if doc.page_count > 1:  # Ensure there are at least 2 pages
+        second_page = doc.load_page(1)  # Load the second page (index 1)
+        pix = second_page.get_pixmap(dpi=120)  # Render page as image
+        img = Image.open(BytesIO(pix.tobytes("png")))
+        abstract_text = pytesseract.image_to_string(img).strip()
+
+        # Remove leading words if present
+        for prefix in ["abstract", "executive summary"]:
+            if abstract_text.lower().startswith(prefix):
+                abstract_text = abstract_text[len(prefix):].strip()
+
+        # Stop extraction at the word "Keywords" (case-insensitive)
+        if "keywords" in abstract_text.lower():
+            abstract_text = abstract_text.lower().split("keywords")[0].strip()
+
+        return abstract_text or "No abstract found"
+    return "No abstract found"
+
 def process_manuscript(pdf_path, manuscript):
-    """Process the manuscript by extracting title, year, authors, and OCR data in chunks."""
+    """Process the manuscript by extracting title, year, authors, abstract, and OCR data in chunks."""
     # Extract title, year, and authors from the first page
     first_page = fitz.open(pdf_path).load_page(0)
     pix = first_page.get_pixmap(dpi=140)
     img = Image.open(BytesIO(pix.tobytes("png")))
     first_page_text = pytesseract.image_to_string(img).strip()
 
+    # Extract and save title, year, and authors
     title = extract_title_from_first_page(first_page_text)
     year = extract_year_from_first_page(first_page_text)
     authors = extract_authors_from_first_page(first_page_text)
 
-    # Save title, year, and authors to manuscript
     manuscript.title = title
     manuscript.year = year
     manuscript.authors = authors
+
+    # Extract and save the abstract from the second page
+    abstract_text = extract_abstract_from_second_page(pdf_path)
+    manuscript.abstracts = abstract_text
     manuscript.save()
 
     # Process OCR data in chunks
@@ -775,6 +800,7 @@ def process_manuscript(pdf_path, manuscript):
     for start_page in range(1, num_pages, CHUNK_SIZE):
         end_page = min(start_page + CHUNK_SIZE, num_pages)
         extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page)
+
 
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -795,30 +821,8 @@ def upload_manuscript(request):
             # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
-                    # Extract text from the PDF pages (via PyMuPDF and Tesseract) in chunks
+                    # Process the entire manuscript (title, year, authors, abstract, OCR data)
                     process_manuscript(pdf_file_path, manuscript)
-
-                    # Extract the abstract (from the second page)
-                    doc = fitz.open(pdf_file_path)
-                    if doc.page_count > 1:  # Ensure there are at least 2 pages
-                        second_page = doc.load_page(1)  # Load the second page (index 1)
-                        pix = second_page.get_pixmap(dpi=120)  # Render page as image
-                        img = Image.open(BytesIO(pix.tobytes("png")))
-                        abstract_text = pytesseract.image_to_string(img).strip()
-
-                        # Remove leading words if present
-                        for prefix in ["abstract", "executive summary"]:
-                            if abstract_text.lower().startswith(prefix):
-                                abstract_text = abstract_text[len(prefix):].strip()
-
-                        # Stop extraction at the word "Keywords" (case-insensitive)
-                        if "keywords" in abstract_text.lower():
-                            # Find the position of the word "keywords" and slice text before it
-                            abstract_text = abstract_text.lower().split("keywords")[0].strip()
-
-                        # Update the abstract text from page 2 if found
-                        manuscript.abstracts = abstract_text or "No abstract found"
-                        manuscript.save()  # Save the abstract to the manuscript
 
                 except Exception as e:
                     print(f"Error processing PDF: {e}")

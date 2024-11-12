@@ -104,6 +104,7 @@ class Manuscript(models.Model):
     feedback = models.TextField(null=True, blank=True)
     year = models.IntegerField(null=True, blank=True)
     upload_show= models.BooleanField(default=False)
+    
 
     def __str__(self):
         return self.title
