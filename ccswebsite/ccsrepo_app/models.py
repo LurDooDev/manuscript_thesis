@@ -106,7 +106,8 @@ class Manuscript(models.Model):
     upload_show= models.BooleanField(default=False)
     page_count = models.PositiveIntegerField(null=True, blank=True)
     remaining_page = models.PositiveIntegerField(null=True, blank=True)
-    current_page_count = models.PositiveIntegerField(null=True, blank=True) 
+    current_page_count = models.PositiveIntegerField(null=True, blank=True)
+    keywords_extracted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -163,7 +164,7 @@ class ManuscriptAccessRequest(models.Model):
 
 class Keyword(models.Model):
     manuscript = models.ForeignKey(Manuscript, on_delete=models.CASCADE, related_name='keywords')
-    keyword = models.CharField(max_length=100)
+    keyword = models.CharField(max_length=255)
 
     class Meta:
         unique_together = ('manuscript', 'keyword')

@@ -38,6 +38,15 @@
             <input type="text" id="search-input" placeholder="Search OCR text..." class="border border-gray-300 rounded-lg p-2 w-80">
         </div>
 
+        {% if manuscript.keywords.all %}
+    <h3>Keywords:</h3>
+    <ul>
+        {% for keyword in manuscript.keywords.all %}
+            <li>{{ keyword.keyword }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
         <!-- OCR results container -->
         <div class="ocr-text-container non-selectable" id="ocr-results">
             <h3 class="text-xl font-semibold mb-8">Matching text in Pages: <span id="matching-count">{{ matching_page_numbers|length }}</span> Page(s) found</h3>

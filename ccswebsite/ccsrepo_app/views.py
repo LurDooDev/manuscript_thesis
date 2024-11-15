@@ -10,7 +10,7 @@ import os
 from django.db.models import Q 
 import pytesseract
 from django.core.files.base import ContentFile
-from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest
+from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest, Keyword
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from io import BytesIO
@@ -116,49 +116,6 @@ def view_manuscript(request, manuscript_id):
         'has_pending_request': has_pending_request,
     })
 
-# View PDF manuscript
-def view_pdf_manuscript(request, manuscript_id):
-    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
-    pdf_url = manuscript.pdf_file.url
-    search_term = request.GET.get('search', '').strip()
-
-    # Prepare OCR data
-    if search_term:
-        # Filter OCR data to include all text (headings + body)
-        ocr_data = manuscript.ocr_data.filter(text__icontains=search_term).order_by('page_num')
-        
-        for page in ocr_data:
-            # Highlight both headings and body text
-            highlighted_text = re.sub(
-                f"({re.escape(search_term)})",
-                r'<span class="highlight">\1</span>',
-                page.text,
-                flags=re.IGNORECASE
-            )
-            page.highlighted_text = mark_safe(highlighted_text)
-    else:
-        # If no search term, use the original text
-        ocr_data = manuscript.ocr_data.all().order_by('page_num')
-        for page in ocr_data:
-            page.highlighted_text = page.text
-
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        # Return only the OCR data in JSON format for AJAX requests
-        response_data = [
-            {'page_num': page.page_num, 'highlighted_text': page.highlighted_text} for page in ocr_data
-        ]
-        return JsonResponse({'ocr_data': response_data})
-
-    # Collect matching page numbers
-    matching_page_numbers = [page.page_num for page in ocr_data]
-
-    return render(request, 'ccsrepo_app/view_pdf_manuscript.html', {
-        'manuscript': manuscript,
-        'pdf_url': pdf_url,
-        'ocr_data': ocr_data,
-        'search_term': search_term,
-        'matching_page_numbers': matching_page_numbers,
-    })
 #----------------End Search ------------------------/
 #dashboard
 @login_required(login_url='login')
@@ -599,69 +556,51 @@ def validate_user_title(title):
     
     return errors
 
+CHUNK_SIZE = 2
+
 def extract_title_from_first_page(first_page_text):
     """Extract and format the title from the first page."""
     title_text = first_page_text.replace('\n', ' ').strip()
     title_text = re.sub(r'\s+', ' ', title_text)  # Normalize spaces to a single space
 
     # Define possible start and end keywords for the title extraction
-    title_start_keywords = [
-        "Zamboanga City",
-        "Department of Information Technology"
-    ]
+    title_start_keywords = ["Zamboanga City", "Department of Information Technology"]
     title_end_keywords = [
-        "A thesis presented to the faculty",
-        "In partial fulfillment",
-        "A capstone project",
-        "A CAPSTONE PROJECT"
+        "A thesis presented to the faculty", "In partial fulfillment",
+        "A capstone project", "A CAPSTONE PROJECT"
     ]
     title_exclude_keywords = [
-        "A CAPSTONE PROJECT Presented to the Faculty of the College of Computing Studies Western Mindanao State University",
         "A CAPSTONE PROJECT Presented to the Faculty of the College of Computing Studies Western Mindanao State University"
     ]
 
-    # Try to find the title using the start and end keywords
-    start_idx = -1
-    end_idx = -1
-
-    # Find the start keyword
+    start_idx = end_idx = -1
     for start_keyword in title_start_keywords:
         start_idx = title_text.lower().find(start_keyword.lower())
         if start_idx != -1:
             break
-
-    # Find the end keyword
     for end_keyword in title_end_keywords:
         temp_end_idx = title_text.lower().find(end_keyword.lower())
         if temp_end_idx != -1:
             end_idx = temp_end_idx
             break
-
-    # Remove any part of the title that includes the exclusion keywords
     for exclude_keyword in title_exclude_keywords:
         exclude_idx = title_text.lower().find(exclude_keyword.lower())
         if exclude_idx != -1:
-            end_idx = exclude_idx  # Adjust the end index to exclude the unwanted part
+            end_idx = exclude_idx  # Adjust end index to exclude unwanted part
             break
 
-    # Extract title if both start and end keywords are found
     if start_idx != -1 and end_idx != -1:
         title = title_text[start_idx + len(title_start_keywords[0]): end_idx].strip()
         
-        # Remove unwanted prefixes (like "INFORMATION TECHNOLOGY") from the start of the title
         unwanted_prefixes = ["INFORMATION TECHNOLOGY", "Information Technology"]
         for prefix in unwanted_prefixes:
             if title.lower().startswith(prefix.lower()):
                 title = title[len(prefix):].strip()
                 break
-        
-        # Remove the '&' symbol from the title
         title = title.replace("&", "").strip()
-        
         return title if title else "No title found"
     else:
         return "No title found"
-
 
 def extract_year_from_first_page(first_page_text):
     """Extract the year from the first page."""
@@ -676,7 +615,6 @@ def extract_authors_from_first_page(first_page_text):
         "presented to the faculty of department of computer science college of computing studies"
     ]
     
-    # Check for both "Researchers" and "Researcher" as the end keyword
     author_end_idx = -1
     for end_keyword in author_end_keywords:
         temp_end_idx = first_page_text.lower().find(end_keyword.lower())
@@ -684,7 +622,6 @@ def extract_authors_from_first_page(first_page_text):
             author_end_idx = temp_end_idx
             break
 
-    # Try to locate authors using the start and end keywords
     if author_end_idx != -1:
         author_start_idx = -1
         for start_keyword in author_start_keywords:
@@ -695,12 +632,9 @@ def extract_authors_from_first_page(first_page_text):
 
         if author_start_idx != -1:
             authors_text = first_page_text[author_start_idx:author_end_idx].strip()
-
-            # Use regex to group sequences of words that appear to form names (e.g., "ERVEN S. IDJAD")
             author_pattern = re.compile(r'([A-Z][a-z]*\.? ?){2,}')
             authors = [match.group(0).strip() for match in author_pattern.finditer(authors_text)]
 
-            # Filter out non-name keywords
             disallowed_keywords = ["Science", "Studies", "Computer"]
             authors = [
                 author for author in authors
@@ -709,27 +643,20 @@ def extract_authors_from_first_page(first_page_text):
             if authors:
                 return ', '.join(authors)
 
-    # Fallback method: look for "By" and extract authors from the following lines
     by_index = first_page_text.lower().find("by")
     if by_index != -1:
-        # Extract the text following "By" and split by newlines
         following_text = first_page_text[by_index + len("by"):].strip()
         lines = following_text.splitlines()
-        
-        # Get the next three non-empty lines (assuming they represent author names)
-        raw_authors = [line.strip() for line in lines if line.strip()][:3]  # Limit to 3 authors
-        
-        # Reformat each name to "First Middle Last" format if needed
+        raw_authors = [line.strip() for line in lines if line.strip()][:3]
+
         formatted_authors = []
         for raw_author in raw_authors:
-            # Split the name into parts and assume the last part is the surname
             parts = raw_author.split(', ')
             if len(parts) == 2:
                 surname, given_names = parts[0], parts[1]
                 formatted_authors.append(f"{given_names} {surname}")
             else:
-                formatted_authors.append(raw_author)  # Fallback if the format is unexpected
-
+                formatted_authors.append(raw_author)
         if formatted_authors:
             return ', '.join(formatted_authors)
 
@@ -738,30 +665,22 @@ def extract_authors_from_first_page(first_page_text):
 def extract_abstract_from_initial_pages(pdf_path, max_pages=7):
     """Extract the abstract from the first occurrence of 'abstract' or 'executive summary' in the initial pages of the PDF."""
     doc = fitz.open(pdf_path)
-
-    # Loop through the first few pages up to `max_pages` or the total page count, whichever is smaller
     for i in range(min(max_pages, doc.page_count)):
         page = doc.load_page(i)
         pix = page.get_pixmap(dpi=100)
         img = Image.open(BytesIO(pix.tobytes("png")))
-        page_text = pytesseract.image_to_string(img).strip().lower()  # Convert to lowercase for easy matching
+        page_text = pytesseract.image_to_string(img).strip().lower()
 
-        # Check if the page text starts with "abstract" or "executive summary"
         if page_text.startswith("abstract") or page_text.startswith("executive summary"):
-            # If found, extract everything after the keyword as the abstract
             keyword = "abstract" if page_text.startswith("abstract") else "executive summary"
             abstract_text = page_text[len(keyword):].strip()
 
-            # Stop extraction at "keywords" if it appears later in the text
             if "keywords" in abstract_text:
                 abstract_text = abstract_text.split("keywords")[0].strip()
 
             return abstract_text or "No abstract found"
 
-    # Return a default message if no abstract or summary is found in the first few pages
     return "No abstract found"
-
-CHUNK_SIZE = 1
 
 def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
     """Extract OCR data from a chunk of pages in the PDF."""
@@ -770,12 +689,11 @@ def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
 
     for i in range(start_page, end_page):
         page = doc.load_page(i)
-        pix = page.get_pixmap(dpi=80)
+        pix = page.get_pixmap(dpi=100)
         img = Image.open(BytesIO(pix.tobytes("png")))
         page_text = pytesseract.image_to_string(img).strip()
         ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=i + 1, text=page_text))
 
-    # Bulk insert OCR data for the current chunk
     PageOCRData.objects.bulk_create(ocr_data_list)
 
 def process_manuscript(pdf_path, manuscript):
@@ -785,37 +703,31 @@ def process_manuscript(pdf_path, manuscript):
     img = Image.open(BytesIO(pix.tobytes("png")))
     first_page_text = pytesseract.image_to_string(img).strip()
 
-    # Extracting title, year, authors, abstract
     title = extract_title_from_first_page(first_page_text)
     year = extract_year_from_first_page(first_page_text)
     authors = extract_authors_from_first_page(first_page_text)
     abstract_text = extract_abstract_from_initial_pages(pdf_path)
 
-    # Save title, year, authors, and abstract in the manuscript
     manuscript.title = title
     manuscript.year = year
     manuscript.authors = authors
     manuscript.abstracts = abstract_text
     manuscript.save()
 
-    # Calculate and save total page count
     doc = fitz.open(pdf_path)
     total_pages = len(doc)
     manuscript.page_count = total_pages
-    manuscript.current_page_count = 0  # Start at page 1
+    manuscript.current_page_count = 0
 
-    # Set remaining pages after initial processing (e.g., first 7 pages)
     initial_pages_processed = min(7, total_pages)
     manuscript.remaining_page = max(total_pages - initial_pages_processed, 0)
     manuscript.current_page_count = initial_pages_processed
     manuscript.save()
 
-    # Process initial chunk (first 7 pages or fewer)
     for start_page in range(1, initial_pages_processed, CHUNK_SIZE):
         end_page = min(start_page + CHUNK_SIZE, total_pages)
         extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page)
 
-    # Update current page count in manuscript
     manuscript.current_page_count = initial_pages_processed
     manuscript.save()
 
@@ -824,27 +736,22 @@ def upload_manuscript(request):
         pdf_file = request.FILES.get('pdf_file')
 
         if pdf_file:
-            # Initialize the manuscript with a default "No abstract found" for abstracts
             manuscript = Manuscript(
                 pdf_file=pdf_file,
                 student=request.user,
-                abstracts="No abstract found"  # Set a default value here
+                abstracts="No abstract found"
             )
-            manuscript.save()  # Save the manuscript first to generate an ID
+            manuscript.save()
             pdf_file_path = manuscript.pdf_file.path
 
-            # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
-                    # Process the entire manuscript (title, year, authors, abstract, OCR data)
                     process_manuscript(pdf_file_path, manuscript)
-
                 except Exception as e:
                     print(f"Error processing PDF: {e}")
 
-            # Redirect to the final confirmation page with the manuscript object
             return redirect('final_manuscript_page', manuscript_id=manuscript.id)
-    # Show the upload form
+
     return render(request, 'ccsrepo_app/manuscript_upload_page.html')
 
 def final_manuscript_page(request, manuscript_id):
@@ -993,9 +900,6 @@ def extract_text_from_page(pdf_file, page_number):
         
         # Perform OCR on the image
         ocr_text = pytesseract.image_to_string(img)
-        
-        # You can save the image if you want to debug or review
-        # img.save(f"page_{page_number}_ocr.png")
 
     return ocr_text
 
@@ -1003,7 +907,7 @@ def continue_scanning(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
     # Process the next 10 pages if there are remaining pages to process
-    pages_to_process = 1
+    pages_to_process = 10
     current_page = manuscript.current_page_count
 
     # Ensure we don't go past the total number of pages
@@ -1250,3 +1154,139 @@ def delete_unpublished_manuscripts(request):
         messages.success(request, "Unpublished manuscripts have been successfully deleted.")
         return redirect('delete_unpublished_manuscripts')  # Redirect to your desired page after deletion
     return render(request, 'ccsrepo_app/delete_unpublished_manuscript.html')
+
+# ----------------Indexing System ------------------------/
+# Define the list of tech-related keywords
+tech_related_keywords = [
+    "machine learning", "artificial intelligence", "deep learning", "neural network", "data science",
+    "python", "algorithm", "natural language processing", "computer vision", "big data", "cloud computing",
+    "data analysis", "predictive modeling", "data mining", "automation", "robotics", "internet of things", 
+    "AI", "IoT", "blockchain", "virtual reality", "augmented reality", "machine vision",
+    "javascript", "node.js", "react", "angular", "vue.js", "express.js",
+    "html", "css", "web development", "front-end", "back-end", "full-stack", "typescript", 
+    "ruby on rails", "flutter", "swift", "kotlin", "c++", "c#", "go", "rust", "bash", "php", "sql", "nosql",
+    "docker", "kubernetes", "aws", "azure", "gcp", "git", "gitlab", "github", "jenkins", "ci/cd", "tensorflow", 
+    "keras", "pytorch", "scikit-learn", "matplotlib", "pandas", "numpy", "opencv", "django", "flask", "spark"
+]
+
+def extract_keywords_from_text(text):
+    """
+    Extract exact matches for keywords from a predefined list, ensuring only full matches.
+    """
+    # Convert text to lowercase to ensure case-insensitivity
+    text = text.lower()
+    
+    # Only add full matches of keywords, preventing partial matches like "Java" for "JavaScript"
+    keywords_found = []
+    for keyword in tech_related_keywords:
+        # Ensure we match the exact word (not a part of other words)
+        if re.search(r'\b' + re.escape(keyword) + r'\b', text):
+            keywords_found.append(keyword)
+    
+    # Return the found keywords (no duplicates)
+    return list(set(keywords_found))
+
+def extract_keywords_after_keywords(text):
+    """
+    Extract keywords after 'KEYWORDS:' section in the text.
+    This function is specifically designed to capture keywords that follow 'KEYWORDS:' directly.
+    """
+    keywords_section = re.search(r'keywords:\s*(.*)', text, re.IGNORECASE)
+    if keywords_section:
+        keywords_str = keywords_section.group(1)
+        # Split the keywords by commas or newlines and clean them
+        keywords = [keyword.strip().lower() for keyword in keywords_str.split(',')]
+        return keywords
+    return []
+
+def clean_and_extract_after_keywords(text):
+    """
+    Clean and extract content after 'CHAPTER', 'EXECUTIVE SUMMARY', or 'KEYWORDS:' keywords.
+    """
+    patterns = [
+        r'(?<=\bchapter\b)(.*)',  # Match after "CHAPTER"
+        r'(?<=\bexecutive summary\b)(.*)',  # Match after "EXECUTIVE SUMMARY"
+        r'(?<=\bkeywords:\b)(.*)',  # Match after "KEYWORDS:"
+    ]
+    
+    # Check for matches and return the first match (prioritize CHAPTER, EXECUTIVE SUMMARY, or KEYWORDS: )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip()  # Return the content after the keyword
+    
+    return text  # If no match, return the original text
+
+def view_pdf_manuscript(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    
+    # Safely assign a value to 'search_term' even if it's not in the GET request
+    search_term = request.GET.get('search', '').strip()  # Default to an empty string if 'search' is not in the GET request
+
+    # Check if the manuscript is fully processed (current_page_count == page_count and remaining_page == 0)
+    if manuscript.current_page_count == manuscript.page_count and manuscript.remaining_page == 0:
+        # Get all OCR data for this manuscript
+        pages = PageOCRData.objects.filter(manuscript=manuscript)
+
+        # List to store all potential keywords from all pages
+        all_keywords = []
+
+        # Loop through each page's OCR data and extract keywords
+        for page_data in pages:
+            page_text = page_data.text.lower()  # Uniformly lowercase for consistent matching
+
+            # Clean the text to extract content only after CHAPTER, EXECUTIVE SUMMARY, or KEYWORDS:
+            cleaned_text = clean_and_extract_after_keywords(page_text)
+            
+            # Extract keywords based on tech-related terms
+            page_keywords = extract_keywords_from_text(cleaned_text)
+            all_keywords.extend(page_keywords)
+
+            # Extract any additional keywords after 'KEYWORDS:' section
+            additional_keywords = extract_keywords_after_keywords(page_text)
+            all_keywords.extend(additional_keywords)
+
+        # Deduplicate the keywords (set will remove duplicates)
+        unique_keywords = list(set(all_keywords))
+
+        # Limit the number of keywords to 5 or fewer
+        limited_keywords = unique_keywords[:10]
+
+        # Retrieve existing keywords for this manuscript
+        existing_keywords = set(Keyword.objects.filter(manuscript=manuscript).values_list('keyword', flat=True))
+
+        # Save only new keywords
+        for keyword in limited_keywords:
+            if keyword not in existing_keywords:
+                Keyword.objects.create(manuscript=manuscript, keyword=keyword)
+
+    # Prepare OCR data for the view
+    if search_term:
+        ocr_data = manuscript.ocr_data.filter(text__icontains=search_term).order_by('page_num')
+        for page in ocr_data:
+            highlighted_text = re.sub(
+                f"({re.escape(search_term)})",
+                r'<span class="highlight">\1</span>',
+                page.text,
+                flags=re.IGNORECASE
+            )
+            page.highlighted_text = mark_safe(highlighted_text)
+    else:
+        ocr_data = manuscript.ocr_data.all().order_by('page_num')
+        for page in ocr_data:
+            page.highlighted_text = page.text
+
+    # Handle AJAX requests to return only OCR data
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        response_data = [{'page_num': page.page_num, 'highlighted_text': page.highlighted_text} for page in ocr_data]
+        return JsonResponse({'ocr_data': response_data})
+
+    # Collect matching page numbers for the search results
+    matching_page_numbers = [page.page_num for page in ocr_data]
+
+    return render(request, 'ccsrepo_app/view_pdf_manuscript.html', {
+        'manuscript': manuscript,
+        'ocr_data': ocr_data,
+        'search_term': search_term,
+        'matching_page_numbers': matching_page_numbers,
+    })
