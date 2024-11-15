@@ -18,6 +18,10 @@ from django.db.models import Count
 from django.http import JsonResponse
 from django.utils.html import mark_safe
 import re
+from django.urls import reverse
+from PIL import Image
+import fitz
+from django.core.exceptions import ObjectDoesNotExist
 
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
@@ -595,10 +599,7 @@ def validate_user_title(title):
     
     return errors
 
-from PIL import Image
-import fitz  # PyMuPDF
-
-CHUNK_SIZE = 2  # Number of pages to process at a time
+CHUNK_SIZE = 1  # Number of pages to process at a time
 
 def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
     """Extract OCR data from a chunk of pages in the PDF."""
@@ -774,35 +775,44 @@ def extract_abstract_from_second_page(pdf_path):
 
 def process_manuscript(pdf_path, manuscript):
     """Process the manuscript by extracting title, year, authors, abstract, and OCR data in chunks."""
-    # Extract title, year, and authors from the first page
     first_page = fitz.open(pdf_path).load_page(0)
     pix = first_page.get_pixmap(dpi=140)
     img = Image.open(BytesIO(pix.tobytes("png")))
     first_page_text = pytesseract.image_to_string(img).strip()
 
-    # Extract and save title, year, and authors
+    # Extracting title, year, authors, abstract
     title = extract_title_from_first_page(first_page_text)
     year = extract_year_from_first_page(first_page_text)
     authors = extract_authors_from_first_page(first_page_text)
+    abstract_text = extract_abstract_from_second_page(pdf_path)
 
+    # Save title, year, authors, and abstract in the manuscript
     manuscript.title = title
     manuscript.year = year
     manuscript.authors = authors
-
-    # Extract and save the abstract from the second page
-    abstract_text = extract_abstract_from_second_page(pdf_path)
     manuscript.abstracts = abstract_text
     manuscript.save()
 
-    # Process OCR data in chunks
+    # Calculate and save total page count
     doc = fitz.open(pdf_path)
-    num_pages = len(doc)
-    for start_page in range(1, num_pages, CHUNK_SIZE):
-        end_page = min(start_page + CHUNK_SIZE, num_pages)
+    total_pages = len(doc)
+    manuscript.page_count = total_pages
+    manuscript.current_page_count = 0  # Start at page 1
+
+    # Set remaining pages after initial processing (e.g., first 10 pages)
+    initial_pages_processed = min(5, total_pages)
+    manuscript.remaining_page = max(total_pages - initial_pages_processed, 0)
+    manuscript.current_page_count = initial_pages_processed
+    manuscript.save()
+
+    # Process initial chunk (first 10 pages or fewer)
+    for start_page in range(1, initial_pages_processed, CHUNK_SIZE):
+        end_page = min(start_page + CHUNK_SIZE, total_pages)
         extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page)
 
-
-from django.core.exceptions import ObjectDoesNotExist
+    # Update current page count in manuscript
+    manuscript.current_page_count = initial_pages_processed
+    manuscript.save()
 
 def upload_manuscript(request):
     if request.method == 'POST':
@@ -945,12 +955,74 @@ def student_manuscripts_view(request):
         })
 
 def manuscript_detail_view(request, manuscript_id):
-    # Retrieve manuscript using ID
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
-    return render(request, 'ccsrepo_app/manuscript_detail.html', {
+    # Calculate the progress percentage if there are pages to process
+    if manuscript.page_count > 0:
+        progress_percentage = (manuscript.current_page_count / manuscript.page_count) * 100
+    else:
+        progress_percentage = 0
+
+    # Add the calculated percentage to the context
+    context = {
         'manuscript': manuscript,
-    })
+        'progress_percentage': progress_percentage
+    }
+
+    return render(request, 'ccsrepo_app/manuscript_detail.html', context)
+
+def extract_text_from_page(pdf_file, page_number):
+    # Open the PDF file using PyMuPDF
+    pdf_document = fitz.open(pdf_file.path)
+    page = pdf_document.load_page(page_number - 1)  # Zero-indexed in PyMuPDF
+
+    # Extract text using PyMuPDF (basic text extraction)
+    ocr_text = page.get_text("text")
+
+    # If no text was extracted, try using OCR on the page image
+    if not ocr_text:
+        print(f"No text found on page {page_number}. Attempting OCR...")
+        # Convert the page to an image
+        pix = page.get_pixmap()
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        
+        # Perform OCR on the image
+        ocr_text = pytesseract.image_to_string(img)
+        
+        # You can save the image if you want to debug or review
+        # img.save(f"page_{page_number}_ocr.png")
+
+    return ocr_text
+
+def continue_scanning(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+
+    # Process the next 10 pages if there are remaining pages to process
+    pages_to_process = 1
+    current_page = manuscript.current_page_count
+
+    # Ensure we don't go past the total number of pages
+    pages_to_process = min(pages_to_process, manuscript.remaining_page)
+
+    for i in range(pages_to_process):
+        # Update page count and remaining pages
+        page_number = current_page + i + 1
+        ocr_text = extract_text_from_page(manuscript.pdf_file, page_number)
+
+        # Save the OCR data to the PageOCRData model
+        PageOCRData.objects.create(
+            manuscript=manuscript,
+            page_num=page_number,
+            text=ocr_text
+        )
+
+    # Update the manuscript's page count and remaining pages
+    manuscript.current_page_count += pages_to_process
+    manuscript.remaining_page -= pages_to_process
+    manuscript.save()
+
+    # Redirect back to the manuscript details page
+    return redirect('manuscript_detail', manuscript_id=manuscript.id)
 #----------------End Student System ------------------------/
 
 #----------------Faculty System ------------------------/

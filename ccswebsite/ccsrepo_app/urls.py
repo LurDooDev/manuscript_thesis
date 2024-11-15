@@ -37,6 +37,7 @@ urlpatterns = [
     path('manage-batch/', views.manage_batch, name='manage_batch'),
     path('manage-type/', views.manage_type, name='manage_type'),
     #AJAX
+    path('continue-scanning/<int:manuscript_id>/', views.continue_scanning, name='continue_scanning'),
     #Student
     path('my-manuscripts/', views.student_manuscripts_view, name='student_manuscripts'),
     path('my-access-requests/', views.student_access_requests, name='student_access_requests'),

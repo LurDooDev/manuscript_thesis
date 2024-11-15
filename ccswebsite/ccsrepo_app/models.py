@@ -104,7 +104,9 @@ class Manuscript(models.Model):
     feedback = models.TextField(null=True, blank=True)
     year = models.IntegerField(null=True, blank=True)
     upload_show= models.BooleanField(default=False)
-    
+    page_count = models.PositiveIntegerField(null=True, blank=True)
+    remaining_page = models.PositiveIntegerField(null=True, blank=True)
+    current_page_count = models.PositiveIntegerField(null=True, blank=True) 
 
     def __str__(self):
         return self.title
