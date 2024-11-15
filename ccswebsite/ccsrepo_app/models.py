@@ -160,4 +160,13 @@ class ManuscriptAccessRequest(models.Model):
     def adviser(self):
         """Retrieve the adviser from the associated manuscript."""
         return self.manuscript.adviser
-    
+
+class Keyword(models.Model):
+    manuscript = models.ForeignKey(Manuscript, on_delete=models.CASCADE, related_name='keywords')
+    keyword = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = ('manuscript', 'keyword')
+
+    def __str__(self):
+        return self.keyword

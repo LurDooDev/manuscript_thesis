@@ -599,23 +599,6 @@ def validate_user_title(title):
     
     return errors
 
-CHUNK_SIZE = 1  # Number of pages to process at a time
-
-def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
-    """Extract OCR data from a chunk of pages in the PDF."""
-    doc = fitz.open(pdf_path)
-    ocr_data_list = []
-
-    for i in range(start_page, end_page):
-        page = doc.load_page(i)
-        pix = page.get_pixmap(dpi=80)
-        img = Image.open(BytesIO(pix.tobytes("png")))
-        page_text = pytesseract.image_to_string(img).strip()
-        ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=i + 1, text=page_text))
-
-    # Bulk insert OCR data for the current chunk
-    PageOCRData.objects.bulk_create(ocr_data_list)
-
 def extract_title_from_first_page(first_page_text):
     """Extract and format the title from the first page."""
     title_text = first_page_text.replace('\n', ' ').strip()
@@ -752,26 +735,48 @@ def extract_authors_from_first_page(first_page_text):
 
     return "No authors found"
 
-def extract_abstract_from_second_page(pdf_path):
-    """Extract the abstract from the second page of the PDF."""
+def extract_abstract_from_initial_pages(pdf_path, max_pages=7):
+    """Extract the abstract from the first occurrence of 'abstract' or 'executive summary' in the initial pages of the PDF."""
     doc = fitz.open(pdf_path)
-    if doc.page_count > 1:  # Ensure there are at least 2 pages
-        second_page = doc.load_page(1)  # Load the second page (index 1)
-        pix = second_page.get_pixmap(dpi=120)  # Render page as image
+
+    # Loop through the first few pages up to `max_pages` or the total page count, whichever is smaller
+    for i in range(min(max_pages, doc.page_count)):
+        page = doc.load_page(i)
+        pix = page.get_pixmap(dpi=100)
         img = Image.open(BytesIO(pix.tobytes("png")))
-        abstract_text = pytesseract.image_to_string(img).strip()
+        page_text = pytesseract.image_to_string(img).strip().lower()  # Convert to lowercase for easy matching
 
-        # Remove leading words if present
-        for prefix in ["abstract", "executive summary"]:
-            if abstract_text.lower().startswith(prefix):
-                abstract_text = abstract_text[len(prefix):].strip()
+        # Check if the page text starts with "abstract" or "executive summary"
+        if page_text.startswith("abstract") or page_text.startswith("executive summary"):
+            # If found, extract everything after the keyword as the abstract
+            keyword = "abstract" if page_text.startswith("abstract") else "executive summary"
+            abstract_text = page_text[len(keyword):].strip()
 
-        # Stop extraction at the word "Keywords" (case-insensitive)
-        if "keywords" in abstract_text.lower():
-            abstract_text = abstract_text.lower().split("keywords")[0].strip()
+            # Stop extraction at "keywords" if it appears later in the text
+            if "keywords" in abstract_text:
+                abstract_text = abstract_text.split("keywords")[0].strip()
 
-        return abstract_text or "No abstract found"
+            return abstract_text or "No abstract found"
+
+    # Return a default message if no abstract or summary is found in the first few pages
     return "No abstract found"
+
+CHUNK_SIZE = 1
+
+def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
+    """Extract OCR data from a chunk of pages in the PDF."""
+    doc = fitz.open(pdf_path)
+    ocr_data_list = []
+
+    for i in range(start_page, end_page):
+        page = doc.load_page(i)
+        pix = page.get_pixmap(dpi=80)
+        img = Image.open(BytesIO(pix.tobytes("png")))
+        page_text = pytesseract.image_to_string(img).strip()
+        ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=i + 1, text=page_text))
+
+    # Bulk insert OCR data for the current chunk
+    PageOCRData.objects.bulk_create(ocr_data_list)
 
 def process_manuscript(pdf_path, manuscript):
     """Process the manuscript by extracting title, year, authors, abstract, and OCR data in chunks."""
@@ -784,7 +789,7 @@ def process_manuscript(pdf_path, manuscript):
     title = extract_title_from_first_page(first_page_text)
     year = extract_year_from_first_page(first_page_text)
     authors = extract_authors_from_first_page(first_page_text)
-    abstract_text = extract_abstract_from_second_page(pdf_path)
+    abstract_text = extract_abstract_from_initial_pages(pdf_path)
 
     # Save title, year, authors, and abstract in the manuscript
     manuscript.title = title
@@ -799,13 +804,13 @@ def process_manuscript(pdf_path, manuscript):
     manuscript.page_count = total_pages
     manuscript.current_page_count = 0  # Start at page 1
 
-    # Set remaining pages after initial processing (e.g., first 10 pages)
-    initial_pages_processed = min(5, total_pages)
+    # Set remaining pages after initial processing (e.g., first 7 pages)
+    initial_pages_processed = min(7, total_pages)
     manuscript.remaining_page = max(total_pages - initial_pages_processed, 0)
     manuscript.current_page_count = initial_pages_processed
     manuscript.save()
 
-    # Process initial chunk (first 10 pages or fewer)
+    # Process initial chunk (first 7 pages or fewer)
     for start_page in range(1, initial_pages_processed, CHUNK_SIZE):
         end_page = min(start_page + CHUNK_SIZE, total_pages)
         extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page)
