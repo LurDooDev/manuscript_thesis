@@ -28,6 +28,9 @@
                     {% endif %}
                 </li>
                 <li>
+                    <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold px-3 py-2">Hello, {{ user.first_name }}</a>
+                </li>
+                <li>
                     <a href="{% url 'logout' %}" class="text-lg font-bold px-3 py-2">Logout</a>
                 </li>
             </ul>
@@ -40,6 +43,14 @@
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Finalize Your Manuscript</h2>
                 <form method="POST" enctype="multipart/form-data" class="space-y-4">
                     {% csrf_token %}
+
+                    {% if errors %}
+    <div class="error-messages">
+        {% for error in errors %}
+            <p class="text-red-500">{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
 
                     <!-- Title Field -->
                     <div class="input-margin">

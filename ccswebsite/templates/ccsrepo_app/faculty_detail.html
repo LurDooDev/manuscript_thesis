@@ -5,8 +5,13 @@
     <h2 class="text-3xl font-bold text-[#25580F] mb-6 text-center">Manuscript Details</h2>
 
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-6">
+            <h4 class="font-semibold text-[#25580F] mb-4">Feedback:</h4>
+            <p class="text-gray-700">{{ manuscript.feedback|default:"No feedback Yet." }}</p>
+        </div>
+    </div>
 
-        
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
         <h3 class="text-2xl font-semibold text-[#25580F] text-center mb-4">{{ manuscript.title }}</h3>
         <p class="text-lg mb-2"><strong>Authors:</strong> <span class="text-gray-600">{{ manuscript.authors }}</span></p>
         <p class="text-lg mb-2"><strong>Category:</strong> <span class="text-gray-600">{{ manuscript.category }}</span></p>
@@ -18,10 +23,51 @@
         <a href="{{ manuscript.pdf_file.url }}" target="_blank" class="text-[#25580F] hover:underline mt-2 inline-block">View PDF</a>
     </div>
 
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
+        <h4 class="text-xl font-semibold text-[#25580F] mb-4">OCR Progress</h4>
+
+        {% if manuscript.page_count > 0 %}
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+                <div class="bg-green-500 h-4 rounded-full" style="width: {{ progress_percentage }}%;"></div>
+            </div>
+            <p class="text-lg text-gray-700 mb-4">
+                {{ manuscript.current_page_count }} of {{ manuscript.page_count }} pages processed ({{ progress_percentage|floatformat:1 }}% complete)
+            </p>
+        {% else %}
+            <p class="text-lg text-gray-700 mb-4">Page count not available.</p>
+        {% endif %}
+
+        {% if manuscript.remaining_page > 0 %}
+        <form action="{% url 'continue_scanning' manuscript.id %}" method="post" onsubmit="showLoading()">
+            {% csrf_token %}
+            <button type="submit" class="bg-[#25580F] text-white px-4 py-2 rounded hover:bg-green-600">
+                Continue Scanning
+            </button>
+        </form>
+        {% else %}
+            <p class="text-lg text-green-600">All pages have been processed.</p>
+        {% endif %}
+    </div>
 
     <div class="text-center">
-        <a href="{% url 'faculty_manuscripts' %}" class="text-blue-500 hover:underline">Back to My Manuscripts</a>    
+        <a href="{% url 'student_manuscripts' %}" class="text-blue-500 hover:underline">Back to My Manuscripts</a>    
     </div>
 </div>
 
+<!-- Loading overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+</div>
+
 {% endblock %}
+
+<!-- Add the loading spinner JavaScript -->
+<script>
+    function showLoading() {
+        // Show the overlay and disable clicks
+        document.getElementById('loadingOverlay').style.display = 'flex';
+        document.body.classList.add('no-click');
+    }
+</script>
+
+</style>

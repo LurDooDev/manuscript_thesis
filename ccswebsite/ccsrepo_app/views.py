@@ -1,6 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
@@ -9,7 +8,6 @@ from django.utils import timezone
 import os
 from django.db.models import Q 
 import pytesseract
-from django.core.files.base import ContentFile
 from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest, Keyword
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -18,7 +16,6 @@ from django.db.models import Count
 from django.http import JsonResponse
 from django.utils.html import mark_safe
 import re
-from django.urls import reverse
 from PIL import Image
 import fitz
 from django.core.exceptions import ObjectDoesNotExist
@@ -719,7 +716,7 @@ def process_manuscript(pdf_path, manuscript):
     manuscript.page_count = total_pages
     manuscript.current_page_count = 0
 
-    initial_pages_processed = min(7, total_pages)
+    initial_pages_processed = min(8, total_pages)
     manuscript.remaining_page = max(total_pages - initial_pages_processed, 0)
     manuscript.current_page_count = initial_pages_processed
     manuscript.save()
@@ -944,57 +941,37 @@ def faculty_manuscripts_view(request):
         })
 
 def faculty_detail_view(request, manuscript_id):
-    # Retrieve the manuscript using the provided ID
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
-    return render(request, 'ccsrepo_app/faculty_detail.html', {
+    # Calculate the progress percentage if there are pages to process
+    if manuscript.page_count > 0:
+        progress_percentage = (manuscript.current_page_count / manuscript.page_count) * 100
+    else:
+        progress_percentage = 0
+
+    # Add the calculated percentage to the context
+    context = {
         'manuscript': manuscript,
-    })
-
-
+        'progress_percentage': progress_percentage
+    }
+    return render(request, 'ccsrepo_app/faculty_detail.html', context)
 #----------------Faculty Upload System ------------------------/
 def faculty_upload_manuscript(request):
     if request.method == 'POST':
         pdf_file = request.FILES.get('pdf_file')
 
         if pdf_file:
-            # Initialize the manuscript with a default "No abstract found" for abstracts
             manuscript = Manuscript(
                 pdf_file=pdf_file,
                 student=request.user,
-                abstracts="No abstract found"  # Set a default value here
+                abstracts="No abstract found"
             )
-            manuscript.save()  # Save the manuscript first to generate an ID
+            manuscript.save()
             pdf_file_path = manuscript.pdf_file.path
 
-            # Check if the file exists
             if os.path.exists(pdf_file_path):
                 try:
-                    # Extract text from the PDF pages (via PyMuPDF and Tesseract) in chunks
                     process_manuscript(pdf_file_path, manuscript)
-
-                    # Extract the abstract (from the second page)
-                    doc = fitz.open(pdf_file_path)
-                    if doc.page_count > 1:  # Ensure there are at least 2 pages
-                        second_page = doc.load_page(1)  # Load the second page (index 1)
-                        pix = second_page.get_pixmap(dpi=120)  # Render page as image
-                        img = Image.open(BytesIO(pix.tobytes("png")))
-                        abstract_text = pytesseract.image_to_string(img).strip()
-
-                        # Remove leading words if present
-                        for prefix in ["abstract", "executive summary"]:
-                            if abstract_text.lower().startswith(prefix):
-                                abstract_text = abstract_text[len(prefix):].strip()
-
-                        # Stop extraction at the word "Keywords" (case-insensitive)
-                        if "keywords" in abstract_text.lower():
-                            # Find the position of the word "keywords" and slice text before it
-                            abstract_text = abstract_text.lower().split("keywords")[0].strip()
-
-                        # Update the abstract text from page 2 if found
-                        manuscript.abstracts = abstract_text or "No abstract found"
-                        manuscript.save()  # Save the abstract to the manuscript
-
                 except Exception as e:
                     print(f"Error processing PDF: {e}")
 

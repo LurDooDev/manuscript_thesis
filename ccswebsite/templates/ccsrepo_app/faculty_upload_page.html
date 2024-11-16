@@ -8,6 +8,7 @@
     <title>Upload Manuscript</title>
     <link href="{% static 'css/output.css' %}" rel="stylesheet">
     <link href="{% static 'css/main.css' %}" rel="stylesheet">
+    <link href="{% static 'css/spinner.css' %}" rel="stylesheet">
 </head>
 
 <body>
@@ -43,13 +44,17 @@
         </nav>
     </header>
 
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <main class="flex justify-center items-center flex-1 py-10">
         <div class="login-form-container">
             <div class="login-form">
                 <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Upload Your PDF Manuscript</h2>
-                <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                <form method="POST" enctype="multipart/form-data" class="space-y-4" onsubmit="showLoading()">
                     {% csrf_token %}
-
                     <!-- PDF Upload Field -->
                     <div class="input-margin">
                         <label for="pdf_file" class="login-label">Upload PDF</label>
@@ -58,14 +63,22 @@
 
                     <!-- Submit Button -->
                     <div class="pt-4">
-                        <button type="submit" class="login-button w-full">
-                            Scan PDF
-                        </button>
+                        <button type="submit" class="login-button w-full">Scan PDF</button>
                     </div>
                 </form>
             </div>
         </div>
     </main>
+
+    <script>
+        function showLoading() {
+            // Show the overlay and disable clicks
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.body.classList.add('no-click');
+        }
+    </script>
+    
+
 </body>
 
 </html>
