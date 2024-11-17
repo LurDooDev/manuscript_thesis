@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCS REPOSITORY</title>
+    <link href="{% static 'css/landing.css' %}" rel="stylesheet">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo text-white">College of Computing Studies</div>
+        <nav class="nav text-white">
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </header>
+
+    <header class="landing-header">
+        <h1>Welcome to CCS Repository</h1>
+        <p>Hub for thesis, capstone and research for College Of Computing Studies</p>
+    </header>
+
+   <!-- Logo Image in the Middle -->
+<div class="logo-container" style="background-image: url('{% get_media_prefix %}images/file.png');">
+    <!-- Content goes here if needed -->
+</div>
+    <section class="search-section">
+        <h2>Find Manuscript</h2>
+        <p>Search through submitted manuscripts</p>
+        
+        <form action="{% url 'visitor_search_manuscripts' %}" method="GET" class="search-form">
+            <input type="text" name="q" placeholder="Search manuscripts..." class="search-input">
+            <button type="submit" class="search-button">Search</button>
+        </form>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2024 College Of Computing Studies. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

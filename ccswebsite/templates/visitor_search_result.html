@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCS REPOSITORY</title>
+  <link href="{% static 'css/mainn.css' %}" rel="stylesheet">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo text-white">College of Computing Studies</div>
+        <nav class="nav text-white">
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </header>
+    
+    <!-- Main content container with the sidebar and results -->
+    <div class="main-container">
+        
+        <!-- Sidebar with search and filters -->
+        <div class="sidebar">
+            <h2 class="text-white">Search Manuscripts</h2>
+            
+            <form method="GET" action="{% url 'visitor_search_manuscripts' %}">
+                <!-- Search Box -->
+                <div class="search-container">
+                    <input type="text" class="search-box" name="q" placeholder="Search..." value="{{ search_query }}" />
+                    <button class="search-button" type="submit">Search</button>
+                </div>
+            
+                <!-- Filters Section -->
+                <div class="filters">
+                    <h3>Filters</h3>
+                    <div class="filter-item">
+                        <label for="program">Program</label>
+                        <select name="program" id="program">
+                            <option value="">All Programs</option>
+                            {% for program in programs %}
+                                <option value="{{ program.id }}" {% if program.id == request.GET.program %}selected{% endif %}>{{ program.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+            
+                    <div class="filter-item">
+                        <label for="manuscript_type">Manuscript Type</label>
+                        <select name="manuscript_type" id="manuscript_type">
+                            <option value="">All Manuscript Types</option>
+                            {% for manuscript_type in manuscript_types %}
+                                <option value="{{ manuscript_type.id }}" {% if manuscript_type.id == request.GET.manuscript_type %}selected{% endif %}>{{ manuscript_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+            
+                    <div class="filter-item">
+                        <label for="category">Category</label>
+                        <select name="category" id="category">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if category.id == request.GET.category %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+            
+                    <!-- Apply Button -->
+                    <div class="filter-item">
+                        <button type="submit" class="apply-button">Apply Filters</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="results">
+            {% if manuscripts %}
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Authors</th>
+                            <th>Keywords</th>
+                            <th>Actions</th> <!-- New column for the "View" button -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for manuscript in manuscripts %}
+                            <tr>
+                                <td>{{ manuscript.title }}</td>
+                                <td>{{ manuscript.authors }}</td>
+                                <td>
+                                    {% for keyword in manuscript.keywords.all %}
+                                        {{ keyword.keyword }}{% if not forloop.last %}, {% endif %}
+                                    {% empty %}
+                                        No keywords available
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <!-- View button linking to manuscript detail page -->
+                                    <a href="{% url 'manuscript_detail' manuscript.id %}" class="view-button">View</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <!-- Pagination controls -->
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if manuscripts.has_previous %}
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page=1">&laquo; first</a>
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.previous_page_number }}">previous</a>
+                        {% endif %}
+                        
+                        <span class="current">
+                            Page {{ manuscripts.number }} of {{ manuscripts.paginator.num_pages }}.
+                        </span>
+        
+                        {% if manuscripts.has_next %}
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.next_page_number }}">next</a>
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.paginator.num_pages }}">last &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+        
+            {% else %}
+                <p>No results found.</p>
+            {% endif %}
+        </div>
+        
+    </div>
+
+</body>
+</html>

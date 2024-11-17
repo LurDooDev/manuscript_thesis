@@ -49,8 +49,6 @@ def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=N
 
     return manuscripts.order_by('-publication_date')
 
-from django.template.loader import render_to_string
-
 def manuscript_search_page(request):
     search_query = request.GET.get('search', '')
     program_id = request.GET.get('program')
@@ -1266,4 +1264,41 @@ def view_pdf_manuscript(request, manuscript_id):
         'ocr_data': ocr_data,
         'search_term': search_term,
         'matching_page_numbers': matching_page_numbers,
+    })
+# ----------------End Indexing System ------------------------/
+
+# ----------------Visitor Site Flow System ------------------------/
+def index_view(request):
+    if request.method == 'GET' and 'q' in request.GET:
+        search_query = request.GET.get('q')
+        # Redirect to the search result page with the search query
+        return redirect(f'/search/?q={search_query}')  # Use the exact URL of your search results page
+    
+    return render(request, 'index.html')
+
+def visitor_search_manuscripts(request):
+    search_query = request.GET.get('q', '')
+    program_id = request.GET.get('program')
+    manuscript_type_id = request.GET.get('manuscript_type')
+    category_id = request.GET.get('category')
+
+    # Get filtered manuscripts based on search query and filters
+    manuscripts = get_filtered_manuscripts(search_query, program_id, manuscript_type_id, category_id)
+
+    # Retrieve additional filter options
+    programs = Program.objects.all()
+    manuscript_types = ManuscriptType.objects.all()
+    categories = Category.objects.all()
+
+    # Pagination
+    paginator = Paginator(manuscripts, 5)
+    page_number = request.GET.get('page')
+    manuscripts = paginator.get_page(page_number)
+
+    return render(request, 'visitor_search_result.html', {
+        'manuscripts': manuscripts,
+        'search_query': search_query,
+        'programs': programs,
+        'manuscript_types': manuscript_types,
+        'categories': categories,
     })

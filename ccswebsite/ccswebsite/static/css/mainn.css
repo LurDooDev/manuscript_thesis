@@ -1,0 +1,286 @@
+/* Root colors */
+:root {
+    --bg-light: #EEEEEE;
+    --accent-light: #365543;
+    --accent-dark: #393E46;
+    --text-dark: #222831;
+    --other-dark: #A6BB8D;
+}
+
+/* Reset and base styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Page styling */
+body {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Header styling */
+.header {
+    width: 100%;
+    background-color: var(--accent-light);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    font-size: 1.5rem;
+    color: var(--bg-light);
+    font-weight: bold;
+}
+
+.nav a {
+    color: var(--bg-light);
+    margin-left: 1.5rem;
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.nav a:hover {
+    color: var(--accent-dark);
+}
+
+/* Main content container */
+.main-container {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin-top: 80px; /* Offset for header height */
+    width: 100%;
+    padding: 20px;
+    gap: 20px;
+    height: calc(100vh - 80px); /* Make the height fill the remaining space */
+}
+
+/* Sidebar (Facet Panel) styling */
+.sidebar {
+    background-color: var(--other-dark);
+    padding: 20px;
+    width: 300px;
+    max-width: 100%; /* Ensure it doesn't go beyond the available space */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 100%;
+}
+
+/* Sidebar Titles */
+.sidebar h2 {
+    font-size: 1.5rem;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.search-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    margin-bottom: 20px; /* Add spacing below the search box */
+}
+
+.search-box {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid var(--accent-light);
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box; /* Ensure padding doesn't overflow the container */
+}
+
+.search-button {
+    background-color: var(--accent-light);
+    color: white;
+    border: none;
+    padding: 15px;
+    font-size: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    box-sizing: border-box; /* Ensure button is contained properly */
+}
+
+.search-button:hover {
+    background-color: var(--accent-dark);
+}
+
+/* Filters */
+.filters {
+    margin-top: 20px;
+    background-color: var(--bg-light);
+    padding: 15px;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box; /* Prevent overflow */
+}
+
+.filters h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.filter-item {
+    margin-bottom: 10px;
+    width: 100%; /* Ensure filter items don't overflow */
+}
+
+.filter-item label {
+    font-size: 1rem;
+}
+
+.filter-item select {
+    width: 100%; /* Ensure the select dropdown is contained */
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.apply-button {
+    background-color: #064420; /* Using your chosen color */
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.apply-button:hover {
+    background-color: #052f1d;
+}
+
+/* Results styling */
+.results {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Results table */
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    border-spacing: 0;
+}
+
+.results-table th, .results-table td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.results-table th {
+    background-color: var(--other-dark);
+    color: var(--text-dark);
+}
+
+.results-table tr:nth-child(even) {
+    background-color: #f4f4f4;
+}
+
+.results-table tr:hover {
+    background-color: #e0e0e0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .main-container {
+        flex-direction: column; /* Stack sidebar and results on smaller screens */
+    }
+
+    .sidebar {
+        width: 100%; /* Sidebar takes full width on smaller screens */
+        margin-bottom: 20px;
+    }
+
+    .results {
+        width: 100%; /* Results take full width after sidebar is stacked */
+    }
+
+    .search-button, .apply-button {
+        width: 100%; /* Ensure buttons fill the available width */
+    }
+}
+
+@media (max-width: 768px) {
+    .title {
+        font-size: 2rem;
+    }
+
+    .subtitle {
+        font-size: 1.1rem;
+    }
+
+    .search-box {
+        font-size: 0.9rem;
+        padding: 12px;
+    }
+
+    .search-button {
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+
+    .nav a {
+        margin-left: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .main-container {
+        flex-direction: column; /* Stack on smaller screens */
+        padding: 10px;
+    }
+
+    .sidebar {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .results-table {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .text-white {
+        font-size: 1rem; /* Adjust text size for mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.75rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+    }
+
+    .nav {
+        display: none; /* Hide nav links on very small screens */
+    }
+
+    .results-table {
+        font-size: 0.85rem;
+    }
+}
