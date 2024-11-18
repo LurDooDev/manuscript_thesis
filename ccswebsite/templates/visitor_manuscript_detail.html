@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manuscript Detail - {{ manuscript.title }}</title>
+  <link href="{% static 'css/visitor.css' %}" rel="stylesheet">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo text-white">College of Computing Studies</div>
+        <nav class="nav text-white">
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </header>
+    
+    <!-- Manuscript Details Card -->
+    <div class="card">
+        <h1>{{ manuscript.title }}</h1>
+        
+        <!-- Manuscript Meta Information (Two columns) -->
+        <div class="meta-info">
+            <div>
+                <p><strong>Authors:</strong></p>
+                <p class="authors">{{ authors_with_br|safe }}</p>
+                <p><strong>Program:</strong> {{ manuscript.program.name }}</p>
+                <p><strong>Manuscript Type:</strong> {{ manuscript.manuscript_type.name }}</p>
+                <p><strong>Category:</strong> {{ manuscript.category.name }}</p>
+            </div>
+            <div>
+                <p><strong>Batch:</strong> {{ manuscript.year }}</p>
+                <p><strong>Adviser:</strong> {{ manuscript.adviser }}</p>
+            </div>
+        </div>
+
+        <!-- Abstract Section -->
+        <div class="section">
+            <p class="section-title">Abstract</p>
+            <p class="abstract">{{ manuscript.abstracts }}</p>
+        </div>
+        
+        <!-- Keywords Section -->
+        <div class="section">
+            <p class="section-title">Keywords</p>
+            <p>
+                {% for keyword in manuscript.keywords.all %}
+                    {{ keyword.keyword }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    No keywords available
+                {% endfor %}
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Back Button to Search Results -->
+    <div style="margin: 20px;">
+        <a href="{% url 'visitor_search_manuscripts' %}" class="back-button">← Go back to Search Manuscript</a>
+    </div>
+
+</body>
+</html>

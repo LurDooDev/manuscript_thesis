@@ -1302,3 +1302,14 @@ def visitor_search_manuscripts(request):
         'manuscript_types': manuscript_types,
         'categories': categories,
     })
+
+def visitor_manuscript_detail(request, id):
+    manuscript = Manuscript.objects.get(id=id)
+    
+    # Replace commas with <br> for the authors
+    authors_with_br = manuscript.authors.replace(',', '<br>')
+
+    return render(request, 'visitor_manuscript_detail.html', {
+        'manuscript': manuscript,
+        'authors_with_br': authors_with_br,
+    })

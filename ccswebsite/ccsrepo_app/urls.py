@@ -50,5 +50,7 @@ urlpatterns = [
     #Visitor Flow
     path('landingpage/', views.index_view, name='index'),
     path('search/', views.visitor_search_manuscripts, name='visitor_search_manuscripts'),
+    path('viewmanuscript/<int:id>/', views.visitor_manuscript_detail, name='visitor_manuscript_detail'),
+
 
 ] 
