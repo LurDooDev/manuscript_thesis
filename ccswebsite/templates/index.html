@@ -10,11 +10,17 @@
 <body>
 
     <header class="header">
-        <div class="logo text-white">College of Computing Studies</div>
-        <nav class="nav text-white">
-            <a href="#about">About</a>
-            <a href="#services">Services</a>
-            <a href="#contact">Contact</a>
+        <a href="{% url 'index' %}"class="logo text-white">College of Computing Studies</a>
+            <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <nav class="nav text-white" id="navbar">
+            <a href="{% url 'visitor_search_manuscripts' %}">Find</a>
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
         </nav>
     </header>
 
@@ -30,6 +36,7 @@
     <section class="search-section">
         <h2>Find Manuscript</h2>
         <p>Search through submitted manuscripts</p>
+        <p>Title, Keywords, Authors, Any words as long its in manuscript will be found</p>
         
         <form action="{% url 'visitor_search_manuscripts' %}" method="GET" class="search-form">
             <input type="text" name="q" placeholder="Search manuscripts..." class="search-input">
@@ -42,4 +49,10 @@
     </footer>
 
 </body>
+<script>
+function toggleMenu() {
+    const navbar = document.getElementById("navbar");
+    navbar.classList.toggle("active");
+}
+</script>
 </html>

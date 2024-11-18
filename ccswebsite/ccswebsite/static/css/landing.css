@@ -37,6 +37,7 @@ body {
     font-size: 1.5rem;
     color: var(--text-dark);
     font-weight: bold;
+    text-decoration: none;
 }
 
 .logo-section {
@@ -64,13 +65,12 @@ body {
 
 .nav a {
     color: var(--bg-light);
-    margin-left: 1.5rem;
     text-decoration: none;
     font-size: 1rem;
 }
 
 .nav a:hover {
-    color: var(--accent-dark);
+    color: var(--other-dark);
 }
 
 .text-white {
@@ -182,12 +182,61 @@ body {
 }
 
 .footer {
-    background-color: var(--accent-dark);
+    background-color: #365543;
     color: var(--bg-light);
     padding: 20px;
     text-align: center;
     margin-top: auto;
     width: 100%;
+}
+
+/*header menu*/
+.nav {
+    display: flex;
+    gap: 1.5em;
+}
+
+
+.hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.hamburger span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background-color: white;
+}
+
+@media (max-width: 768px) {
+    .nav {
+        display: none;
+        flex-direction: column;
+        background-color: #365543;
+        position: absolute;
+        top: 60px;
+        right: 0;
+        width: 100%;
+        padding: 1em;
+    }
+    
+    .nav a {
+        padding: 0.5em 0;
+        text-align: center;
+        color: white;
+    }
+    
+    .hamburger {
+        display: flex;
+    }
+    
+    /* Show navigation when 'active' */
+    .nav.active {
+        display: flex;
+    }
 }
 
 @media (max-width: 768px) {

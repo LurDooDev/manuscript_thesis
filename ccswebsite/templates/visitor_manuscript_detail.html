@@ -10,11 +10,17 @@
 <body>
 
     <header class="header">
-        <div class="logo text-white">College of Computing Studies</div>
-        <nav class="nav text-white">
-            <a href="#about">About</a>
-            <a href="#services">Services</a>
-            <a href="#contact">Contact</a>
+        <a href="{% url 'index' %}"class="logo text-white">College of Computing Studies</a>
+            <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <nav class="nav text-white" id="navbar">
+            <a href="{% url 'visitor_search_manuscripts' %}">Find</a>
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
         </nav>
     </header>
     
@@ -61,6 +67,13 @@
     <div style="margin: 20px;">
         <a href="{% url 'visitor_search_manuscripts' %}" class="back-button">← Go back to Search Manuscript</a>
     </div>
+
+    <script>
+        function toggleMenu() {
+            const navbar = document.getElementById("navbar");
+            navbar.classList.toggle("active");
+        }
+        </script>
 
 </body>
 </html>

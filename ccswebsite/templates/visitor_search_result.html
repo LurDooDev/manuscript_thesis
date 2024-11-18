@@ -9,12 +9,19 @@
 </head>
 <body>
 
+    
     <header class="header">
-        <div class="logo text-white">College of Computing Studies</div>
-        <nav class="nav text-white">
-            <a href="#about">About</a>
-            <a href="#services">Services</a>
-            <a href="#contact">Contact</a>
+        <a href="{% url 'index' %}"class="logo text-white">College of Computing Studies</a>
+            <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <nav class="nav text-white" id="navbar">
+            <a href="{% url 'visitor_search_manuscripts' %}">Find</a>
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
         </nav>
     </header>
     
@@ -109,7 +116,6 @@
                 <div class="pagination">
                     <span class="step-links">
                         {% if manuscripts.has_previous %}
-                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page=1">&laquo; first</a>
                             <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.previous_page_number }}">previous</a>
                         {% endif %}
                         
@@ -119,7 +125,6 @@
         
                         {% if manuscripts.has_next %}
                             <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.next_page_number }}">next</a>
-                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.paginator.num_pages }}">last &raquo;</a>
                         {% endif %}
                     </span>
                 </div>
@@ -130,6 +135,13 @@
         </div>
         
     </div>
+
+    <script>
+        function toggleMenu() {
+            const navbar = document.getElementById("navbar");
+            navbar.classList.toggle("active");
+        }
+        </script>
 
 </body>
 </html>
