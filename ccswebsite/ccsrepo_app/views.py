@@ -1291,7 +1291,7 @@ def visitor_search_manuscripts(request):
     categories = Category.objects.all()
 
     # Pagination
-    paginator = Paginator(manuscripts, 5)
+    paginator = Paginator(manuscripts, 7)
     page_number = request.GET.get('page')
     manuscripts = paginator.get_page(page_number)
 

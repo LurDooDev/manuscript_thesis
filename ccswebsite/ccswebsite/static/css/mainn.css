@@ -58,11 +58,11 @@ body {
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
-    margin-top: 80px; /* Offset for header height */
+    margin-top: 20px;
     width: 100%;
     padding: 20px;
     gap: 20px;
-    height: calc(100vh - 80px); /* Make the height fill the remaining space */
+    height: calc(100vh - 80px);
 }
 
 /* Sidebar (Facet Panel) styling */
@@ -75,7 +75,6 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    min-height: 100%;
 }
 
 /* Sidebar Titles */
@@ -166,6 +165,7 @@ body {
 .apply-button:hover {
     background-color: #052f1d;
 }
+
 
 /* Results styling */
 .results {
