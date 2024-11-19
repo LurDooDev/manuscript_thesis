@@ -803,7 +803,7 @@ def final_manuscript_page(request, manuscript_id):
         manuscript.upload_show = True
 
         manuscript.save()
-        return redirect('manuscript_search_page')
+        return redirect('visitor_search_manuscripts')
 
     # Load choices for form in GET request
     categories = Category.objects.all()
