@@ -4,106 +4,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ manuscript.title }} - PDF Viewer</title>
-    <link href="{% static 'css/output.css' %}" rel="stylesheet">
-    <link href="{% static 'css/pdf.css' %}" rel="stylesheet">
+    <title>Manuscript Detail - {{ manuscript.title }}</title>
+    <link href="{% static 'css/pdfs.css' %}" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script type="module" src="{% static 'pdfjs/pdf.mjs' %}"></script>
 </head>
+<body>
 
-<body class="bg-gray-100">
-    <header class="flex justify-between items-center bg-[#25580F] text-white p-4 shadow-md">
-        <h1 class="text-2xl font-bold">College of Computing Studies Repository</h1>
-        <nav>
-            <ul class="flex space-x-6 text-lg">
-                <li><a href="{% url 'manuscript_search_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg">Home</a></li>
-                <li>
-                    {% if user.is_adviser %}
-                        <a href="{% url 'adviser_approve_student' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
-                    {% elif user.is_admin %}
-                        <a href="{% url 'manage_users' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
-                    {% else %}
-                        <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
-                    {% endif %}
-                </li>
-            </ul>
-        </nav>
+    <header class="header">
+        <a href="{% url 'index' %}"class="logo text-white">College of Computing Studies</a>
+            <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <nav class="nav text-white" id="navbar">
+        <a href="{% url 'visitor_search_manuscripts' %}">Find</a>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+        {% if user.is_authenticated %}
+            <a href="{% url 'manuscript_upload_page' %}">Upload</a>
+            <a href="{% url 'student_manuscripts' %}">Hello, {{ user.first_name }}</a>
+            <a href="{% url 'logout' %}">Logout</a>
+        {% endif %}
+    </nav>
     </header>
 
-    <main class="max-w-4xl mx-auto my-8 p-6 bg-white rounded-lg shadow-lg">
-        <h1 class="text-3xl font-semibold text-center mb-4">{{ manuscript.title }}</h1>
+<main class="main-content">
+    <div style="margin: 20px;">
+        <a href="{% url 'visitor_manuscript_detail' manuscript.id %}" class="back-button">← Back</a>
+    </div>
+    <!-- Search input -->
+    <div class="search-container mb-4">
+        <input type="text" id="search-input" placeholder="Search OCR text..." class="">
+    </div>
 
-        <!-- Search input without form -->
-        <div class="search-container mb-4">
-            <input type="text" id="search-input" placeholder="Search OCR text..." class="border border-gray-300 rounded-lg p-2 w-80">
-        </div>
+   <!-- Add a status message container -->
+<h3 class="margin-right">Matching Pages: <span id="matching-pages-count">0</span></h3>
+<div id="search-status" class="text-red-500 font-bold"></div>
 
-        {% if manuscript.keywords.all %}
-    <h3>Keywords:</h3>
-    <ul>
-        {% for keyword in manuscript.keywords.all %}
-            <li>{{ keyword.keyword }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
-
-        <!-- OCR results container -->
-        <div class="ocr-text-container non-selectable" id="ocr-results">
-            <h3 class="text-xl font-semibold mb-8">Matching text in Pages: <span id="matching-count">{{ matching_page_numbers|length }}</span> Page(s) found</h3>
-            {% for page_data in ocr_data %}
-                {% if page_data.page_num > 0 %}
-                <div class="ocr-page" data-page-number="{{ page_data.page_num }}">
-                    <div class="matching-text">
-                        <h4 class="text-lg font-bold">Page {{ page_data.page_num }}:</h4>
-                        <p class="text-gray-800">{{ page_data.highlighted_text|safe }}</p>
-                    </div>
+<!-- OCR results container -->
+<div class="ocr-text-container non-selectable" id="ocr-results">
+    {% for page_data in ocr_data %}
+        {% if page_data.page_num > 0 %}
+            <div class="ocr-page" data-page-number="{{ page_data.page_num }}">
+                <div class="matching-text">
+                    <h4 class="">Page {{ page_data.page_num }}:</h4>
+                    <p class="ocr-text" data-original-text="{{ page_data.highlighted_text|safe }}">{{ page_data.highlighted_text|safe }}</p>
                 </div>
-                {% endif %}
-            {% empty %}
-                <p class="text-gray-600">No matching text found in manuscript PDF for this search term.</p>
-            {% endfor %}
-        </div>
-    </main>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+</main>
 
-    <script>
-        $(document).ready(function() {
-            // Listen for input changes on the search box
-            $('#search-input').on('input', function() {
-                let searchTerm = $(this).val();
+<script>
+    $(document).ready(function () {
+        const ocrResults = $('.ocr-text');
 
-                // Make an AJAX GET request to search with each keystroke
-                $.ajax({
-                    url: '{% url "view_pdf_manuscript" manuscript_id=manuscript.id %}',
-                    data: {
-                        search: searchTerm
-                    },
-                    success: function(response) {
-                        // Update OCR results dynamically
-                        let ocrResults = $('#ocr-results');
-                        ocrResults.empty();
+        $('#search-input').on('input', function () {
+            const searchTerm = $(this).val().trim();
+            let matchingPages = 0;
 
-                        if (response.ocr_data.length > 0) {
-                            // Update matching count
-                            $('#matching-count').text(response.ocr_data.length);
+            // Loop through each page
+            $('.ocr-page').each(function () {
+                const page = $(this);
+                const ocrTextElement = page.find('.ocr-text');
+                const matchCountElement = page.find('.match-count');
+                const originalText = ocrTextElement.data('original-text'); // Original OCR text
 
-                            // Loop through and display each matching result
-                            response.ocr_data.forEach(page => {
-                                let pageContent = `
-                                    <div class="ocr-page" data-page-number="${page.page_num}">
-                                        <div class="matching-text">
-                                            <h4 class="text-lg font-bold">Page ${page.page_num}:</h4>
-                                            <p class="text-gray-800">${page.highlighted_text}</p>
-                                        </div>
-                                    </div>`;
-                                ocrResults.append(pageContent);
-                            });
-                        } else {
-                            ocrResults.append('<p class="text-gray-600">No matching text found in manuscript PDF for this search term.</p>');
-                        }
+                if (searchTerm) {
+                    // Highlight matches
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    const matches = originalText.match(regex);
+
+                    if (matches) {
+                        const highlightedText = originalText.replace(regex, '<span class="highlight">$1</span>');
+                        ocrTextElement.html(highlightedText);
+
+                        // Update match count
+                        matchCountElement.text(`Matches: ${matches.length}`);
+                        matchCountElement.attr('data-count', matches.length);
+
+                        // Show the page
+                        page.removeClass('hidden');
+                        matchingPages++;
+                    } else {
+                        // Hide the page if no matches
+                        page.addClass('hidden');
+                        matchCountElement.text('Matches: 0');
+                        matchCountElement.attr('data-count', 0);
                     }
-                });
+                } else {
+                    // If no search term, reset and show all pages
+                    ocrTextElement.html(originalText);
+                    matchCountElement.text('Matches: 0');
+                    matchCountElement.attr('data-count', 0);
+                    page.removeClass('hidden');
+                }
             });
+
+            // Update the matching pages count
+            $('#matching-pages-count').text(matchingPages);
         });
+    });
+</script>
+
+<script>
+    function toggleMenu() {
+        const navbar = document.getElementById("navbar");
+        navbar.classList.toggle("active");
+    }
     </script>
+
 </body>
 </html>

@@ -18,7 +18,7 @@ body {
     flex-direction: column;
     min-height: 100vh;
     color: #333;
-    background-color: #EEEEEE;
+    background-color: var(--bg-light);;
 }
 
 .text-white {
@@ -115,9 +115,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    padding: 1rem;
-    background-color: #f8f9fa; /* Optional: adds a light background color */
+    min-height: 90vh;
+    background-color: #f8f9fa;
 }
 
 /* Form Container */
@@ -193,6 +192,55 @@ body {
 
 .back-button:hover {
     color: #25580F;
+}
+
+/* Approval Container */
+.approval-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 90vh;
+    background-color: #f8f9fa;
+}
+
+/* Message Box */
+.message-box {
+    max-width: 400px;
+    width: 100%;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Header Text */
+.message-box h2 {
+    color: #064420;
+}
+
+/* Logout Button */
+.logout-button {
+    display: inline-block;
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    background-color: #064420;
+    color: white;
+    font-weight: bold;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+    background-color: #25580F;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .message-box {
+        padding: 1.5rem;
+    }
 }
 
 /* Responsive Styles */

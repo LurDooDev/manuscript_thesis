@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Repository</title>
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <link href="{% static 'css/home.css' %}" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <!-- Header section with enhanced navbar design -->
+    <header class="flex justify-between items-center bg-[#25580F] text-white p-4 shadow-md">
+        <h1 class="text-2xl font-bold">College of Computing Studies Repository</h1>
+        <nav>
+            <ul class="flex space-x-6 text-lg">
+                <li>
+                    <a href="{% url 'manuscript_search_page' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg">Home</a>
+                </li>
+                <li>
+                    {% if user.is_adviser %}
+                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
+                    {% elif user.is_admin %}
+                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
+                    {% else %}
+                        <a href="{% url 'manuscript_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
+                    {% endif %}
+                </li>
+                <li>
+                    {% if user.is_adviser %}
+                        <a href="{% url 'adviser_approve_student' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
+                    {% elif user.is_admin %}
+                        <a href="{% url 'manage_users' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
+                    {% else %}
+                        <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Hello, {{ user.first_name }}</a>
+                    {% endif %}
+                </li>
+                <li>
+                    <a href="{% url 'logout' %}" class="hover:text-gray-200 transition duration-300 px-3 py-2">Logout</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content Block -->
+    <main class="py-10 px-4">
+        <div class="max-w-screen-xl mx-auto">
+            {% block content %}
+            <!-- Content will go here when extended -->
+            {% endblock %}
+        </div>
+    </main>
+</body>
+
+</html>

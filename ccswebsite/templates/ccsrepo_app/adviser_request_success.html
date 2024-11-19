@@ -1,10 +1,15 @@
 {% extends "base_adviser.html" %}
 
 {% block content %}
-<div class="login-form-container">
-            <div class="text-section w-full">
-            <h2 class="text-2xl font-bold mb-4">Wait for your adviser approval!</h2>
-            </div>
-    <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+<div class="approval-container">
+    <div class="message-box">
+        <div class="text-section">
+            <h2 class="text-2xl font-bold text-center mb-4 text-[#25580F]">Wait for your adviser approval!</h2>
+        </div>
+        <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+    </div>
 </div>
+<footer class="footer">
+    <p>&copy; 2024 College Of Computing Studies. All rights reserved.</p>
+</footer>
 {% endblock %}

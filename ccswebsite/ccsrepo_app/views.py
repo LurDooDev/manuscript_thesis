@@ -134,7 +134,7 @@ def login_view(request):
 
             # Redirect based on user type
             if user.is_student:
-                return redirect('manuscript_search_page')
+                return redirect('visitor_search_manuscripts')
 
             elif user.is_adviser:
                 return redirect('adviser_approve_student')
@@ -1061,7 +1061,7 @@ def request_access(request, manuscript_id):
             manuscript=manuscript,
             student=request.user,
         )
-    return redirect('view_manuscript', manuscript_id=manuscript_id)
+    return redirect('visitor_manuscript_detail', manuscript_id=manuscript_id)
 
 def manuscript_access_requests(request):
     # Query access requests, ordering by latest, and select related manuscript
@@ -1303,13 +1303,44 @@ def visitor_search_manuscripts(request):
         'categories': categories,
     })
 
-def visitor_manuscript_detail(request, id):
-    manuscript = Manuscript.objects.get(id=id)
+def visitor_manuscript_detail(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     
     # Replace commas with <br> for the authors
     authors_with_br = manuscript.authors.replace(',', '<br>')
 
+    # Check if the user is authenticated and determine roles
+    is_authenticated = request.user.is_authenticated
+    is_student = is_authenticated and request.user == manuscript.student
+    is_admin = is_authenticated and getattr(request.user, 'is_admin', False)
+    is_adviser = is_authenticated and getattr(request.user, 'is_adviser', False)
+
+    # Check if the user has an approved access request
+    access_request = None
+    has_pending_request = False
+
+    if is_authenticated:
+        access_request = ManuscriptAccessRequest.objects.filter(
+            manuscript=manuscript,
+            student=request.user,
+            status='approved',
+            access_start_date__lte=timezone.now(),
+            access_end_date__gte=timezone.now()
+        ).first()
+        
+        # Check if the user has a pending access request
+        has_pending_request = ManuscriptAccessRequest.objects.filter(
+            manuscript=manuscript,
+            student=request.user,
+            status='pending'
+        ).exists()
+
+    # Set has_access to True if the user is the student, adviser, admin, or has an approved request
+    has_access = is_student or is_adviser or is_admin or (access_request is not None)
+
     return render(request, 'visitor_manuscript_detail.html', {
         'manuscript': manuscript,
         'authors_with_br': authors_with_br,
+        'has_access': has_access,
+        'has_pending_request': has_pending_request,
     })

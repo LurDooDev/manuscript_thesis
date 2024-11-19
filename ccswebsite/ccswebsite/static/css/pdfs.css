@@ -25,6 +25,10 @@ body {
     min-height: 100vh;
 }
 
+.margin-right {
+    margin-left: 20px;
+}
+
 /* Header */
 .header {
     width: 100%;
@@ -165,6 +169,12 @@ body {
     display: inline;
     white-space: pre-wrap;
 }
+.non-selectable {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none; 
+    -ms-user-select: none;
+}
 
 /* Disable text selection for abstract */
 .abstract {
@@ -179,18 +189,6 @@ body {
     gap: 1.5em;
 }
 
-/* Back Button */
-.back-button {
-    top: 1rem;
-    right: 1rem;
-    color: #064420;
-    font-weight: bold;
-    text-decoration: none;
-}
-
-.back-button:hover {
-    color: #25580F;
-}
 
 .hamburger {
     display: none;
@@ -220,6 +218,112 @@ body {
     background-color: #064420;
 }
 
+/* Search Container */
+.search-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+    margin-top: 20px;
+}
+
+#search-input {
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    padding: 8px 12px;
+    width: 320px;
+    transition: border-color 0.2s ease-in-out;
+}
+
+#search-input:focus {
+    border-color: #064420; /* Focused border color */
+    outline: none;
+}
+
+/* Keywords Section */
+.keywords-section h3 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.keywords-section ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.keywords-section li {
+    background-color: #E4EFE7; /* Soft green background */
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: #064420;
+    font-size: 0.875rem;
+}
+
+/* OCR Text Container */
+.ocr-text-container {
+    padding: 16px;
+    background-color: #FAF1E6;
+    border: 1px solid #D1D5DB;
+    border-radius: 12px;
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 10px
+}
+
+.ocr-text-container h3 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #064420;
+}
+
+.ocr-page {
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: #FDFAF6; /* Background color for each OCR result */
+    border: 1px solid #E4EFE7;
+    border-radius: 8px;
+}
+
+.ocr-page h4 {
+    font-size: 1.125rem;
+    font-weight: bold;
+    color: #064420;
+}
+
+.matching-text p {
+    color: #333333;
+}
+
+/* No Matching Text Message */
+.text-gray-600 {
+    color: #4B5563; /* Muted gray color */
+    font-size: 1rem;
+    text-align: center;
+}
+
+.highlight {
+    background-color: yellow;
+    font-weight: bold;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Back Button */
+.back-button {
+    top: 1rem;
+    right: 1rem;
+    color: #064420;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.back-button:hover {
+    color: #25580F;
+}
 
 @media (max-width: 768px) {
     .nav {

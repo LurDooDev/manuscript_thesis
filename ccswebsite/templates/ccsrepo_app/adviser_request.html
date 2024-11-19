@@ -1,30 +1,48 @@
 {% extends "base_adviser.html" %}
 
 {% block content %}
-<div class="login-form-container login-form">
-    <form method="POST">
-        {% csrf_token %}
-        <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]">{{ user.first_name }} {{ user.middle_name }} {{ user.last_name }}</h2>
-    
-        {% if messages %}
-            {% for message in messages %}
-                <div class="bg-red-100 text-red-700 border border-red-400 rounded p-4 mb-4">
-                    {{ message }}
-                </div>
-            {% endfor %}
+{% if user.is_admin %}
+        {% include 'partials/sidebar_admin.html' %}
+        {% elif user.is_student %}
+        {% include 'partials/sidebar_student.html' %}
+        {% elif user.is_adviser %}
+        {% include 'partials/sidebar_adviser.html' %}
         {% endif %}
-    
-        <div class="mb-4">
-            <label for="email" class="login-label">Email Adviser</label>
-            <input type="email" name="email" id="email" required
-                   class="login-input p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter adviser email">
-        </div>
-        <button type="submit" class="login-button mb-2">Send</button>
-    </form>
-    <a href="{% url 'logout' %}" class="login-button absolute top-0 right-0 mt-4 mr-4">
-        Back
-    </a>
-    
+<div class="container-white">
+<div class="center-container">
+    <div class="form-container">
+        <h2>Must be verified by an adviser!</h2>
+        <p>Send access request to your CCS adviser in order for you to fully access ccs repository</p>
+    </div>
+    <div class="form-container">
+        <form method="POST" class="form-content">
+            {% csrf_token %}
+            
+            <h2 class="text-2xl font-bold text-center mb-6 text-[#25580F]">
+                {{ user.first_name }} {{ user.middle_name }} {{ user.last_name }}
+            </h2>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="bg-red-100 text-red-700 border border-red-400 rounded p-4 mb-4">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="email" class="form-label">Email Adviser</label>
+                <input type="email" name="email" id="email" required
+                       class="form-input"
+                       placeholder="Enter adviser email">
+            </div>
+            
+            <button type="submit" class="form-button">Send</button>
+        </form>
+    </div>
+</div>
+<footer class="footer">
+    <p>&copy; 2024 College Of Computing Studies. All rights reserved.</p>
+</footer>
 </div>
 {% endblock %}

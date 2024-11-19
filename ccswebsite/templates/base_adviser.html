@@ -2,22 +2,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link href="{% static 'css/output.css' %}" rel="stylesheet">
-    <link href="{% static 'css/main.css' %}" rel="stylesheet">
-    <link href="{% static 'css/adviser.css' %}" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manuscript Detail - {{ manuscript.title }}</title>
+  <link href="{% static 'css/advisers.css' %}" rel="stylesheet">
 </head>
 <body>
-    <header class="z-10 p-4 bg-[#25580F] text-white">
-        <h1 class="text-lg font-bold">College of Computing Studies Manuscript Repository</h1>
+
+    <header class="header">
+        <a href=""class="logo text-white">College of Computing Studies</a>
+            <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <nav class="nav text-white" id="navbar">
+            <a href="{% url 'logout' %}">Logout</a>
+        </nav>
     </header>
-    <main class="text-center p-8">
-        {% block content %}
-        
-        {% endblock %}
-    </main>
+    
+    {% block content %}
+            <!-- Content will go here when extended -->
+            {% endblock %}
+
+
+    <script>
+        function toggleMenu() {
+            const navbar = document.getElementById("navbar");
+            navbar.classList.toggle("active");
+        }
+        </script>
 
 </body>
 </html>

@@ -12,7 +12,7 @@ urlpatterns = [
     path('faculty-finalize/<int:manuscript_id>/', views.faculty_final_page, name='faculty_final_page'),
     #Manuscript
     path('upload/', views.upload_manuscript, name='manuscript_upload_page'),
-    path('manuscript/<int:manuscript_id>/', views.view_manuscript, name='view_manuscript'),
+    path('manuscripts/<int:manuscript_id>/', views.view_manuscript, name='view_manuscript'),
     path('finalize/<int:manuscript_id>/', views.final_manuscript_page, name='final_manuscript_page'),
     path('manuscript-search/', views.manuscript_search_page, name='manuscript_search_page'),
     path('request-manuscript/<int:manuscript_id>/', views.request_access, name='request_access'),
@@ -50,7 +50,7 @@ urlpatterns = [
     #Visitor Flow
     path('landingpage/', views.index_view, name='index'),
     path('search/', views.visitor_search_manuscripts, name='visitor_search_manuscripts'),
-    path('viewmanuscript/<int:id>/', views.visitor_manuscript_detail, name='visitor_manuscript_detail'),
+    path('manuscript/<int:manuscript_id>/', views.visitor_manuscript_detail, name='visitor_manuscript_detail'),
 
 
 ] 
