@@ -90,15 +90,16 @@
             </form>
         </div>
 
-        <div class="results">
+        <div class="results-container">
+        
             {% if manuscripts %}
-                <table class="results-table">
+                <table class="results-table manuscript-table">
                     <thead>
                         <tr>
                             <th>Title</th>
                             <th>Authors</th>
                             <th>Keywords</th>
-                            <th>Actions</th> <!-- New column for the "View" button -->
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -114,16 +115,15 @@
                                     {% endfor %}
                                 </td>
                                 <td>
-                                    <!-- View button linking to manuscript detail page -->
                                     <a href="{% url 'visitor_manuscript_detail' manuscript.id %}" class="view-button">View</a>
                                 </td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                
-                <!-- Pagination controls -->
-                <div class="pagination">
+        
+                <!-- Pagination below the table -->
+                <div class="pagination-container">
                     <span class="step-links">
                         {% if manuscripts.has_previous %}
                             <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.previous_page_number }}">previous</a>
@@ -132,17 +132,20 @@
                         <span class="current">
                             Page {{ manuscripts.number }} of {{ manuscripts.paginator.num_pages }}.
                         </span>
-        
+                        
                         {% if manuscripts.has_next %}
                             <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.next_page_number }}">next</a>
                         {% endif %}
                     </span>
                 </div>
-        
             {% else %}
-                <p>No results found.</p>
+                <div class="no-results">
+                    <p>No manuscripts found matching your search criteria.</p>
+                </div>
             {% endif %}
         </div>
+        
+        
         
     </div>
 

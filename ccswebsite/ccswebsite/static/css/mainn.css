@@ -67,7 +67,7 @@ body {
 
 /* Sidebar (Facet Panel) styling */
 .sidebar {
-    background-color: var(--other-dark);
+    background-color: #E4EFE7;
     padding: 20px;
     width: 300px;
     max-width: 100%; /* Ensure it doesn't go beyond the available space */
@@ -122,7 +122,7 @@ body {
 /* Filters */
 .filters {
     margin-top: 20px;
-    background-color: var(--bg-light);
+    background-color: #FDFAF6;
     padding: 15px;
     border-radius: 8px;
     width: 100%;
@@ -222,6 +222,68 @@ body {
     width: 25px;
     height: 3px;
     background-color: white;
+}
+
+/* Table Styles */
+.manuscript-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #FDFAF6;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.manuscript-table th,
+.manuscript-table td {
+    padding: 15px;
+    text-align: left;
+    border: 1px solid #E4EFE7;
+    color: #333;
+}
+
+.manuscript-table th {
+    background-color: #064420;
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.manuscript-table tr:nth-child(even) {
+    background-color: #FAF1E6;
+}
+
+.manuscript-table tr:hover {
+    background-color: #E4EFE7;
+}
+
+.view-button {
+    color: #064420;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 5px 10px;
+    border: 1px solid #064420;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.view-button:hover {
+    background-color: #064420;
+    color: white;
+}
+
+.no-results {
+    text-align: center;
+    margin-top: 20px;
+    background-color: #FAF1E6;
+    padding: 20px;
+    border: 1px solid #E4EFE7;
+    border-radius: 5px;
+    color: #064420;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.no-results p {
+    margin: 0;
 }
 
 @media (max-width: 768px) {
