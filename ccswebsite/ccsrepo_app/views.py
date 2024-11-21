@@ -19,6 +19,8 @@ import re
 from PIL import Image
 import fitz
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import IntegrityError
+from django.db.models import Case, When, Value, IntegerField
 
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
@@ -142,8 +144,6 @@ def login_view(request):
             elif user.is_admin:
                 return redirect('manage_users')
 
-            # If the user is active but does not fit into student, adviser, or admin roles
-            messages.info(request, "Logged in successfully. You can send requests to advisers.")
             return redirect('adviser_request')
 
         else:
@@ -179,7 +179,6 @@ def request_adviser_view(request):
             else:
                 # Create a new adviser-student relationship with 'pending' status
                 AdviserStudentRelationship.objects.create(adviser=adviser, student=student, status='pending')
-                messages.success(request, "Your request has been sent to your adviser.")
                 return redirect('adviser_request_success')
 
         except CustomUser.DoesNotExist:
@@ -198,8 +197,8 @@ def approve_student_view(request):
     relationships = AdviserStudentRelationship.objects.filter(adviser=request.user).order_by('-created_at')
 
     # Pagination setup: Show 5 relationships per page
-    paginator = Paginator(relationships, 5)  # 5 relationships per page
-    page_number = request.GET.get('page')  # Get the page number from URL
+    paginator = Paginator(relationships, 5)
+    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     if request.method == 'POST':
@@ -218,10 +217,8 @@ def approve_student_view(request):
                 student_relationship.save()
 
                 # Optionally, set the student role to True if needed (e.g., if your CustomUser model has is_student)
-                student.is_student = True  # Set the is_student flag
-                student.save()  # Save the student object
-
-                messages.success(request, f"{student.username} has been approved as a student.")
+                student.is_student = True
+                student.save()
             else:
                 messages.info(request, f"{student.username} has already been approved.")
 
@@ -322,8 +319,6 @@ def StudentRegister(request):
         )
         user.set_password(password1)  # Use the hashed password method
         user.save()
-        
-        messages.success(request, "Registration successful!")
         return redirect('login')
     
     programs = Program.objects.all()
@@ -342,7 +337,6 @@ def manage_program(request):
             return redirect('manage_program')
         
         Program.objects.create(name=name, abbreviation=abbreviation)
-        messages.success(request, "Program added successfully.")
         return redirect('manage_program')
 
     programs = Program.objects.all() 
@@ -400,7 +394,6 @@ def manage_category(request):
             return redirect('manage_category')
 
         Category.objects.create(name=name)
-        messages.success(request, "Category added successfully.")
         return redirect('manage_category')
 
     category = Category.objects.all()
@@ -418,7 +411,6 @@ def edit_category(request, category_id):
 
         category.name = name
         category.save()
-        messages.success(request, "Category updated successfully.")
         return redirect('manage_category')
 
     return render(request, 'ccsrepo_app/edit_category.html', {'category': category})
@@ -433,7 +425,6 @@ def manage_batch(request):
             return redirect('manage_batch')
         
         Batch.objects.create(name=name)
-        messages.success(request, "Batch added successfully.")
         return redirect('manage_batch')
 
     batch = Batch.objects.all() 
@@ -449,7 +440,6 @@ def manage_type(request):
             return redirect('manage_type')
         
         ManuscriptType.objects.create(name=name)
-        messages.success(request, "Type added successfully.")
         return redirect('manage_type')
 
     type = ManuscriptType.objects.all() 
@@ -799,7 +789,8 @@ def final_manuscript_page(request, manuscript_id):
         manuscript.adviser = adviser  # Set adviser after validation
 
         # Set publication date and update upload_show to True
-        manuscript.publication_date = timezone.now()
+        
+        manuscript.upload_date = timezone.now()
         manuscript.upload_show = True
 
         manuscript.save()
@@ -822,13 +813,43 @@ def final_manuscript_page(request, manuscript_id):
 #----------------End Manuscript System ------------------------/
 
 #----------------Adviser System ------------------------/
+# def adviser_manuscript(request):
+#     manuscripts = Manuscript.objects.filter(adviser=request.user).exclude(student=request.user)
+
+#     return render(request, 'ccsrepo_app/adviser_manuscript.html', {
+#         'manuscripts': manuscripts,
+#     })
+
 def adviser_manuscript(request):
-    manuscripts = Manuscript.objects.filter(adviser=request.user).exclude(student=request.user)
+    if request.user.is_authenticated:
+        # Get manuscripts for the adviser, including all statuses
+        manuscripts = Manuscript.objects.filter(
+            adviser=request.user
+        ).exclude(
+            student=request.user
+        ).annotate(
+            # Assign priority values for statuses
+            status_priority=Case(
+                When(status="pending", then=Value(1)),  # Pending manuscripts first
+                When(status="review", then=Value(2)),  # Review manuscripts next
+                When(status="approved", then=Value(3)),  # Approved manuscripts last
+                default=Value(4),  # Fallback for any other statuses
+                output_field=IntegerField(),
+            )
+        ).order_by(
+            'status_priority',  # Sort by priority (pending first)
+            '-upload_date'  # Within each status, sort by most recent upload date
+        )
 
-    return render(request, 'ccsrepo_app/adviser_manuscript.html', {
-        'manuscripts': manuscripts,
-    })
+        # Paginate the results
+        paginator = Paginator(manuscripts, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
+        return render(request, 'ccsrepo_app/adviser_manuscript.html', {
+            'page_obj': page_obj,
+            'manuscripts': manuscripts,
+        })
 
 def adviser_review(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
@@ -854,11 +875,17 @@ def adviser_review(request, manuscript_id):
 def student_manuscripts_view(request):
     # Check if the user is authenticated and is a student
     if request.user.is_authenticated and request.user.is_student:
-        # Get all manuscripts submitted by the logged-in student with upload_show=True
-        manuscripts = Manuscript.objects.filter(student=request.user, upload_show=True)
+        manuscripts = Manuscript.objects.filter(
+            student=request.user, 
+            upload_show=True
+        ).order_by('-upload_date')
+
+        paginator = Paginator(manuscripts, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
         return render(request, 'ccsrepo_app/student_manuscript.html', {
-            'manuscripts': manuscripts,
+            'page_obj': page_obj,
         })
 
 def manuscript_detail_view(request, manuscript_id):
@@ -909,18 +936,29 @@ def continue_scanning(request, manuscript_id):
     pages_to_process = min(pages_to_process, manuscript.remaining_page)
 
     for i in range(pages_to_process):
-        # Update page count and remaining pages
+        # Calculate the page number for the current iteration
         page_number = current_page + i + 1
-        ocr_text = extract_text_from_page(manuscript.pdf_file, page_number)
-
-        # Save the OCR data to the PageOCRData model
-        PageOCRData.objects.create(
-            manuscript=manuscript,
-            page_num=page_number,
-            text=ocr_text
-        )
-
-    # Update the manuscript's page count and remaining pages
+        
+        # Check if a PageOCRData entry already exists for this manuscript and page number
+        if not PageOCRData.objects.filter(manuscript=manuscript, page_num=page_number).exists():
+            # Extract OCR text from the PDF page
+            ocr_text = extract_text_from_page(manuscript.pdf_file, page_number)
+            
+            # Save the OCR data to the PageOCRData model
+            try:
+                PageOCRData.objects.create(
+                    manuscript=manuscript,
+                    page_num=page_number,
+                    text=ocr_text
+                )
+            except IntegrityError:
+                # If a duplicate entry is encountered, log it or handle accordingly
+                print(f"Page {page_number} already exists in OCR data.")
+        
+        else:
+            print(f"Skipping page {page_number} as it has already been processed.")
+    
+    # Update the manuscript's page count and remaining pages after processing
     manuscript.current_page_count += pages_to_process
     manuscript.remaining_page -= pages_to_process
     manuscript.save()
@@ -930,13 +968,30 @@ def continue_scanning(request, manuscript_id):
 #----------------End Student System ------------------------/
 
 #----------------Faculty System ------------------------/
+# def faculty_manuscripts_view(request):
+#     if request.user.is_authenticated:
+#         manuscripts = Manuscript.objects.filter(student=request.user,  upload_show=True)
+
+#         return render(request, 'ccsrepo_app/faculty_manuscript.html', {
+#             'manuscripts': manuscripts,
+#         })
+
 def faculty_manuscripts_view(request):
+    # Check if the user is authenticated and is a student
     if request.user.is_authenticated:
-        manuscripts = Manuscript.objects.filter(student=request.user,  upload_show=True)
+        manuscripts = Manuscript.objects.filter(
+            student=request.user, 
+            upload_show=True
+        ).order_by('-upload_date')
+
+        paginator = Paginator(manuscripts, 2)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
         return render(request, 'ccsrepo_app/faculty_manuscript.html', {
-            'manuscripts': manuscripts,
+            'page_obj': page_obj,
         })
+
 
 def faculty_detail_view(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
@@ -1027,7 +1082,7 @@ def faculty_final_page(request, manuscript_id):
         manuscript.upload_show = True
 
         manuscript.save()
-        return redirect('manuscript_search_page')
+        return redirect('visitor_search_manuscripts')
 
     # Load choices for form in GET request
     categories = Category.objects.all()
@@ -1063,18 +1118,33 @@ def request_access(request, manuscript_id):
         )
     return redirect('visitor_manuscript_detail', manuscript_id=manuscript_id)
 
+# def manuscript_access_requests(request):
+#     # Query access requests, ordering by latest, and select related manuscript
+#     access_requests = ManuscriptAccessRequest.objects.filter(
+#         manuscript__adviser=request.user
+#     ).select_related('manuscript').order_by('-requested_at')
+    
+#     # Paginate to show 5 requests per page
+#     paginator = Paginator(access_requests, 5)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+    
+#     return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'page_obj': page_obj})
+
 def manuscript_access_requests(request):
-    # Query access requests, ordering by latest, and select related manuscript
-    access_requests = ManuscriptAccessRequest.objects.filter(
+    # Check if the user is authenticated and is a student
+    if request.user.is_authenticated:
+        access_requests = ManuscriptAccessRequest.objects.filter(
         manuscript__adviser=request.user
     ).select_related('manuscript').order_by('-requested_at')
-    
-    # Paginate to show 5 requests per page
-    paginator = Paginator(access_requests, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'page_obj': page_obj})
+
+        paginator = Paginator(access_requests, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, 'ccsrepo_app/manuscript_access_requests.html', {
+            'page_obj': page_obj,
+        })
 
 def manage_access_request(request):
     # Manage approval or denial of a request via a single endpoint
@@ -1088,11 +1158,9 @@ def manage_access_request(request):
         if action == "approve":
             # Approve and set the access duration
             access_request.approve(duration_days=7)
-            messages.success(request, "Access request approved successfully.")
         elif action == "deny":
             # Deny the access request
             access_request.deny()
-            messages.success(request, "Access request denied successfully.")
         
     return redirect("manuscript_access_requests")
 
@@ -1101,9 +1169,32 @@ def student_access_requests(request):
         # Fetch access requests for the logged-in student
         access_requests = ManuscriptAccessRequest.objects.filter(student=request.user)
     else:
-        access_requests = []  # No requests if the user is not a student
+        access_requests = []
+    
+    paginator = Paginator(access_requests, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-    return render(request, 'ccsrepo_app/student_access_requests.html', {'access_requests': access_requests})
+    return render(request, 'ccsrepo_app/student_access_requests.html',
+    {'access_requests': access_requests,
+     'page_obj': page_obj,
+     })
+
+# def manuscript_access_requests(request):
+#     # Check if the user is authenticated and is a student
+#     if request.user.is_authenticated:
+#         access_requests = ManuscriptAccessRequest.objects.filter(
+#         manuscript__adviser=request.user
+#     ).select_related('manuscript').order_by('-requested_at')
+
+#         paginator = Paginator(access_requests, 10)
+#         page_number = request.GET.get('page')
+#         page_obj = paginator.get_page(page_number)
+
+#         return render(request, 'ccsrepo_app/manuscript_access_requests.html', {
+#             'page_obj': page_obj,
+#         })
+
 
 def delete_unpublished_manuscripts(request):
     if request.method == 'POST':

@@ -1,36 +1,54 @@
 {% extends "base_dashboard.html" %}
 
 {% block content %}
-    <h2 class="text-2xl font-semibold text-[#25580F] mb-6">My Manuscripts</h2>
+<div class="content">
+    <h1>Your Manuscripts</h1>
+    <p>Below is the list of your uploaded manuscripts:</p>
 
-    <div class="flex">
-        <div class="flex-1 mr-4">
-            <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
-                <thead>
-                    <tr class="bg-[#25580F] text-white">
-                        <th class="px-4 py-2">Title</th>
-                        <th class="px-4 py-2">Status</th>
-                        <th class="px-4 py-2">Feedback</th>
-                        <th class="px-4 py-2">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for manuscript in manuscripts %}
-                    <tr class="text-center">
-                        <td class="border px-4 py-2">{{ manuscript.title }}</td>
-                        <td class="border px-4 py-2">{{ manuscript.is_approved|yesno:"Approved,Pending" }}</td>
-                        <td class="border px-4 py-2">{{ manuscript.feedback|default:"No feedback yet." }}</td>
-                        <td class="border px-4 py-2">
-                            <a href="{% url 'manuscript_detail' manuscript.id %}" class="bg-[#25580F] text-white px-4 py-2 rounded hover:bg-[#3b8a12] transition duration-200">Details</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="border px-4 py-2">No Manuscripts found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- Table for Manuscripts -->
+    <table class="manuscript-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Feedback</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for manuscript in page_obj %}
+            <tr>
+                <td>{{ manuscript.title }}</td>
+                <td>{{ manuscript.status }}</td>
+                <td>{{ manuscript.feedback|default:"No feedback yet" }}</td>
+                <td>
+                    <a href="{% url 'manuscript_detail' manuscript.id %}" class="details-link">Details</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No manuscripts found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination-container">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            {% endif %}
+        </span>
     </div>
+</div>
+
 {% endblock %}

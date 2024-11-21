@@ -1,36 +1,43 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College of Computing Studies Manuscript Repository</title>
-    <link href="{% static 'css/output.css' %}" rel="stylesheet">
-    <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
-    <link href="{% static 'css/spinner.css' %}" rel="stylesheet">
+    <title>Dashboard</title>
+    <link href="{% static 'css/dashboards.css' %}" rel="stylesheet">
 </head>
+<body>
 
-<body class="bg-gray-100">
-    <header class="bg-[#25580F] text-white p-4">
-        <h1 class="text-lg font-bold">College of Computing Studies Repository</h1>
-    </header>
+<header class="header">
+    <a href="{% url 'index' %}" class="logo text-white">College of Computing Studies</a>
+    <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleSidebar()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+</header>
 
-    <div class="container h-screen flex">
-        {% if user.is_admin %}
+<main class="main">
+    <!-- Sidebar -->
+    {% if user.is_admin %}
         {% include 'partials/sidebar_admin.html' %}
         {% elif user.is_student %}
         {% include 'partials/sidebar_student.html' %}
         {% elif user.is_adviser %}
         {% include 'partials/sidebar_adviser.html' %}
         {% endif %}
+        {% block content %}
+        {% endblock %}
+</main>
 
-        <main class="flex-1 p-6 overflow-y-auto">
-            {% block content %}
-            <!-- Main content goes here -->
-            {% endblock %}
-        </main>
-    </div>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        sidebar.classList.toggle("active");
+    }
+</script>
+
 </body>
-
 </html>

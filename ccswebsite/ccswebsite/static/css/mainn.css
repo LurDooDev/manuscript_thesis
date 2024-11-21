@@ -53,7 +53,6 @@ body {
     color: var(--other-dark);
 }
 
-/* Main content container */
 .main-container {
     display: flex;
     justify-content: flex-start;
@@ -63,20 +62,22 @@ body {
     padding: 20px;
     gap: 20px;
     height: calc(100vh - 80px);
+    box-sizing: border-box;
 }
 
 /* Sidebar (Facet Panel) styling */
 .sidebar {
     background-color: #E4EFE7;
     padding: 20px;
-    width: 300px;
-    max-width: 100%; /* Ensure it doesn't go beyond the available space */
+    width: 300px; /* Fixed width for the sidebar */
+    flex-shrink: 0; /* Prevent shrinking when space is limited */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    height: calc(100vh - 120px); /* Sidebar height matches viewport minus header/footer */
+    overflow-y: auto; /* Enable scrolling if content overflows */
 }
-
 /* Sidebar Titles */
 .sidebar h2 {
     font-size: 1.5rem;
@@ -102,7 +103,7 @@ body {
 }
 
 .search-button {
-    background-color: var(--accent-light);
+    background-color: #064420;
     color: white;
     border: none;
     padding: 15px;
@@ -166,28 +167,39 @@ body {
     background-color: #052f1d;
 }
 
+.results {
+    flex-grow: 1; /* Allow the results section to take up the remaining space */
+    display: flex;
+    flex-direction: column;
+    max-width: calc(100% - 320px); /* Ensure results don't overflow when combined with the sidebar width */
+    overflow-x: auto; /* Enable horizontal scrolling if needed */
+}
 
 /* Results styling */
 .results {
-    flex-grow: 1;
+    flex-grow: 1; /* Allow the results section to take up the remaining space */
     display: flex;
     flex-direction: column;
-    width: 100%;
-    max-width: 100%;
+    max-width: calc(100% - 320px); /* Ensure results don't overflow when combined with the sidebar width */
+    overflow-x: auto; /* Enable horizontal scrolling if needed */
 }
 
 /* Results table */
 .results-table {
-    width: 100%;
+    width: 100%; /* Table takes full width of the results container */
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: fixed; /* Distribute column widths equally */
     border-spacing: 0;
+    box-sizing: border-box; /* Prevent overflow */
 }
 
-.results-table th, .results-table td {
+/* Adjust columns for wider view */
+.results-table th,
+.results-table td {
     padding: 12px;
     text-align: left;
     border: 1px solid #ddd;
+    word-wrap: break-word; /* Prevent text overflow in cells */
 }
 
 .results-table th {
@@ -284,6 +296,23 @@ body {
 
 .no-results p {
     margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .main-container {
+        flex-direction: column; /* Stack sidebar and results on smaller screens */
+    }
+
+    .sidebar {
+        width: 100%; /* Sidebar takes full width on smaller screens */
+        margin-bottom: 20px;
+        height: auto; /* Allow height to adjust based on content */
+    }
+
+    .results {
+        width: 100%; /* Results take full width after sidebar is stacked */
+    }
 }
 
 @media (max-width: 768px) {

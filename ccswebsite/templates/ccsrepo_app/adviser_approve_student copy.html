@@ -1,0 +1,84 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+    <h2 class="text-2xl font-semibold text-[#25580F] mb-6">Approve Student</h2>
+    
+    <!-- Pagination Controls -->
+    <div class="flex justify-between mb-6">
+        <div>
+            <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </div>
+    </div>
+
+    <div class="flex-1 mr-4">
+        <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
+            <thead>
+                <tr class="bg-[#25580F] text-white">
+                    <th class="px-4 py-2">Student Name</th>
+                    <th class="px-4 py-2">Program</th>
+                    <th class="px-4 py-2">Status</th>
+                    <th class="px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for relationship in page_obj %}
+                    <tr class="text-center">
+                        <td class="border px-4 py-2">{{ relationship.student.first_name }} {{ relationship.student.middle_name }} {{ relationship.student.last_name }}</td>
+                        <td class="border px-4 py-2">{{ relationship.student.program.name }}</td>
+                        <td class="border px-4 py-2">
+                            {% if relationship.status == "approved" %}
+                                Approved
+                            {% else %}
+                                Pending Approval
+                            {% endif %}
+                        </td>
+                        <td class="border px-4 py-2">
+                            {% if relationship.status != "approved" %}
+                                <form method="POST" action="{% url 'adviser_approve_student' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="student_id" value="{{ relationship.id }}">
+                                    <button type="submit" class="custom-approve">
+                                        Approve
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="text-gray-500">Already Approved</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="border px-4 py-2">No student requests found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Links -->
+    <div class="flex justify-center space-x-2 mt-4">
+        <div>
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="text-blue-600 px-4 py-2 border rounded hover:bg-blue-100">
+                    Previous
+                </a>
+            {% else %}
+                <span class="text-gray-400 px-4 py-2 border rounded">
+                    Previous
+                </span>
+            {% endif %}
+        </div>
+        
+        <div>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="text-blue-600 px-4 py-2 border rounded hover:bg-blue-100">
+                    Next
+                </a>
+            {% else %}
+                <span class="text-gray-400 px-4 py-2 border rounded">
+                    Next
+                </span>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

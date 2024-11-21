@@ -1,22 +1,10 @@
 {% load static %}
-<aside class="w-64 bg-white shadow-md p-6 rounded-lg">
-    <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]"> {{user.first_name }}</h2>
-    <div>
-        <ul class="mt-6 space-y-4">
-            <li class="mb-4">
-                <a href="{% url 'manuscript_search_page' %}" class="sidebar-link">Home</a>
-            </li>
-            <li class="mb-4">
-                <a href="{% url 'student_manuscripts' %}" class="sidebar-link">My Manuscripts</a>
-            </li>
-            <li class="mb-4">
-                <a href="{% url 'student_access_requests' %}" class="sidebar-link">Request Access</a>
-            </li>
-            <li class="mb-4">
-                <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
-            </li>
-        </ul>
-    </div>
+<aside class="sidebar" id="sidebar">
+    <h2>Hello, {{ user.first_name }}</h2>
+    <a href="{% url 'visitor_search_manuscripts' %}">Home</a>
+    <a href="{% url 'student_manuscripts' %}">My Manuscripts</a>
+    <a href="{% url 'student_access_requests' %}">Request Access</a>
+    <a href="{% url 'logout' %}">Logout</a>
 </aside>
 
 

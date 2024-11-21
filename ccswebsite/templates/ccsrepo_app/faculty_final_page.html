@@ -1,125 +1,99 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finalize Manuscript</title>
-    <link href="{% static 'css/output.css' %}" rel="stylesheet">
-    <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finalize Upload</title>
+  <link href="{% static 'css/final.css' %}" rel="stylesheet">
 </head>
-
 <body>
-    <header class="flex justify-between items-center bg-[#25580F] text-white p-4 shadow-md">
-        <h1 class="text-lg font-bold">College of Computing Studies Repository</h1>
-        <nav>
-            <ul class="flex space-x-8 text-sm">
-                <li>
-                    <a href="{% url 'manuscript_search_page' %}" class="text-lg font-bold px-3 py-2">Home</a>
-                </li>
-                <li>
-                    {% if user.is_adviser %}
-                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Uploads</a>
-                    {% elif user.is_admin %}
-                        <a href="{% url 'faculty_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
-                    {% else %}
-                        <a href="{% url 'manuscript_upload_page' %}" class="text-lg font-bold hover:text-gray-200 transition duration-300 px-3 py-2 rounded-lg bg-[#3a6c24] hover:bg-[#2c5219]">Upload</a>
-                    {% endif %}
-                </li>
-                <li>
-                    <a href="{% url 'student_manuscripts' %}" class="text-lg font-bold px-3 py-2">Hello, {{ user.first_name }}</a>
-                </li>
-                <li>
-                    <a href="{% url 'logout' %}" class="text-lg font-bold px-3 py-2">Logout</a>
-                </li>
-            </ul>
-        </nav>
-    </header>
 
-    <main class="flex justify-center items-center flex-1 py-10">
-        <div class="login-form-container">
-            <div class="login-form">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Finalize Your Manuscript</h2>
-                <form method="POST" enctype="multipart/form-data" class="space-y-4">
-                    {% csrf_token %}
-
-                    {% if errors %}
-    <div class="error-messages">
-        {% for error in errors %}
-            <p class="text-red-500">{{ error }}</p>
-        {% endfor %}
+<header class="header">
+    <a href="{% url 'index' %}" class="logo text-white">College of Computing Studies</a>
+    <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
     </div>
-{% endif %}
+    <nav class="nav text-white" id="navbar">
+        <a href="{% url 'visitor_search_manuscripts' %}">Find</a>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+        {% if user.is_authenticated %}
+            <a href="{% url 'manuscript_upload_page' %}">Upload</a>
+            <a href="{% url 'student_manuscripts' %}">Hello, {{ user.first_name }}</a>
+            <a href="{% url 'logout' %}">Logout</a>
+        {% endif %}
+    </nav>
+</header>
 
-                    <!-- Title Field -->
-                    <div class="input-margin">
-                        <label for="title" class="login-label">Title</label>
-                        <textarea id="title" name="title" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ manuscript.title }}</textarea>
-                    </div>
-
-                    <!-- Abstract Field -->
-                    <div class="input-margin">
-                        <label for="abstracts" class="login-label">Abstract</label>
-                        <textarea id="abstracts" name="abstracts" class="login-input" rows="4" placeholder="Extracted abstract will be shown here...">{{ manuscript.abstracts }}</textarea>
-                    </div>
-
-                    <!-- Authors Field -->
-                    <div class="input-margin">
-                        <label for="authors" class="login-label">Researchers (comma-separated)</label>
-                        <input type="text" id="authors" name="authors" class="login-input" value="{{ manuscript.authors }}" required>
-                    </div>
-
-                    <!-- Authors Field -->
-                    <div class="input-margin">
-                        <label for="year" class="login-label">Batch</label>
-                        <input type="text" id="year" name="year" class="login-input" value="{{ manuscript.year }}" required>
-                    </div>
-
-                    <!-- Category Field -->
-                    <div class="input-margin">
-                        <label for="category" class="login-label">Category</label>
-                        <select id="category" name="category" class="login-input" required>
-                            <option value=""></option>
-                            {% for category in categories %}
-                                <option value="{{ category.id }}" {% if category.id == manuscript.category_id %}selected{% endif %}>{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Manuscript Type Field -->
-                    <div class="input-margin">
-                        <label for="manuscript_type" class="login-label">Manuscript Type</label>
-                        <select id="manuscript_type" name="manuscript_type" class="login-input" required>
-                            <option value=""></option>
-                            {% for manuscript_type in manuscript_types %}
-                                <option value="{{ manuscript_type.id }}" {% if manuscript_type.id == manuscript.manuscript_type_id %}selected{% endif %}>{{ manuscript_type.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Program Field -->
-                    <div class="input-margin">
-                        <label for="program" class="login-label">Program</label>
-                        <select id="program" name="program" class="login-input" required>
-                            <option value=""></option>
-                            {% for program in programs %}
-                                <option value="{{ program.id }}" {% if program.id == manuscript.program_id %}selected{% endif %}>{{ program.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-
-                    <!-- Submit Button -->
-                    <div class="pt-4">
-                        <button type="submit" class="login-button w-full">
-                            Finalize Manuscript
-                        </button>
-                    </div>
-                </form>
-            </div>
+<!-- Finalize Form -->
+<div class="finalize-container">
+    <h2>Finalize Your Manuscript</h2>
+    <form method="POST" class="finalize-form">
+        {% csrf_token %}
+        {% if errors %}
+        <div class="error-messages">
+            {% for error in errors %}
+                <p class="text-red-500">{{ error }}</p>
+            {% endfor %}
         </div>
-    </main>
-</body>
+        {% endif %}
+        <label for="title">Title:</label>
+        <textarea name="title" id="title" placeholder="Enter title here" required>{{ manuscript.title }}</textarea>
 
+        <label for="authors">Researcher(s):</label>
+        <input type="text" name="authors" id="authors" placeholder="Enter researcher(s)" value="{{ manuscript.authors }}" required>
+
+        <label for="year">Batch:</label>
+        <input type="text" name="year" id="year" placeholder="Enter batch (e.g., 2024)" value="{{ manuscript.year }}" required>
+
+        <label for="category">Category:</label>
+        <select name="category" id="category" required>
+            <option value="" disabled selected>Select category</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if category.id == manuscript.category_id %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="manuscript_type">Type:</label>
+        <select name="manuscript_type" id="manuscript_type" required>
+            <option value="" disabled selected>Select type</option>
+            {% for manuscript_type in manuscript_types %}
+            <option value="{{ manuscript_type.id }}" {% if manuscript_type.id == manuscript.manuscript_type_id %}selected{% endif %} >{{ manuscript_type.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="program">Program:</label>
+        <select name="program" id="program" required>
+            <option value="" disabled selected>Select program</option>
+            {% for program in programs %}
+            <option value="{{ program.id }}" {% if program.id == manuscript.program_id %}selected{% endif %}>{{ program.name }}</option>
+            {% endfor %}
+        </select>
+
+
+        <label for="abstracts">Abstract:</label>
+        <textarea name="abstracts" id="abstracts" placeholder="Enter abstract here" required>{{ manuscript.abstracts }}</textarea>
+
+        <button type="submit">Finalize Upload</button>
+    </form>
+</div>
+
+<footer class="footer">
+    <p>&copy; 2024 College Of Computing Studies. All rights reserved.</p>
+</footer>
+
+<script>
+    function toggleMenu() {
+        const navbar = document.getElementById("navbar");
+        navbar.classList.toggle("active");
+    }
+</script>
+
+</body>
 </html>

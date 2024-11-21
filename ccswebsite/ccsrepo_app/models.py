@@ -108,6 +108,7 @@ class Manuscript(models.Model):
     remaining_page = models.PositiveIntegerField(null=True, blank=True)
     current_page_count = models.PositiveIntegerField(null=True, blank=True)
     keywords_extracted = models.BooleanField(default=False)
+    upload_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.title

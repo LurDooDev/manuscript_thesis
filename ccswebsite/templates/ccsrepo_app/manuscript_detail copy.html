@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href="{% static 'css/dashboards.css' %}" rel="stylesheet">
+</head>
+<body>
+
+<header class="header">
+    <a href="{% url 'index' %}" class="logo text-white">College of Computing Studies</a>
+    <!-- Hamburger icon for small screens -->
+    <div class="hamburger" onclick="toggleSidebar()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+</header>
+
+<main class="main">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <h2>Hello, {{ user.first_name }}</h2>
+        <a href="{% url 'visitor_search_manuscripts' %}">Home</a>
+        <a href="{% url 'student_manuscripts' %}">My Manuscripts</a>
+        <a href="{% url 'student_access_requests' %}">Request Access</a>
+        <a href="{% url 'logout' %}">Logout</a>
+    </aside>
+    <div class="content-card">
+        <!-- Page Title -->
+        <h1>Your Manuscript Details</h1>
+    
+        <!-- Feedback Card -->
+        <section class="feedback-card">
+            <h2>Feedback</h2>
+            <p>{{ manuscript.feedback|default:"No feedback yet." }}</p>
+        </section>
+    
+        <!-- Manuscript Information Card -->
+        <section class="manuscript-card">
+            <h2>Manuscript Information</h2>
+            <p><strong>Title:</strong> {{ manuscript.title }}</p>
+            <p><strong>Authors:</strong> {{ manuscript.authors }}</p>
+            <p><strong>Category:</strong> {{ manuscript.category }}</p>
+            <p><strong>Type:</strong> {{ manuscript.manuscript_type }}</p>
+            <p><strong>Batch:</strong> {{ manuscript.batch }}</p>
+            <p><strong>Abstract:</strong> {{ manuscript.abstracts }}</p>
+            <p><strong>Status:</strong> {{ manuscript.status }}</p>
+            <p><strong>Uploaded Date:</strong> {{ manuscript.upload_date }}</p>
+            <p><a href="{{ manuscript.pdf_file.url }}" target="_blank" class="details-link">View PDF</a></p>
+        </section>
+        
+        <!-- OCR Progress Card -->
+        <section class="ocr-card">
+            <h2>OCR Progress</h2>
+            {% if manuscript.page_count > 0 %}
+            <div class="progress-bar">
+                <div class="progress" style="width: {{ progress_percentage }}%;"></div>
+            </div>
+            <p>{{ manuscript.current_page_count }} of {{ manuscript.page_count }} pages processed ({{ progress_percentage|floatformat:1 }}% complete)</p>
+            {% else %}
+            <p>Page count not available.</p>
+            {% endif %}
+    
+            {% if manuscript.remaining_page > 0 %}
+            <form action="{% url 'continue_scanning' manuscript.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="details-link">Continue Scanning</button>
+            </form>
+            {% else %}
+            <p>All pages have been processed.</p>
+            {% endif %}
+        </section>
+    
+        <!-- Back Button -->
+        <div class="back-button">
+            <a href="{% url 'student_manuscripts' %}" class="details-link">Back to My Manuscripts</a>
+        </div>
+    </div>
+</main>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        sidebar.classList.toggle("active");
+    }
+</script>
+
+</body>
+</html>
