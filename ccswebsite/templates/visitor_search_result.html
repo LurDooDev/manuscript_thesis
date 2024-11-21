@@ -108,7 +108,7 @@
                         <tr>
                             <th>Title</th>
                             <th>Authors</th>
-                            <th>Keywords</th>
+                            {% comment %} <th>Keywords</th> {% endcomment %}
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -117,13 +117,13 @@
                             <tr>
                                 <td>{{ manuscript.title }}</td>
                                 <td>{{ manuscript.authors }}</td>
-                                <td>
+                                {% comment %} <td>
                                     {% for keyword in manuscript.keywords.all %}
                                         {{ keyword.keyword }}{% if not forloop.last %}, {% endif %}
                                     {% empty %}
                                         No keywords available
                                     {% endfor %}
-                                </td>
+                                </td> {% endcomment %}
                                 <td>
                                     <a href="{% url 'visitor_manuscript_detail' manuscript.id %}" class="view-button">View</a>
                                 </td>
