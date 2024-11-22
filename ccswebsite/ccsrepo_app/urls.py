@@ -31,19 +31,30 @@ urlpatterns = [
     path('adviser-review/<int:manuscript_id>/', views.adviser_review, name='adviser_review'),
     #admin
     path('manage-users/', views.ManageAdviser, name='manage_users'),
-    path('manage-dashboard/', views.dashboard_page, name='dashboard_page'), # new url
+    path('manage-dashboard/', views.dashboard_page, name='dashboard_page'),
     path('manage-program/', views.manage_program, name='manage_program'),
     path('manage-category/', views.manage_category, name='manage_category'),
     path('manage-batch/', views.manage_batch, name='manage_batch'),
     path('manage-type/', views.manage_type, name='manage_type'),
     #AJAX
     path('continue-scanning/<int:manuscript_id>/', views.continue_scanning, name='continue_scanning'),
+    path('program/check-duplicate/', views.check_program_duplicate, name='check_program_duplicate'),
+    path('category/check-duplicate/', views.check_duplicate_category, name='check_duplicate_category'),
+    path('manuscripttype/check-duplicate/', views.check_duplicate_manuscripttype, name='check_duplicate_manuscripttype'),
+
     #Student
     path('my-manuscripts/', views.student_manuscripts_view, name='student_manuscripts'),
     path('my-access-requests/', views.student_access_requests, name='student_access_requests'),
     path('manuscripts-details/<int:manuscript_id>/', views.manuscript_detail_view, name='manuscript_detail'),
     #CRUD
     path('edit-category/<int:category_id>/', views.edit_category, name='edit_category'),
+    path('edit-program/<int:program_id>/', views.edit_program, name='edit_program'),
+    path('adviser/edit/<int:adviser_id>/', views.edit_adviser, name='edit_adviser'),
+    path('edit-type/<int:type_id>/', views.edit_type, name='edit_type'),
+    path('create-adviser/', views.create_adviser, name='create_adviser'),
+    path('program/create/', views.create_program, name='create_program'),
+    path('category/create/', views.create_category, name='create_category'),
+    path('manuscripttype/create/', views.create_manuscripttype, name='create_manuscripttype'),
     #Redirecting
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),

@@ -339,8 +339,14 @@ def manage_program(request):
         Program.objects.create(name=name, abbreviation=abbreviation)
         return redirect('manage_program')
 
-    programs = Program.objects.all() 
-    return render(request, 'ccsrepo_app/manage_program.html', {'programs': programs})
+    programs = Program.objects.all()
+    paginator = Paginator(programs, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'ccsrepo_app/manage_program.html', {
+        'programs': programs,
+        'page_obj': page_obj
+    })
 
 #Dashboard Page
 def dashboard_page(request):
@@ -397,7 +403,13 @@ def manage_category(request):
         return redirect('manage_category')
 
     category = Category.objects.all()
-    return render(request, 'ccsrepo_app/manage_category.html', {'category': category})
+    paginator = Paginator(category, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'ccsrepo_app/manage_category.html', {
+        'category': category,
+        'page_obj': page_obj
+    })
 
 def edit_category(request, category_id):
     category = get_object_or_404(Category, id=category_id)
@@ -414,6 +426,100 @@ def edit_category(request, category_id):
         return redirect('manage_category')
 
     return render(request, 'ccsrepo_app/edit_category.html', {'category': category})
+
+def edit_program(request, program_id):
+    program = get_object_or_404(Program, id=program_id)
+
+    if request.method == 'POST':
+        name = request.POST.get('name').strip()
+        abbreviation = request.POST.get('abbreviation').strip()
+
+        # Validate if the name is already taken by another program
+        if Program.objects.filter(name__iexact=name).exclude(id=program_id).exists():
+            messages.error(request, "A program with this name already exists.")
+            return redirect('edit_program', program_id=program.id)
+
+        # Validate if the abbreviation is already taken by another program
+        if Program.objects.filter(abbreviation__iexact=abbreviation).exclude(id=program_id).exists():
+            messages.error(request, "A program with this abbreviation already exists.")
+            return redirect('edit_program', program_id=program.id)
+
+        # Update the program details if validations pass
+        program.name = name
+        program.abbreviation = abbreviation
+        program.save()
+
+        messages.success(request, "Program updated successfully.")
+        return redirect('manage_program')  # Redirect to the manage program page or another appropriate page
+
+    return render(request, 'ccsrepo_app/edit_program.html', {'program': program})
+
+def edit_type(request, type_id):
+    type = get_object_or_404(ManuscriptType, id=type_id)
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+
+        if ManuscriptType.objects.filter(name=name).exists() and name != ManuscriptType.name:
+            messages.error(request, "A program with this name already exists.")
+            return redirect('edit_program', category_id=type.id)
+
+        type.name = name
+        type.save()
+        return redirect('manage_type')
+
+    return render(request, 'ccsrepo_app/edit_type.html', {'type': type})
+
+def edit_adviser(request, adviser_id):
+    # Fetch the adviser to be edited
+    adviser = get_object_or_404(CustomUser, id=adviser_id)
+    programs = Program.objects.all()  # List of programs for selection
+
+    if request.method == 'POST':
+        # Handle form submission and validation
+        first_name = request.POST.get('first_name').strip()
+        middle_name = request.POST.get('middle_name').strip()
+        last_name = request.POST.get('last_name').strip()
+        program_id = request.POST.get('program')  # Get the selected program ID from POST data
+        username = request.POST.get('username').strip()
+        email = request.POST.get('email').strip()
+        password1 = request.POST.get('password1').strip()
+        password2 = request.POST.get('password2').strip()
+
+        # Validate passwords if provided
+        if password1 and password1 != password2:
+            messages.error(request, "Passwords do not match.")
+            return render(request, 'ccsrepo_app/edit_adviser.html', {
+                'adviser': adviser,
+                'programs': programs,
+                'errors': { 'password1': ['Passwords do not match.'] }
+            })
+        
+        # Update adviser fields
+        adviser.first_name = first_name
+        adviser.middle_name = middle_name
+        adviser.last_name = last_name
+        adviser.username = username
+        adviser.email = email
+        
+        # If a program ID is selected, update the adviser's program
+        if program_id:
+            adviser.program = Program.objects.get(id=program_id)
+
+        # If a new password is provided, update the password
+        if password1:
+            adviser.set_password(password1)
+        
+        # Save the adviser object
+        adviser.save()
+        messages.success(request, "Adviser updated successfully.")
+        return redirect('manage_users')  # Or wherever you want to redirect after saving
+
+    # Render the form with the current adviser data
+    return render(request, 'ccsrepo_app/edit_adviser.html', {
+        'adviser': adviser,
+        'programs': programs,
+    })
 
 #Batch
 def manage_batch(request):
@@ -442,8 +548,14 @@ def manage_type(request):
         ManuscriptType.objects.create(name=name)
         return redirect('manage_type')
 
-    type = ManuscriptType.objects.all() 
-    return render(request, 'ccsrepo_app/manage_type.html', {'type': type})
+    type = ManuscriptType.objects.all()
+    paginator = Paginator(type, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'ccsrepo_app/manage_type.html', {
+        'type': type,
+        'page_obj': page_obj
+    })
 
 #new manage adviser
 def ManageAdviser(request):
@@ -458,7 +570,7 @@ def ManageAdviser(request):
         program_id = request.POST.get('program')
 
         # Validate user data
-        errors = validate_user_data(email, username, password1, password2)
+        errors = validate_adviser_data(email, username, first_name, middle_name, last_name, program_id, password1, password2)
 
         # If there are errors, re-render the form with errors and the previously entered data
         if errors:
@@ -489,19 +601,164 @@ def ManageAdviser(request):
         user.set_password(password1)
         user.save()
 
-        messages.success(request, "Registration successful! You can now log in.")
-        return redirect('manage_users')
-
     programs = Program.objects.all()
-    advisers = CustomUser.objects.filter(is_adviser=True).values('first_name', 'last_name', 'email')
+    advisers = CustomUser.objects.filter(is_adviser=True)
+
+    paginator = Paginator(advisers, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     return render(request, 'ccsrepo_app/manage_users.html', {
         'advisers': advisers,
+        'page_obj': page_obj,
         'programs': programs
     })
 
-def validate_adviser_data(email, username, password1, password2):
+def create_program(request):
+    name = ""  # Initialize variables
+    abbreviation = ""
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        abbreviation = request.POST.get("abbreviation", "").strip()
+
+        # Check if a program with the same name or abbreviation already exists
+        if Program.objects.filter(name__iexact=name).exists():
+            messages.error(request, "A program with this name already exists.")
+        elif Program.objects.filter(abbreviation__iexact=abbreviation).exists():
+            messages.error(request, "A program with this abbreviation already exists.")
+        else:
+            # Create the program if no duplicates are found
+            Program.objects.create(name=name, abbreviation=abbreviation)
+            messages.success(request, "Program created successfully.")
+            return redirect("manage_program")  # Redirect to the program list or another appropriate page
+
+    # Render the form with the current values for GET or if validation fails
+    return render(request, "ccsrepo_app/create_program.html", {"program": {"name": name, "abbreviation": abbreviation}})
+
+def create_category(request):
+    name = ""  # Initialize variable
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+
+        # Check if a category with the same name already exists
+        if Category.objects.filter(name__iexact=name).exists():
+            messages.error(request, "A category with this name already exists.")
+        else:
+            # Create the category if no duplicates are found
+            Category.objects.create(name=name)
+            messages.success(request, "Category created successfully.")
+            return redirect("manage_category")  # Redirect to the category list or another appropriate page
+
+    # Render the form with the current values for GET or if validation fails
+    return render(request, "ccsrepo_app/create_category.html", {"category": {"name": name}})
+
+def create_manuscripttype(request):
+    # Initialize an empty dictionary for storing the form values in case of errors
+    manuscripttype = {'name': ''}
+
+    if request.method == 'POST':
+        # Retrieve and strip the name field from the form submission
+        name = request.POST.get('name', '').strip()
+
+        # Check if a manuscript type with the same name already exists (case-insensitive)
+        if ManuscriptType.objects.filter(name__iexact=name).exists():
+            messages.error(request, "A manuscript type with this name already exists.")
+            return render(request, 'ccsrepo_app/create_manuscripttype.html', {'manuscripttype': {'name': name}})
+
+        # If no duplicate exists, create the new manuscript type
+        ManuscriptType.objects.create(name=name)
+        messages.success(request, "Manuscript type created successfully.")
+        return redirect('manage_type')  # Redirect to the page where manuscript types are listed
+
+    # Render the form on a GET request or after validation failure
+    return render(request, 'ccsrepo_app/create_manuscripttype.html', {'manuscripttype': manuscripttype})
+
+def check_duplicate_manuscripttype(request):
+    name = request.GET.get('name', '').strip()
+    duplicate_name = ManuscriptType.objects.filter(name__iexact=name).exists()
+    return JsonResponse({'duplicate_name': duplicate_name})
+
+def check_duplicate_category(request):
+    name = request.GET.get('name', '').strip()
+    duplicate_name = Category.objects.filter(name__iexact=name).exists()
+    return JsonResponse({'duplicate_name': duplicate_name})
+
+def check_program_duplicate(request):
+    name = request.GET.get("name", "").strip()
+    abbreviation = request.GET.get("abbreviation", "").strip()
+
+    duplicate_name = Program.objects.filter(name__iexact=name).exists()
+    duplicate_abbreviation = Program.objects.filter(abbreviation__iexact=abbreviation).exists()
+
+    return JsonResponse({
+        "duplicate_name": duplicate_name,
+        "duplicate_abbreviation": duplicate_abbreviation,
+    })
+
+def create_adviser(request):
+    if request.method == 'POST':
+        # Retrieve form data and process
+        email = request.POST.get('email').strip()
+        username = request.POST.get('username').strip()
+        first_name = request.POST.get('first_name').strip()
+        middle_name = request.POST.get('middle_name').strip()
+        last_name = request.POST.get('last_name').strip()
+        password1 = request.POST.get('password1').strip()
+        password2 = request.POST.get('password2').strip()
+        program_id = request.POST.get('program')
+
+        # Validate and create user
+        errors = validate_adviser_data(email, username, first_name, middle_name, last_name, program_id, password1, password2)
+
+        if errors:
+            # Return with errors
+            programs = Program.objects.all()
+            return render(request, 'ccsrepo_app/create_adviser.html', {
+                'errors': errors,
+                'programs': programs,
+                'email': email,
+                'username': username,
+                'first_name': first_name,
+                'middle_name': middle_name,
+                'last_name': last_name,
+                'program_id': program_id
+            })
+        
+        # If validation passes, create and save the adviser
+        user = CustomUser(
+            email=email,
+            username=username,
+            first_name=first_name,
+            middle_name=middle_name,
+            last_name=last_name,
+            is_adviser=True,
+            program_id=program_id
+        )
+        user.set_password(password1)
+        user.save()
+
+        return redirect('manage_users')  # Redirect to the manage advisers page
+
+    else:
+        programs = Program.objects.all()
+        return render(request, 'ccsrepo_app/create_adviser.html', {'programs': programs})
+
+def validate_adviser_data(email, username, first_name, middle_name, last_name, program_id, password1, password2):
     errors = {}
-    
+
+    # Validate first name, middle name, last name
+    if not first_name:
+        errors['first_name'] = [_("First name is required.")]
+    if not middle_name:
+        errors['middle_name'] = [_("Middle name is required.")]
+    if not last_name:
+        errors['last_name'] = [_("Last name is required.")]
+
+    # Validate program
+    if not program_id:
+        errors['program'] = [_("Program is required.")]
+
     # Password validation
     try:
         password_validation.validate_password(password1)
@@ -511,19 +768,19 @@ def validate_adviser_data(email, username, password1, password2):
     # Updated email pattern: two letters, a four-digit year, five digits, and the domain
     email_pattern = r"^[a-zA-Z]{2}\d{4}\d{5}@wmsu\.edu\.ph$"
     if not re.match(email_pattern, email):
-        errors['email'] = [_("Email must be wmsu email")]
+        errors['email'] = [_("Email must be a valid WMSU email address.")]
 
     # Check if passwords match
     if password1 != password2:
-        errors['password2'] = ["Passwords do not match."]
+        errors['password2'] = [_("Passwords do not match.")]
 
     # Check if email already exists
     if CustomUser.objects.filter(email=email).exists():
-        errors['email'] = ["Email already exists."]
+        errors['email'] = [_("Email already exists.")]
 
     # Check if username already exists
     if CustomUser.objects.filter(username=username).exists():
-        errors['username'] = ["Username already exists."]
+        errors['username'] = [_("Username already exists.")]
     
     return errors
 #----------------End Admin Managing ------------------------/

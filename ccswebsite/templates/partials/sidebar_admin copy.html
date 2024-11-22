@@ -1,0 +1,97 @@
+{% load static %}
+<aside class="w-64 bg-white shadow-md p-6 rounded-lg">
+  <h2 class="font-semibold text-xl text-center mb-6 text-[#25580F]">
+    {{ user.first_name }}
+  </h2>
+  <div>
+    <ul class="mt-6 space-y-4">
+      <li class="mb-4">
+        <a href="{% url 'manuscript_search_page' %}" class="sidebar-link">Home</a>
+      </li>
+      <li class="mb-4">
+        <a href="{% url 'dashboard_page' %}" class="sidebar-link">Dashboard</a>
+      </li>
+      <li class="mb-4">
+        <a href="{% url 'faculty_manuscripts' %}" class="sidebar-link">My Manuscripts</a>
+      </li>
+      <li class="mb-4">
+        <a href="{% url 'manuscript_access_requests' %}" 
+           class="sidebar-link {% if pending_access_requests > 0 %}bg-yellow-100 text-yellow-700 font-bold{% endif %}">
+           Manuscript Access Request
+           {% if pending_access_requests > 0 %}
+               <span class="text-red-500 font-semibold">({{ pending_access_requests }})</span>
+           {% endif %}
+        </a>
+    </li>
+
+      <!-- Manage Dropdown -->
+      <li class="mb-4">
+        <button onclick="toggleManageDropdown()" class="w-full flex justify-between items-center p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">
+          <span>Manage</span>
+          <span id="dropdown-arrow" class="arrow transition-transform duration-200"></span>
+        </button>
+        <ul id="manage-dropdown" class="mt-2 space-y-4 pl-4 hidden">
+          <li>
+            <a href="{% url 'manage_users' %}" class="sidebar-link">Manage Users</a>
+          </li>
+          <li>
+            <a href="{% url 'manage_program' %}" class="sidebar-link">Manage Program</a>
+          </li>
+          <li>
+            <a href="{% url 'manage_category' %}" class="sidebar-link">Manage Category</a>
+          </li>
+          <li>
+            <a href="{% url 'delete_unpublished_manuscripts' %}" class="sidebar-link">Manage Manuscripts</a>
+          </li>
+          <li>
+            <a href="{% url 'manage_type' %}" class="sidebar-link">Manage Type</a>
+          </li>
+        </ul>
+      </li>
+
+      <li class="mb-4">
+        <a href="{% url 'logout' %}" class="block p-3 text-gray-700 hover:bg-gray-200 rounded transition duration-200">Logout</a>
+      </li>
+    </ul>
+  </div>
+</aside>
+
+<style>
+  /* Custom CSS for dropdown arrow */
+  .arrow::before {
+    content: "";
+    display: inline-block;
+    border: 5px solid transparent;
+    border-top: 5px solid currentColor;
+    transition: transform 0.2s;
+  }
+
+  /* Rotate the arrow when dropdown is open */
+  .rotate {
+    transform: rotate(180deg);
+  }
+
+  /* Ensure the dropdown starts hidden */
+  .hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  function toggleManageDropdown() {
+    const dropdown = document.getElementById("manage-dropdown");
+    const arrow = document.getElementById("dropdown-arrow");
+
+    // Toggle the visibility of the dropdown and rotate the arrow
+    dropdown.classList.toggle("hidden");
+    arrow.classList.toggle("rotate");
+  }
+
+  // Prevent closing dropdown when a link inside it is clicked
+  const dropdownLinks = document.querySelectorAll('#manage-dropdown a');
+  dropdownLinks.forEach(link => {
+    link.addEventListener('click', function(event) {
+      event.stopPropagation();  // Prevent the dropdown from closing
+    });
+  });
+</script>

@@ -21,6 +21,21 @@ body {
     min-height: 100vh;
 }
 
+select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 4px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #E4EFE7;
+    outline: none;
+}
+
+.flex {
+    display: flex;
+    width: 30%;
+}
+
 /* Header Section */
 .header {
     width: 100%;
@@ -279,6 +294,106 @@ body {
 .details-link:hover {
     background-color: #064420;
     color: #fff;
+}
+
+.manage-links {
+    padding-left: 1rem;
+}
+.hidden {
+    display: none;
+}
+.toggle-button {
+    background: none;
+    border: none;
+    color: #064420;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: left;
+    width: 100%;
+    padding: 0.5rem 0;
+}
+.toggle-button:hover {
+    text-decoration: underline;
+}
+
+/* Modal Background */
+
+
+/* Modal Container */
+.modal-container {
+    background-color: #FDFAF6;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 90%;
+    
+}
+
+/* Modal Header */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h3 {
+    font-size: 1.5rem;
+    color: #064420;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #064420;
+    font-size: 1.25rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Modal Form */
+.modal-form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: bold;
+}
+
+.modal-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #E4EFE7;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.modal-form button {
+    width: 100%;
+    padding: 10px 15px;
+    background-color: #064420;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.modal-form button:hover {
+    background-color: #A6BB8D;
+}
+
+/* Show Modal */
+.modal-overlay.active {
+    display: flex;
+}
+
+.content-left {
+    margin-left: 25%;
 }
 
 

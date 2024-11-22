@@ -1,0 +1,53 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+<div class="content content-left">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3>Create New Manuscript Type</h3>
+        </div>
+
+        <form class="modal-form" method="POST" action="{% url 'create_manuscripttype' %}">
+            {% csrf_token %}
+            
+            <label for="name">Manuscript Type Name</label>
+            <input type="text" id="name" name="name" value="{{ manuscripttype.name|default:'' }}" required />
+            <span id="name-error" class="error-message"></span>
+
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const nameInput = document.getElementById("name");
+        const form = document.querySelector(".modal-form");
+
+        // Add listener for real-time validation
+        nameInput.addEventListener("input", validateManuscripttype);
+
+        async function validateManuscripttype() {
+            const name = nameInput.value.trim();
+
+            // Fetch validation results from the server
+            const response = await fetch(`/manuscripttype/check-duplicate/?name=${encodeURIComponent(name)}`);
+            const data = await response.json();
+
+            // Display validation errors
+            const nameError = document.querySelector("#name-error");
+
+            if (data.duplicate_name) {
+                nameError.textContent = "This manuscript type already exists.";
+            } else {
+                nameError.textContent = "";
+            }
+
+            // Disable the submit button if errors exist
+            const submitButton = form.querySelector("button[type='submit']");
+            submitButton.disabled = data.duplicate_name;
+        }
+    });
+</script>
+
+{% endblock %}

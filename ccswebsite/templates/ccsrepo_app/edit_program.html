@@ -1,0 +1,22 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+<div class="content">
+<div class="modal-container">
+    <div class="modal-header">
+        <h3>Update {{ program.name}}</h3>
+    </div>
+    <form class="modal-form"  method="POST" action="{% url 'edit_program' program.id %}">
+      {% csrf_token %}
+        <label for="name">Program name: </label>
+        <input type="text" id="name" name="name" />
+        <label for="abbreviation">Abbreviation: </label>
+        <input type="text" id="abbreviation" name="abbreviation" />
+
+        <button type="submit">Update</button>
+    </form>
+</div>
+
+</div>
+
+{% endblock %}

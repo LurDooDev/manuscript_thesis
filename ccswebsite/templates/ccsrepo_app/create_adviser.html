@@ -1,0 +1,89 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+<div class="content content-left">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3>Create New Adviser</h3>
+    </div>
+
+
+    <form class="modal-form" method="POST" action="{% url 'create_adviser' %}">
+        {% csrf_token %}
+        
+        <label for="first_name">First Name</label>
+        <input type="text" id="first_name" name="first_name" value="{{ first_name }}" required />
+        {% if errors.first_name %}
+            <div class="error">{{ errors.first_name.0 }}</div>
+        {% endif %}
+
+        <label for="middle_name">Middle Name</label>
+        <input type="text" id="middle_name" name="middle_name" value="{{ middle_name }}" required />
+        {% if errors.middle_name %}
+            <div class="error">{{ errors.middle_name.0 }}</div>
+        {% endif %}
+
+        <label for="last_name">Last Name</label>
+        <input type="text" id="last_name" name="last_name" value="{{ last_name }}" required />
+        {% if errors.last_name %}
+            <div class="error">{{ errors.last_name.0 }}</div>
+        {% endif %}
+
+        <label for="program">Program</label>
+        <select name="program" id="program" required>
+            <option value="">Select a program</option>
+            {% for program in programs %}
+            <option value="{{ program.id }}" {% if program.id == program_id %}selected{% endif %}>{{ program.name }}</option>
+            {% endfor %}
+        </select>
+        {% if errors.program %}
+            <div class="error">{{ errors.program.0 }}</div>
+        {% endif %}
+
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" value="{{ username }}" required />
+        {% if errors.username %}
+            <div class="error">{{ errors.username.0 }}</div>
+        {% endif %}
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ email }}" required />
+        {% if errors.email %}
+            <div class="error">{{ errors.email.0 }}</div>
+        {% endif %}
+
+        <label for="password1">Password</label>
+        <input type="password" id="password1" name="password1" required />
+        {% if errors.password1 %}
+            <div class="error">{{ errors.password1.0 }}</div>
+        {% endif %}
+
+        <label for="password2">Confirm Password</label>
+        <input type="password" id="password2" name="password2" required />
+        {% if errors.password2 %}
+            <div class="error">{{ errors.password2.0 }}</div>
+        {% endif %}
+
+        <div class="flex">
+            <input type="checkbox" id="show-password" onclick="togglePasswordVisibility()" />
+            <label for="show-password">Show Password</label>
+        </div>
+
+        <button type="submit">Submit</button>
+    </form>
+
+</div>
+
+</div>
+
+<script>
+    function togglePasswordVisibility() {
+      const password1 = document.getElementById("password1");
+      const password2 = document.getElementById("password2");
+      const type = password1.type === "password" ? "text" : "password";
+      password1.type = type;
+      password2.type = type;
+    }
+</script>
+
+{% endblock %}
