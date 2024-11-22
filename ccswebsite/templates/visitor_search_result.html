@@ -108,6 +108,7 @@
                         <tr>
                             <th>Title</th>
                             <th>Authors</th>
+                            <th>Count</th>
                             {% comment %} <th>Keywords</th> {% endcomment %}
                             <th>Actions</th>
                         </tr>
@@ -117,6 +118,7 @@
                             <tr>
                                 <td>{{ manuscript.title }}</td>
                                 <td>{{ manuscript.authors }}</td>
+                                <td>Views: {{ manuscript.views }}</td>
                                 {% comment %} <td>
                                     {% for keyword in manuscript.keywords.all %}
                                         {{ keyword.keyword }}{% if not forloop.last %}, {% endif %}

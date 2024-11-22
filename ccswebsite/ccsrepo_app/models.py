@@ -110,8 +110,19 @@ class Manuscript(models.Model):
     keywords_extracted = models.BooleanField(default=False)
     upload_date = models.DateTimeField(null=True, blank=True)
 
+    views = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         return self.title
+
+    
+class ManuscriptView(models.Model):
+    manuscript = models.ForeignKey(Manuscript, on_delete=models.CASCADE)
+    ip_address = models.GenericIPAddressField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.ip_address} viewed {self.manuscript.title}"
 
 #PageOCRData for Pdf 
 class PageOCRData(models.Model):

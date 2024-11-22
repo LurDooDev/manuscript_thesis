@@ -8,7 +8,7 @@ from django.utils import timezone
 import os
 from django.db.models import Q 
 import pytesseract
-from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest, Keyword
+from .models import CustomUser, Program, Category, ManuscriptType, Batch, AdviserStudentRelationship, Manuscript, PageOCRData, ManuscriptAccessRequest, Keyword, ManuscriptView
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from io import BytesIO
@@ -1682,10 +1682,22 @@ def visitor_manuscript_detail(request, manuscript_id):
             student=request.user,
             status='pending'
         ).exists()
-
     # Set has_access to True if the user is the student, adviser, admin, or has an approved request
     has_access = is_student or is_adviser or is_admin or (access_request is not None)
+    ip_address = request.META.get('HTTP_X_FORWARDED_FOR', None)
+    if ip_address:
+        ip_address = ip_address.split(',')[0]  # If there are multiple IPs, take the first one
+    else:
+        ip_address = request.META.get('REMOTE_ADDR')  # Fallback to the direct REMOTE_ADDR
 
+    # Check if the IP address has already viewed the manuscript
+    if not ManuscriptView.objects.filter(manuscript=manuscript, ip_address=ip_address).exists():
+        # Increment views
+        manuscript.views += 1
+        manuscript.save()
+
+        # Create a new ManuscriptView record to track the view
+        ManuscriptView.objects.create(manuscript=manuscript, ip_address=ip_address)
     return render(request, 'visitor_manuscript_detail.html', {
         'manuscript': manuscript,
         'authors_with_br': authors_with_br,
