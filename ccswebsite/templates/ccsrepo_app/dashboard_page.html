@@ -4,25 +4,8 @@
 <div class="content">
     <h1>Dashboard</h1>
 
-<!-- Add Modal -->
-<div class="modal-overlay" id="modal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h3>Create New Category</h3>
-            <button class="modal-close" id="close-modal">&times;</button>
-        </div>
-        <form class="modal-form" action="{% url 'manage_category' %}" method="POST">
-          {% csrf_token %}
-            <label for="name">Category Name: </label>
-            <input type="text" id="name" name="name" required />
-
-            <button type="submit">Submit</button>
-        </form>
-    </div>
-</div>
-
     <table class="manuscript-table">
-        <h3> Most uploaded manuscripts </h3>
+        <h3> Manuscript under the adviser</h3>
         <thead>
             <tr>
                 <th>Adviser</th>

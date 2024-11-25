@@ -33,9 +33,9 @@
             {% endif %}
 
             {% if user.is_admin %}
-                <a href="{% url 'dashboard' %}">Hello, {{ user.first_name }}</a>
+                <a href="{% url 'dashboard_page' %}">Hello, {{ user.first_name }}</a>
             {% elif user.is_adviser %}
-                <a href="{% url 'dashboard' %}">Hello, {{ user.first_name }}</a>
+                <a href="{% url 'adviser_manuscript' %}">Hello, {{ user.first_name }}</a>
             {% elif user.is_student %}
                 <a href="{% url 'student_manuscripts' %}">Hello, {{ user.first_name }}</a>
             {% endif %}

@@ -51,7 +51,7 @@
     </div>
     <!-- Search input -->
     <div class="search-container mb-4">
-        <input type="text" id="search-input" placeholder="Search OCR text..." class="">
+        <input type="text" id="search-input" placeholder="Search text..." class="">
     </div>
 
    <!-- Add a status message container -->
@@ -86,7 +86,7 @@
                 const page = $(this);
                 const ocrTextElement = page.find('.ocr-text');
                 const matchCountElement = page.find('.match-count');
-                const originalText = ocrTextElement.data('original-text'); // Original OCR text
+                const originalText = ocrTextElement.data('original-text'); 
 
                 if (searchTerm) {
                     // Highlight matches

@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
+from django.utils.timezone import now
 from django.contrib import messages
 from django.utils import timezone
 import os
@@ -117,6 +118,8 @@ def view_manuscript(request, manuscript_id):
 #dashboard
 @login_required(login_url='login')
 def dashboard_view(request):
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
     return render(request, 'ccsrepo_app/dashboard.html')
 
 #logout
@@ -188,10 +191,10 @@ def request_adviser_view(request):
 
     return render(request, 'ccsrepo_app/adviser_request.html')
 
+@login_required(login_url='login')
 def approve_student_view(request):
     if not request.user.is_adviser:
-        messages.error(request, "You are not authorized to approve students.")
-        return redirect('dashboard')
+        return render(request, 'unauthorized.html', status=403)
 
     # Get all relationships where the logged-in user is the adviser, ordered by created_at
     relationships = AdviserStudentRelationship.objects.filter(adviser=request.user).order_by('-created_at')
@@ -327,7 +330,10 @@ def StudentRegister(request):
 
 #----------------Admin Managing ------------------------/
 #Program
+@login_required(login_url='login')
 def manage_program(request):
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
     if request.method == 'POST':
         name = request.POST.get('name')
         abbreviation = request.POST.get('abbreviation')
@@ -349,7 +355,10 @@ def manage_program(request):
     })
 
 #Dashboard Page
+@login_required(login_url='login')
 def dashboard_page(request):
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
     # Get manuscripts with specific statuses
     advisers = CustomUser.objects.filter(is_adviser=True).annotate(manuscript_count=Count('manuscripts')
     )
@@ -391,27 +400,37 @@ def dashboard_page(request):
     }
     return render(request, 'ccsrepo_app/dashboard_page.html', context)
 
+@login_required(login_url='login')
 def manage_category(request):
-    if request.method == 'POST':
-        name = request.POST.get('name')
+    if request.user.is_admin:
+        if request.method == 'POST':
+            name = request.POST.get('name')
 
-        if Category.objects.filter(name=name).exists():
-            messages.error(request, "A category with this name already exists.")
+            if Category.objects.filter(name=name).exists():
+                messages.error(request, "A category with this name already exists.")
+                return redirect('manage_category')
+
+            Category.objects.create(name=name)
+            messages.success(request, "Category added successfully.")
             return redirect('manage_category')
 
-        Category.objects.create(name=name)
-        return redirect('manage_category')
+        category = Category.objects.all()
+        paginator = Paginator(category, 5)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        return render(request, 'ccsrepo_app/manage_category.html', {
+            'category': category,
+            'page_obj': page_obj
+        })
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 
-    category = Category.objects.all()
-    paginator = Paginator(category, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'ccsrepo_app/manage_category.html', {
-        'category': category,
-        'page_obj': page_obj
-    })
-
+@login_required(login_url='login')
 def edit_category(request, category_id):
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
+
     category = get_object_or_404(Category, id=category_id)
 
     if request.method == 'POST':
@@ -423,256 +442,304 @@ def edit_category(request, category_id):
 
         category.name = name
         category.save()
+        messages.success(request, "Category updated successfully.")
         return redirect('manage_category')
 
     return render(request, 'ccsrepo_app/edit_category.html', {'category': category})
 
+
+@login_required(login_url='login')
 def edit_program(request, program_id):
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
+
     program = get_object_or_404(Program, id=program_id)
 
     if request.method == 'POST':
         name = request.POST.get('name').strip()
         abbreviation = request.POST.get('abbreviation').strip()
 
-        # Validate if the name is already taken by another program
         if Program.objects.filter(name__iexact=name).exclude(id=program_id).exists():
             messages.error(request, "A program with this name already exists.")
             return redirect('edit_program', program_id=program.id)
 
-        # Validate if the abbreviation is already taken by another program
         if Program.objects.filter(abbreviation__iexact=abbreviation).exclude(id=program_id).exists():
             messages.error(request, "A program with this abbreviation already exists.")
             return redirect('edit_program', program_id=program.id)
 
-        # Update the program details if validations pass
         program.name = name
         program.abbreviation = abbreviation
         program.save()
-
         messages.success(request, "Program updated successfully.")
-        return redirect('manage_program')  # Redirect to the manage program page or another appropriate page
+        return redirect('manage_program')
 
     return render(request, 'ccsrepo_app/edit_program.html', {'program': program})
 
+
+@login_required(login_url='login')
 def edit_type(request, type_id):
-    type = get_object_or_404(ManuscriptType, id=type_id)
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
+
+    manuscript_type = get_object_or_404(ManuscriptType, id=type_id)
 
     if request.method == 'POST':
         name = request.POST.get('name')
 
-        if ManuscriptType.objects.filter(name=name).exists() and name != ManuscriptType.name:
-            messages.error(request, "A program with this name already exists.")
-            return redirect('edit_program', category_id=type.id)
+        if ManuscriptType.objects.filter(name=name).exists() and name != manuscript_type.name:
+            messages.error(request, "A manuscript type with this name already exists.")
+            return redirect('edit_type', type_id=manuscript_type.id)
 
-        type.name = name
-        type.save()
+        manuscript_type.name = name
+        manuscript_type.save()
+        messages.success(request, "Manuscript type updated successfully.")
         return redirect('manage_type')
 
-    return render(request, 'ccsrepo_app/edit_type.html', {'type': type})
+    return render(request, 'ccsrepo_app/edit_type.html', {'type': manuscript_type})
 
+
+@login_required(login_url='login')
 def edit_adviser(request, adviser_id):
-    # Fetch the adviser to be edited
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
+
     adviser = get_object_or_404(CustomUser, id=adviser_id)
-    programs = Program.objects.all()  # List of programs for selection
+    programs = Program.objects.all()
 
     if request.method == 'POST':
-        # Handle form submission and validation
         first_name = request.POST.get('first_name').strip()
         middle_name = request.POST.get('middle_name').strip()
         last_name = request.POST.get('last_name').strip()
-        program_id = request.POST.get('program')  # Get the selected program ID from POST data
+        program_id = request.POST.get('program')
         username = request.POST.get('username').strip()
         email = request.POST.get('email').strip()
         password1 = request.POST.get('password1').strip()
         password2 = request.POST.get('password2').strip()
 
-        # Validate passwords if provided
         if password1 and password1 != password2:
             messages.error(request, "Passwords do not match.")
             return render(request, 'ccsrepo_app/edit_adviser.html', {
                 'adviser': adviser,
                 'programs': programs,
-                'errors': { 'password1': ['Passwords do not match.'] }
+                'errors': {'password1': ['Passwords do not match.']}
             })
-        
-        # Update adviser fields
+
         adviser.first_name = first_name
         adviser.middle_name = middle_name
         adviser.last_name = last_name
         adviser.username = username
         adviser.email = email
-        
-        # If a program ID is selected, update the adviser's program
-        if program_id:
-            adviser.program = Program.objects.get(id=program_id)
 
-        # If a new password is provided, update the password
+        if program_id:
+            adviser.program = get_object_or_404(Program, id=program_id)
+
         if password1:
             adviser.set_password(password1)
-        
-        # Save the adviser object
+
         adviser.save()
         messages.success(request, "Adviser updated successfully.")
-        return redirect('manage_users')  # Or wherever you want to redirect after saving
+        return redirect('manage_users')
 
-    # Render the form with the current adviser data
     return render(request, 'ccsrepo_app/edit_adviser.html', {
         'adviser': adviser,
         'programs': programs,
     })
 
-#Batch
+@login_required(login_url='login')
 def manage_batch(request):
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        
-        if Batch.objects.filter(name=name).exists():
-            messages.error(request, "A Batch with this name already exists.")
+    if request.user.is_admin:
+        if request.method == 'POST':
+            name = request.POST.get('name', '').strip()
+
+            # Check if the batch name already exists
+            if Batch.objects.filter(name__iexact=name).exists():
+                messages.error(request, "A batch with this name already exists.")
+            else:
+                # Create the batch if it doesn't already exist
+                Batch.objects.create(name=name)
+                messages.success(request, "Batch created successfully.")
             return redirect('manage_batch')
-        
-        Batch.objects.create(name=name)
-        return redirect('manage_batch')
 
-    batch = Batch.objects.all() 
-    return render(request, 'ccsrepo_app/manage_batch.html', {'batch': batch})
+        # Fetch all batches to display in the template
+        batch = Batch.objects.all()
+        return render(request, 'ccsrepo_app/manage_batch.html', {'batch': batch})
 
-#Type
+    # Render the unauthorized page for non-admin users
+    return render(request, 'unauthorized.html', status=403)
+
+@login_required(login_url='login')
 def manage_type(request):
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        
-        if ManuscriptType.objects.filter(name=name).exists():
-            messages.error(request, "A Type with this name already exists.")
+    if request.user.is_admin:
+        if request.method == 'POST':
+            name = request.POST.get('name', '').strip()
+
+            # Check if the type name already exists
+            if ManuscriptType.objects.filter(name__iexact=name).exists():
+                messages.error(request, "A type with this name already exists.")
+            else:
+                # Create the type if it doesn't already exist
+                ManuscriptType.objects.create(name=name)
+                messages.success(request, "Type created successfully.")
             return redirect('manage_type')
-        
-        ManuscriptType.objects.create(name=name)
-        return redirect('manage_type')
 
-    type = ManuscriptType.objects.all()
-    paginator = Paginator(type, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'ccsrepo_app/manage_type.html', {
-        'type': type,
-        'page_obj': page_obj
-    })
+        # Paginate manuscript types
+        type_list = ManuscriptType.objects.all()
+        paginator = Paginator(type_list, 5)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
-#new manage adviser
+        return render(request, 'ccsrepo_app/manage_type.html', {
+            'type': type_list,
+            'page_obj': page_obj
+        })
+
+    # Render the unauthorized page for non-admin users
+    return render(request, 'unauthorized.html', status=403)
+
+@login_required(login_url='login')
 def ManageAdviser(request):
-    if request.method == 'POST':
-        email = request.POST.get('email').strip()
-        username = request.POST.get('username').strip()
-        first_name = request.POST.get('first_name').strip()
-        middle_name = request.POST.get('middle_name').strip()
-        last_name = request.POST.get('last_name').strip()
-        password1 = request.POST.get('password1').strip()
-        password2 = request.POST.get('password2').strip()
-        program_id = request.POST.get('program')
+    if request.user.is_admin:
+        if request.method == 'POST':
+            email = request.POST.get('email', '').strip()
+            username = request.POST.get('username', '').strip()
+            first_name = request.POST.get('first_name', '').strip()
+            middle_name = request.POST.get('middle_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            password1 = request.POST.get('password1', '').strip()
+            password2 = request.POST.get('password2', '').strip()
+            program_id = request.POST.get('program', '').strip()
 
-        # Validate user data
-        errors = validate_adviser_data(email, username, first_name, middle_name, last_name, program_id, password1, password2)
+            # Validate user data
+            errors = validate_adviser_data(email, username, first_name, middle_name, last_name, program_id, password1, password2)
 
-        # If there are errors, re-render the form with errors and the previously entered data
-        if errors:
-            programs = Program.objects.all()
-            advisers = CustomUser.objects.filter(is_adviser = True)
-            return render(request, 'ccsrepo_app/manage_users.html', {
-                'programs': programs,
-                'advisers': advisers,
-                'errors': errors,
-                'email': email,
-                'username': username,
-                'first_name': first_name,
-                'middle_name': middle_name,
-                'last_name': last_name,
-                'program_id': program_id
-            })
+            if errors:
+                # Reload programs and advisers to re-render the form with errors
+                programs = Program.objects.all()
+                advisers = CustomUser.objects.filter(is_adviser=True)
+                return render(request, 'ccsrepo_app/manage_users.html', {
+                    'programs': programs,
+                    'advisers': advisers,
+                    'errors': errors,
+                    'email': email,
+                    'username': username,
+                    'first_name': first_name,
+                    'middle_name': middle_name,
+                    'last_name': last_name,
+                    'program_id': program_id
+                })
 
-        # Create the user if validation passes
-        user = CustomUser(
-            email=email,
-            username=username,
-            first_name=first_name,
-            middle_name=middle_name,
-            last_name=last_name,
-            is_adviser=True,
-            program_id=program_id
-        )
-        user.set_password(password1)
-        user.save()
+            # Create adviser if validation passes
+            user = CustomUser(
+                email=email,
+                username=username,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                is_adviser=True,
+                program_id=program_id
+            )
+            user.set_password(password1)
+            user.save()
+            messages.success(request, "Adviser created successfully.")
+            return redirect('manage_adviser')
 
-    programs = Program.objects.all()
-    advisers = CustomUser.objects.filter(is_adviser=True)
+        # Fetch programs and advisers for rendering
+        programs = Program.objects.all()
+        advisers = CustomUser.objects.filter(is_adviser=True)
 
-    paginator = Paginator(advisers, 5)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'ccsrepo_app/manage_users.html', {
-        'advisers': advisers,
-        'page_obj': page_obj,
-        'programs': programs
-    })
+        # Paginate advisers
+        paginator = Paginator(advisers, 5)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
+        return render(request, 'ccsrepo_app/manage_users.html', {
+            'advisers': advisers,
+            'page_obj': page_obj,
+            'programs': programs
+        })
+
+    # Render the unauthorized page for non-admin users
+    return render(request, 'unauthorized.html', status=403)
+
+@login_required(login_url='login')
 def create_program(request):
-    name = ""  # Initialize variables
-    abbreviation = ""
+    if request.user.is_admin:
+        # Initialize variables to retain form values in case of validation failure
+        name = ""
+        abbreviation = ""
 
-    if request.method == "POST":
-        name = request.POST.get("name", "").strip()
-        abbreviation = request.POST.get("abbreviation", "").strip()
+        if request.method == "POST":
+            # Retrieve and strip form inputs
+            name = request.POST.get("name", "").strip()
+            abbreviation = request.POST.get("abbreviation", "").strip()
 
-        # Check if a program with the same name or abbreviation already exists
-        if Program.objects.filter(name__iexact=name).exists():
-            messages.error(request, "A program with this name already exists.")
-        elif Program.objects.filter(abbreviation__iexact=abbreviation).exists():
-            messages.error(request, "A program with this abbreviation already exists.")
-        else:
-            # Create the program if no duplicates are found
-            Program.objects.create(name=name, abbreviation=abbreviation)
-            messages.success(request, "Program created successfully.")
-            return redirect("manage_program")  # Redirect to the program list or another appropriate page
+            # Check for duplicates in name and abbreviation
+            if Program.objects.filter(name__iexact=name).exists():
+                messages.error(request, _("A program with this name already exists."))
+            elif Program.objects.filter(abbreviation__iexact=abbreviation).exists():
+                messages.error(request, _("A program with this abbreviation already exists."))
+            else:
+                # Create the program if no duplicates are found
+                Program.objects.create(name=name, abbreviation=abbreviation)
+                messages.success(request, _("Program created successfully."))
+                return redirect("manage_program")  # Redirect to the program management page
 
-    # Render the form with the current values for GET or if validation fails
-    return render(request, "ccsrepo_app/create_program.html", {"program": {"name": name, "abbreviation": abbreviation}})
+        # Render the form for GET requests or on validation failure
+        return render(request, "ccsrepo_app/create_program.html", {"program": {"name": name, "abbreviation": abbreviation}})
 
+    # Render the unauthorized page for non-admin users
+    return render(request, "unauthorized.html", status=403)
+
+@login_required(login_url='login')
 def create_category(request):
-    name = ""  # Initialize variable
+    if request.user.is_admin:
+        # Initialize variable to retain form values in case of validation failure
+        name = ""
 
-    if request.method == "POST":
-        name = request.POST.get("name", "").strip()
+        if request.method == "POST":
+            # Retrieve and strip form inputs
+            name = request.POST.get("name", "").strip()
 
-        # Check if a category with the same name already exists
-        if Category.objects.filter(name__iexact=name).exists():
-            messages.error(request, "A category with this name already exists.")
-        else:
-            # Create the category if no duplicates are found
-            Category.objects.create(name=name)
-            messages.success(request, "Category created successfully.")
-            return redirect("manage_category")  # Redirect to the category list or another appropriate page
+            # Check for duplicate category name
+            if Category.objects.filter(name__iexact=name).exists():
+                messages.error(request, _("A category with this name already exists."))
+            else:
+                # Create the category if no duplicates are found
+                Category.objects.create(name=name)
+                messages.success(request, _("Category created successfully."))
+                return redirect("manage_category")  # Redirect to the category management page
 
-    # Render the form with the current values for GET or if validation fails
-    return render(request, "ccsrepo_app/create_category.html", {"category": {"name": name}})
+        # Render the form for GET requests or on validation failure
+        return render(request, "ccsrepo_app/create_category.html", {"category": {"name": name}})
 
+    # Render the unauthorized page for non-admin users
+    return render(request, "unauthorized.html", status=403)
+
+@login_required(login_url='login')
 def create_manuscripttype(request):
-    # Initialize an empty dictionary for storing the form values in case of errors
-    manuscripttype = {'name': ''}
+    if request.user.is_admin:
+        # Initialize an empty dictionary for storing the form values in case of errors
+        manuscripttype = {'name': ''}
 
-    if request.method == 'POST':
-        # Retrieve and strip the name field from the form submission
-        name = request.POST.get('name', '').strip()
+        if request.method == 'POST':
+            # Retrieve and strip the name field from the form submission
+            name = request.POST.get('name', '').strip()
 
-        # Check if a manuscript type with the same name already exists (case-insensitive)
-        if ManuscriptType.objects.filter(name__iexact=name).exists():
-            messages.error(request, "A manuscript type with this name already exists.")
-            return render(request, 'ccsrepo_app/create_manuscripttype.html', {'manuscripttype': {'name': name}})
+            # Check if a manuscript type with the same name already exists (case-insensitive)
+            if ManuscriptType.objects.filter(name__iexact=name).exists():
+                messages.error(request, _("A manuscript type with this name already exists."))
+                return render(request, 'ccsrepo_app/create_manuscripttype.html', {'manuscripttype': {'name': name}})
 
-        # If no duplicate exists, create the new manuscript type
-        ManuscriptType.objects.create(name=name)
-        messages.success(request, "Manuscript type created successfully.")
-        return redirect('manage_type')  # Redirect to the page where manuscript types are listed
+            # If no duplicate exists, create the new manuscript type
+            ManuscriptType.objects.create(name=name)
+            messages.success(request, _("Manuscript type created successfully."))
+            return redirect('manage_type')  # Redirect to the page where manuscript types are listed
 
-    # Render the form on a GET request or after validation failure
-    return render(request, 'ccsrepo_app/create_manuscripttype.html', {'manuscripttype': manuscripttype})
+        # Render the form on a GET request or after validation failure
+        return render(request, 'ccsrepo_app/create_manuscripttype.html', {'manuscripttype': manuscripttype})
+
+    # Render the unauthorized page for unauthorized users
+    return render(request, 'unauthorized.html', status=403)
 
 def check_duplicate_manuscripttype(request):
     name = request.GET.get('name', '').strip()
@@ -696,7 +763,10 @@ def check_program_duplicate(request):
         "duplicate_abbreviation": duplicate_abbreviation,
     })
 
+@login_required(login_url='login')
 def create_adviser(request):
+    if not request.user.is_admin:
+        return render(request, 'unauthorized.html', status=403)
     if request.method == 'POST':
         # Retrieve form data and process
         email = request.POST.get('email').strip()
@@ -973,100 +1043,112 @@ def process_manuscript(pdf_path, manuscript):
     manuscript.current_page_count = initial_pages_processed
     manuscript.save()
 
+@login_required(login_url='login')
 def upload_manuscript(request):
-    if request.method == 'POST':
-        pdf_file = request.FILES.get('pdf_file')
+    if request.user.is_student:
+        if request.method == 'POST':
+            pdf_file = request.FILES.get('pdf_file')
 
-        if pdf_file:
-            manuscript = Manuscript(
-                pdf_file=pdf_file,
-                student=request.user,
-                abstracts="No abstract found"
-            )
-            manuscript.save()
-            pdf_file_path = manuscript.pdf_file.path
+            if pdf_file:
+                # Create and save the Manuscript instance
+                manuscript = Manuscript(
+                    pdf_file=pdf_file,
+                    student=request.user,
+                    abstracts="No abstract found"  # Default value for abstracts
+                )
+                manuscript.save()
+                
+                pdf_file_path = manuscript.pdf_file.path
 
-            if os.path.exists(pdf_file_path):
-                try:
-                    process_manuscript(pdf_file_path, manuscript)
-                except Exception as e:
-                    print(f"Error processing PDF: {e}")
+                # Check if the PDF file exists and process it
+                if os.path.exists(pdf_file_path):
+                    try:
+                        process_manuscript(pdf_file_path, manuscript)
+                    except Exception as e:
+                        print(f"Error processing PDF: {e}")  # Log the error (can be enhanced)
 
-            return redirect('final_manuscript_page', manuscript_id=manuscript.id)
+                # Redirect to the final manuscript page
+                return redirect('final_manuscript_page', manuscript_id=manuscript.id)
 
-    return render(request, 'ccsrepo_app/manuscript_upload_page.html')
+        # Render the manuscript upload page if the request is not POST
+        return render(request, 'ccsrepo_app/manuscript_upload_page.html')
 
+    # Render unauthorized page for non-students
+    return render(request, 'unauthorized.html', status=403)
+
+@login_required(login_url='login')
 def final_manuscript_page(request, manuscript_id):
-    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
-    errors = []
+    if request.user.is_student:
+        manuscript = get_object_or_404(Manuscript, id=manuscript_id, student=request.user)
+        errors = []
 
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        abstracts = request.POST.get('abstracts')
-        authors = request.POST.get('authors')
-        year = request.POST.get('year')
-        category_id = request.POST.get('category')
-        manuscript_type_id = request.POST.get('manuscript_type')
-        program_id = request.POST.get('program')
-        adviser_id = request.POST.get('adviser')
+        if request.method == 'POST':
+            # Collect form data
+            title = request.POST.get('title')
+            abstracts = request.POST.get('abstracts')
+            authors = request.POST.get('authors')
+            year = request.POST.get('year')
+            category_id = request.POST.get('category')
+            manuscript_type_id = request.POST.get('manuscript_type')
+            program_id = request.POST.get('program')
+            adviser_id = request.POST.get('adviser')
 
-        # Validate title uniqueness if upload_show=True
-        if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
-            errors.append(_("A manuscript with this title is already published. Please choose a different title."))
+            # Validate title uniqueness if upload_show=True
+            if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
+                errors.append(_("A manuscript with this title is already published. Please choose a different title."))
 
-        # Lookup adviser and handle if adviser is not found
-        try:
-            adviser = CustomUser.objects.get(id=adviser_id, is_adviser=True)
-        except ObjectDoesNotExist:
-            errors.append(_("Adviser not found. Please check the adviser ID."))
+            # Validate adviser
+            try:
+                adviser = CustomUser.objects.get(id=adviser_id, is_adviser=True)
+            except ObjectDoesNotExist:
+                errors.append(_("Adviser not found. Please check the adviser ID."))
 
-        # If there are errors, return them to the template
-        if errors:
-            categories = Category.objects.all()
-            manuscript_types = ManuscriptType.objects.all()
-            programs = Program.objects.all()
-            advisers = CustomUser.objects.filter(is_adviser=True)
-            return render(request, 'ccsrepo_app/manuscript_final_page.html', {
-                'manuscript': manuscript,
-                'categories': categories,
-                'manuscript_types': manuscript_types,
-                'programs': programs,
-                'advisers': advisers,
-                'errors': errors,
-            })
+            # If there are errors, return them to the template
+            if errors:
+                categories = Category.objects.all()
+                manuscript_types = ManuscriptType.objects.all()
+                programs = Program.objects.all()
+                advisers = CustomUser.objects.filter(is_adviser=True)
+                return render(request, 'ccsrepo_app/manuscript_final_page.html', {
+                    'manuscript': manuscript,
+                    'categories': categories,
+                    'manuscript_types': manuscript_types,
+                    'programs': programs,
+                    'advisers': advisers,
+                    'errors': errors,
+                })
 
-        # Assign validated fields to manuscript
-        manuscript.title = title
-        manuscript.abstracts = abstracts
-        manuscript.authors = authors
-        manuscript.year = year
-        manuscript.category_id = category_id
-        manuscript.manuscript_type_id = manuscript_type_id
-        manuscript.program_id = program_id
-        manuscript.adviser = adviser  # Set adviser after validation
+            # Assign validated fields to the manuscript
+            manuscript.title = title
+            manuscript.abstracts = abstracts
+            manuscript.authors = authors
+            manuscript.year = year
+            manuscript.category_id = category_id
+            manuscript.manuscript_type_id = manuscript_type_id
+            manuscript.program_id = program_id
+            manuscript.adviser = adviser
+            manuscript.upload_date = now()
+            manuscript.upload_show = True
+            manuscript.save()
 
-        # Set publication date and update upload_show to True
-        
-        manuscript.upload_date = timezone.now()
-        manuscript.upload_show = True
+            return redirect('visitor_search_manuscripts')
 
-        manuscript.save()
-        return redirect('visitor_search_manuscripts')
+        # Load choices for form in GET request
+        categories = Category.objects.all()
+        manuscript_types = ManuscriptType.objects.all()
+        programs = Program.objects.all()
+        advisers = CustomUser.objects.filter(is_adviser=True)
 
-    # Load choices for form in GET request
-    categories = Category.objects.all()
-    manuscript_types = ManuscriptType.objects.all()
-    programs = Program.objects.all()
-    advisers = CustomUser.objects.filter(is_adviser=True)
+        return render(request, 'ccsrepo_app/manuscript_final_page.html', {
+            'manuscript': manuscript,
+            'categories': categories,
+            'manuscript_types': manuscript_types,
+            'programs': programs,
+            'advisers': advisers,
+        })
 
-    return render(request, 'ccsrepo_app/manuscript_final_page.html', {
-        'manuscript': manuscript,
-        'categories': categories,
-        'manuscript_types': manuscript_types,
-        'programs': programs,
-        'advisers': advisers,
-    })
-
+    # Render unauthorized page for non-students
+    return render(request, 'unauthorized.html', status=403)
 #----------------End Manuscript System ------------------------/
 
 #----------------Adviser System ------------------------/
@@ -1076,9 +1158,9 @@ def final_manuscript_page(request, manuscript_id):
 #     return render(request, 'ccsrepo_app/adviser_manuscript.html', {
 #         'manuscripts': manuscripts,
 #     })
-
+@login_required(login_url='login')
 def adviser_manuscript(request):
-    if request.user.is_authenticated:
+    if request.user.is_adviser:
         # Get manuscripts for the adviser, including all statuses
         manuscripts = Manuscript.objects.filter(
             adviser=request.user
@@ -1107,31 +1189,46 @@ def adviser_manuscript(request):
             'page_obj': page_obj,
             'manuscripts': manuscripts,
         })
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 
+@login_required(login_url='login')
 def adviser_review(request, manuscript_id):
-    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    # Check if the user is an adviser
+    if request.user.is_adviser:
+        # Fetch the manuscript or return 404 if not found
+        manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
-    if request.method == "POST":
-        feedback = request.POST.get('feedback')
-        decision = request.POST.get('decision')
+        if request.method == "POST":
+            # Get feedback and decision from POST data
+            feedback = request.POST.get('feedback')
+            decision = request.POST.get('decision')
 
-        # Update feedback and status
-        manuscript.feedback = feedback
-        manuscript.status = "approved" if decision == "approve" else "rejected"
-        manuscript.is_approved = True if decision == "approve" else False
-        manuscript.publication_date = timezone.now()
-        manuscript.save()
+            # Update manuscript feedback, status, and approval
+            manuscript.feedback = feedback
+            manuscript.status = "approved" if decision == "approve" else "rejected"
+            manuscript.is_approved = True if decision == "approve" else False
+            manuscript.publication_date = timezone.now() if decision == "approve" else None
+            manuscript.save()
 
-        return redirect('adviser_manuscript')
+            # Redirect to the adviser manuscripts page
+            return redirect('adviser_manuscript')
 
-    return render(request, 'ccsrepo_app/adviser_review.html', {'manuscript': manuscript})
+        # Render the review page with the manuscript data
+        return render(request, 'ccsrepo_app/adviser_review.html', {'manuscript': manuscript})
+
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 
 #----------------End Adviser System ------------------------/
 
 #----------------Student System ------------------------/
+@login_required(login_url='login')
 def student_manuscripts_view(request):
     # Check if the user is authenticated and is a student
-    if request.user.is_authenticated and request.user.is_student:
+    if request.user.is_student:
         manuscripts = Manuscript.objects.filter(
             student=request.user, 
             upload_show=True
@@ -1144,6 +1241,9 @@ def student_manuscripts_view(request):
         return render(request, 'ccsrepo_app/student_manuscript.html', {
             'page_obj': page_obj,
         })
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 
 def manuscript_detail_view(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
@@ -1233,125 +1333,161 @@ def continue_scanning(request, manuscript_id):
 #             'manuscripts': manuscripts,
 #         })
 
+@login_required(login_url='login')
 def faculty_manuscripts_view(request):
-    # Check if the user is authenticated and is a student
-    if request.user.is_authenticated:
+    # Check if the user is an adviser or admin
+    if request.user.is_adviser or request.user.is_admin:
+        # Fetch manuscripts for the authenticated user
         manuscripts = Manuscript.objects.filter(
-            student=request.user, 
+            adviser=request.user,  # Assuming adviser is related to Manuscript
             upload_show=True
         ).order_by('-upload_date')
-
-        paginator = Paginator(manuscripts, 2)
+        
+        # Set up pagination
+        paginator = Paginator(manuscripts, 2)  # Show 2 manuscripts per page
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
+        # Render the manuscripts page
         return render(request, 'ccsrepo_app/faculty_manuscript.html', {
             'page_obj': page_obj,
         })
-
-
-def faculty_detail_view(request, manuscript_id):
-    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
-
-    # Calculate the progress percentage if there are pages to process
-    if manuscript.page_count > 0:
-        progress_percentage = (manuscript.current_page_count / manuscript.page_count) * 100
     else:
-        progress_percentage = 0
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 
-    # Add the calculated percentage to the context
-    context = {
-        'manuscript': manuscript,
-        'progress_percentage': progress_percentage
-    }
-    return render(request, 'ccsrepo_app/faculty_detail.html', context)
+@login_required(login_url='login')
+def faculty_detail_view(request, manuscript_id):
+    # Check if the user is an adviser or an admin
+    if request.user.is_adviser or request.user.is_admin:
+        # Fetch the manuscript or return 404 if not found
+        manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+
+        # Calculate the progress percentage if there are pages to process
+        if manuscript.page_count > 0:
+            progress_percentage = (manuscript.current_page_count / manuscript.page_count) * 100
+        else:
+            progress_percentage = 0
+
+        # Add the calculated percentage to the context
+        context = {
+            'manuscript': manuscript,
+            'progress_percentage': progress_percentage
+        }
+
+        # Render the faculty detail page
+        return render(request, 'ccsrepo_app/faculty_detail.html', context)
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 #----------------Faculty Upload System ------------------------/
+@login_required(login_url='login')
 def faculty_upload_manuscript(request):
-    if request.method == 'POST':
-        pdf_file = request.FILES.get('pdf_file')
+    # Check if the user is an adviser or an admin
+    if request.user.is_adviser or request.user.is_admin:
+        if request.method == 'POST':
+            # Get the uploaded file from the request
+            pdf_file = request.FILES.get('pdf_file')
 
-        if pdf_file:
-            manuscript = Manuscript(
-                pdf_file=pdf_file,
-                student=request.user,
-                abstracts="No abstract found"
-            )
-            manuscript.save()
-            pdf_file_path = manuscript.pdf_file.path
+            if pdf_file:
+                # Create a new Manuscript object
+                manuscript = Manuscript(
+                    pdf_file=pdf_file,
+                    student=request.user,
+                    abstracts="No abstract found"  # Default value if abstract is not extracted
+                )
+                manuscript.save()
 
-            if os.path.exists(pdf_file_path):
-                try:
-                    process_manuscript(pdf_file_path, manuscript)
-                except Exception as e:
-                    print(f"Error processing PDF: {e}")
+                # Get the file path of the saved PDF
+                pdf_file_path = manuscript.pdf_file.path
 
-            # Redirect to the final confirmation page with the manuscript object
-            return redirect('faculty_final_page', manuscript_id=manuscript.id)
+                # Process the manuscript if the file exists
+                if os.path.exists(pdf_file_path):
+                    try:
+                        process_manuscript(pdf_file_path, manuscript)
+                    except Exception as e:
+                        # Log or print the error for debugging
+                        print(f"Error processing PDF: {e}")
 
-    return render(request, 'ccsrepo_app/faculty_upload_page.html')
+                # Redirect to the final confirmation page with the manuscript ID
+                return redirect('faculty_final_page', manuscript_id=manuscript.id)
 
+        # Render the upload page for GET requests
+        return render(request, 'ccsrepo_app/faculty_upload_page.html')
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
+
+@login_required(login_url='login')
 def faculty_final_page(request, manuscript_id):
-    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
-    errors = []
+    if request.user.is_adviser or request.user.is_admin:
+        manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+        errors = []
 
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        abstracts = request.POST.get('abstracts')
-        authors = request.POST.get('authors')
-        year = request.POST.get('year')
-        category_id = request.POST.get('category')
-        manuscript_type_id = request.POST.get('manuscript_type')
-        program_id = request.POST.get('program')
+        if request.method == 'POST':
+            # Get form data
+            title = request.POST.get('title')
+            abstracts = request.POST.get('abstracts')
+            authors = request.POST.get('authors')
+            year = request.POST.get('year')
+            category_id = request.POST.get('category')
+            manuscript_type_id = request.POST.get('manuscript_type')
+            program_id = request.POST.get('program')
 
-        # Validate title uniqueness if upload_show=True
-        if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
-            errors.append(_("A manuscript with this title is already published. Please choose a different title."))
+            # Validate title uniqueness for `upload_show=True`
+            if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
+                errors.append(_("A manuscript with this title is already published. Please choose a different title."))
 
-        # If there are errors, return them to the template
-        if errors:
-            categories = Category.objects.all()
-            manuscript_types = ManuscriptType.objects.all()
-            programs = Program.objects.all()
-            return render(request, 'ccsrepo_app/faculty_final_page.html', {
-                'manuscript': manuscript,
-                'categories': categories,
-                'manuscript_types': manuscript_types,
-                'programs': programs,
-                'errors': errors,
-            })
+            # If there are validation errors, return them to the template
+            if errors:
+                categories = Category.objects.all()
+                manuscript_types = ManuscriptType.objects.all()
+                programs = Program.objects.all()
+                return render(request, 'ccsrepo_app/faculty_final_page.html', {
+                    'manuscript': manuscript,
+                    'categories': categories,
+                    'manuscript_types': manuscript_types,
+                    'programs': programs,
+                    'errors': errors,
+                })
 
-        # Set adviser to the currently logged-in user
-        adviser = request.user
+            # Set adviser to the logged-in user
+            adviser = request.user
 
-        # Assign the manuscript fields from form data
-        manuscript.title = title
-        manuscript.abstracts = abstracts
-        manuscript.authors = authors
-        manuscript.year = year
-        manuscript.category_id = category_id
-        manuscript.manuscript_type_id = manuscript_type_id
-        manuscript.program_id = program_id
-        manuscript.adviser = adviser
+            # Update manuscript fields with the form data
+            manuscript.title = title
+            manuscript.abstracts = abstracts
+            manuscript.authors = authors
+            manuscript.year = year
+            manuscript.category_id = category_id
+            manuscript.manuscript_type_id = manuscript_type_id
+            manuscript.program_id = program_id
+            manuscript.adviser = adviser
 
-        # Set publication date and update status and upload_show
-        manuscript.publication_date = timezone.now()
-        manuscript.status = 'approved'
-        manuscript.upload_show = True
+            # Finalize and publish manuscript
+            manuscript.publication_date = timezone.now()
+            manuscript.status = 'approved'
+            manuscript.upload_show = True
 
-        manuscript.save()
-        return redirect('visitor_search_manuscripts')
+            manuscript.save()
 
-    # Load choices for form in GET request
-    categories = Category.objects.all()
-    manuscript_types = ManuscriptType.objects.all()
-    programs = Program.objects.all()
+            # Redirect to the visitor search page
+            return redirect('visitor_search_manuscripts')
 
-    return render(request, 'ccsrepo_app/faculty_final_page.html', {
-        'manuscript': manuscript,
-        'categories': categories,
-        'manuscript_types': manuscript_types,
-        'programs': programs,
-    })
+        # Load choices for GET requests
+        categories = Category.objects.all()
+        manuscript_types = ManuscriptType.objects.all()
+        programs = Program.objects.all()
+
+        return render(request, 'ccsrepo_app/faculty_final_page.html', {
+            'manuscript': manuscript,
+            'categories': categories,
+            'manuscript_types': manuscript_types,
+            'programs': programs,
+        })
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 #----------------End Faculty Upload System ------------------------/
 
 # ----------------Request Access System ------------------------/
@@ -1388,9 +1524,10 @@ def request_access(request, manuscript_id):
     
 #     return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'page_obj': page_obj})
 
+@login_required(login_url='login')
 def manuscript_access_requests(request):
     # Check if the user is authenticated and is a student
-    if request.user.is_authenticated:
+    if request.user.is_adviser or request.user.is_admin:
         access_requests = ManuscriptAccessRequest.objects.filter(
         manuscript__adviser=request.user
     ).select_related('manuscript').order_by('-requested_at')
@@ -1402,6 +1539,9 @@ def manuscript_access_requests(request):
         return render(request, 'ccsrepo_app/manuscript_access_requests.html', {
             'page_obj': page_obj,
         })
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 
 def manage_access_request(request):
     # Manage approval or denial of a request via a single endpoint
@@ -1421,21 +1561,24 @@ def manage_access_request(request):
         
     return redirect("manuscript_access_requests")
 
+@login_required(login_url='login')
 def student_access_requests(request):
     if request.user.is_student:
         # Fetch access requests for the logged-in student
         access_requests = ManuscriptAccessRequest.objects.filter(student=request.user)
-    else:
-        access_requests = []
-    
-    paginator = Paginator(access_requests, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
 
-    return render(request, 'ccsrepo_app/student_access_requests.html',
-    {'access_requests': access_requests,
-     'page_obj': page_obj,
-     })
+        # Set up pagination for the access requests
+        paginator = Paginator(access_requests, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, 'ccsrepo_app/student_access_requests.html', {
+            'access_requests': page_obj.object_list,
+            'page_obj': page_obj,
+        })
+    else:
+        # Render the unauthorized page for unauthorized users
+        return render(request, 'unauthorized.html', status=403)
 
 # def manuscript_access_requests(request):
 #     # Check if the user is authenticated and is a student
@@ -1540,7 +1683,10 @@ def clean_and_extract_after_keywords(text):
     
     return text  # If no match, return the original text
 
+@login_required(login_url='login')
 def view_pdf_manuscript(request, manuscript_id):
+    if not request.user.is_admin or request.user.is_adviser or request.user.is_student :
+        return render(request, 'unauthorized.html', status=403)
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     
     # Safely assign a value to 'search_term' even if it's not in the GET request

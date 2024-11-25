@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCS REPOSITORY</title>
+    <link href="{% static 'css/unauthorized.css' %}" rel="stylesheet">
+</head>
+<body>
+
+    <header class="header">
+        <a href="{% url 'index' %}"class="logo text-white">College of Computing Studies</a>
+            <!-- Hamburger icon for small screens -->   
+    </header>
+
+    <header class="landing-header">
+        <h1>Access Denied</h1>
+    </header>
+
+    
+    <div class="gif-container">
+        <img src="/media/images/wait.gif" alt="Loading Animation">
+        <p>You are not authorized to access this page</p>
+        <a href="{% url 'home' %}" class="return-home-btn">Return Home</a>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 College Of Computing Studies. All rights reserved.</p>
+    </footer>
+
+</body>
+
+</html>
