@@ -21,7 +21,7 @@
         <p><strong>Uploaded Date:</strong> {{ manuscript.upload_date }}</p>
         <p><a href="{{ manuscript.pdf_file.url }}" target="_blank" class="details-link">View PDF</a></p>
     </section>
-    
+
     <!-- OCR Progress Card -->
     <section class="ocr-card">
         <h2>Manuscript Progress</h2>
@@ -35,14 +35,65 @@
         {% endif %}
 
         {% if manuscript.remaining_page > 0 %}
-        <form action="{% url 'continue_scanning' manuscript.id %}" method="post">
+        <form id="scanForm" action="{% url 'continue_scanning' manuscript.id %}" method="post">
             {% csrf_token %}
-            <button type="submit" class="details-link">Continue Scanning</button>
+            <button type="submit" id="scanButton" class="details-link">Continue Scanning</button>
         </form>
         {% else %}
         <p>All pages have been processed.</p>
         {% endif %}
     </section>
-
 </div>
+
+<!-- Loading Spinner -->
+<div id="spinnerOverlay" class="hidden spinner-overlay">
+    <div class="spinner"></div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hidden {
+        display: none;
+    }
+    .spinner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .spinner {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #064420;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById("scanForm").addEventListener("submit", function () {
+        // Show the loading spinner when the form is submitted
+        const spinnerOverlay = document.getElementById("spinnerOverlay");
+        spinnerOverlay.classList.remove("hidden");
+    });
+</script>
 {% endblock %}

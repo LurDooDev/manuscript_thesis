@@ -869,8 +869,6 @@ def validate_user_title(title):
     
     return errors
 
-CHUNK_SIZE = 2
-
 def extract_title_from_first_page(first_page_text):
     """Extract and format the title from the first page."""
     title_text = first_page_text.replace('\n', ' ').strip()
@@ -975,73 +973,62 @@ def extract_authors_from_first_page(first_page_text):
 
     return "No authors found"
 
-def extract_abstract_from_initial_pages(pdf_path, max_pages=7):
-    """Extract the abstract from the first occurrence of 'abstract' or 'executive summary' in the initial pages of the PDF."""
-    doc = fitz.open(pdf_path)
-    for i in range(min(max_pages, doc.page_count)):
-        page = doc.load_page(i)
-        pix = page.get_pixmap(dpi=100)
-        img = Image.open(BytesIO(pix.tobytes("png")))
-        page_text = pytesseract.image_to_string(img).strip().lower()
-
-        if page_text.startswith("abstract") or page_text.startswith("executive summary"):
-            keyword = "abstract" if page_text.startswith("abstract") else "executive summary"
-            abstract_text = page_text[len(keyword):].strip()
-
-            if "keywords" in abstract_text:
-                abstract_text = abstract_text.split("keywords")[0].strip()
-
-            return abstract_text or "No abstract found"
-
-    return "No abstract found"
-
-def extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page):
-    """Extract OCR data from a chunk of pages in the PDF."""
+def process_and_extract_manuscript_data(pdf_path, manuscript, max_abstract_pages=5, chunk_size=5, max_pages=5):
+    """Process the manuscript by extracting abstract, OCR data, title, year, and authors from the first `max_pages`."""
     doc = fitz.open(pdf_path)
     ocr_data_list = []
+    abstract_text = None
+    first_page_text = None
 
-    for i in range(start_page, end_page):
-        page = doc.load_page(i)
-        pix = page.get_pixmap(dpi=100)
+    # Ensure we only process up to `max_pages`
+    pages_to_process = min(max_pages, len(doc))
+
+    # Process up to `max_pages`
+    for page_num in range(pages_to_process):
+        page = doc.load_page(page_num)
+        pix = page.get_pixmap(dpi=120)
         img = Image.open(BytesIO(pix.tobytes("png")))
         page_text = pytesseract.image_to_string(img).strip()
-        ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=i + 1, text=page_text))
 
-    PageOCRData.objects.bulk_create(ocr_data_list)
+        # Capture the first page's text for title, year, and authors extraction
+        if page_num == 0:
+            first_page_text = page_text
 
-def process_manuscript(pdf_path, manuscript):
-    """Process the manuscript by extracting title, year, authors, abstract, and OCR data in chunks."""
-    first_page = fitz.open(pdf_path).load_page(0)
-    pix = first_page.get_pixmap(dpi=140)
-    img = Image.open(BytesIO(pix.tobytes("png")))
-    first_page_text = pytesseract.image_to_string(img).strip()
+        # Attempt to extract abstract from the first `max_abstract_pages`
+        if abstract_text is None and page_num < max_abstract_pages:
+            lower_text = page_text.lower()
+            if lower_text.startswith("abstract") or lower_text.startswith("executive summary"):
+                keyword = "abstract" if lower_text.startswith("abstract") else "executive summary"
+                extracted_text = page_text[len(keyword):].strip()
+                if "keywords" in extracted_text:
+                    extracted_text = extracted_text.split("keywords")[0].strip()
+                abstract_text = extracted_text or "No abstract found"
 
+        # Add OCR data for this page
+        ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=page_num + 1, text=page_text))
+
+        # Save OCR data in chunks to reduce memory usage
+        if len(ocr_data_list) >= chunk_size:
+            PageOCRData.objects.bulk_create(ocr_data_list)
+            ocr_data_list = []
+
+    # Save any remaining OCR data
+    if ocr_data_list:
+        PageOCRData.objects.bulk_create(ocr_data_list)
+
+    # Extract title, year, and authors from the first page
     title = extract_title_from_first_page(first_page_text)
     year = extract_year_from_first_page(first_page_text)
     authors = extract_authors_from_first_page(first_page_text)
-    abstract_text = extract_abstract_from_initial_pages(pdf_path)
 
+    # Update manuscript details
     manuscript.title = title
     manuscript.year = year
     manuscript.authors = authors
-    manuscript.abstracts = abstract_text
-    manuscript.save()
-
-    doc = fitz.open(pdf_path)
-    total_pages = len(doc)
-    manuscript.page_count = total_pages
-    manuscript.current_page_count = 0
-
-    initial_pages_processed = min(8, total_pages)
-    manuscript.remaining_page = max(total_pages - initial_pages_processed, 0)
-    manuscript.current_page_count = initial_pages_processed
-    manuscript.save()
-
-    for start_page in range(1, initial_pages_processed, CHUNK_SIZE):
-        end_page = min(start_page + CHUNK_SIZE, total_pages)
-        extract_ocr_data_chunk(pdf_path, manuscript, start_page, end_page)
-
-    manuscript.current_page_count = initial_pages_processed
+    manuscript.abstracts = abstract_text or "No abstract found"
+    manuscript.page_count = len(doc)  # Total number of pages in the document
+    manuscript.current_page_count = pages_to_process  # Only processed up to `max_pages`
+    manuscript.remaining_page = len(doc) - pages_to_process  # Remaining pages, if any
     manuscript.save()
 
 @login_required(login_url='login')
@@ -1064,7 +1051,7 @@ def upload_manuscript(request):
                 # Check if the PDF file exists and process it
                 if os.path.exists(pdf_file_path):
                     try:
-                        process_manuscript(pdf_file_path, manuscript)
+                        process_and_extract_manuscript_data(pdf_file_path, manuscript, max_abstract_pages=5, chunk_size=5, max_pages=5)
                     except Exception as e:
                         print(f"Error processing PDF: {e}")  # Log the error (can be enhanced)
 
@@ -1269,62 +1256,71 @@ def manuscript_detail_view(request, manuscript_id):
     return render(request, 'ccsrepo_app/manuscript_detail.html', context)
 
 def extract_text_from_page(pdf_file, page_number):
-    # Open the PDF file using PyMuPDF
-    pdf_document = fitz.open(pdf_file.path)
-    page = pdf_document.load_page(page_number - 1)  # Zero-indexed in PyMuPDF
+    """
+    Extract text from a specific page of a PDF file.
+    Falls back to OCR if no text is extracted.
+    """
+    try:
+        pdf_document = fitz.open(pdf_file.path)
+        page = pdf_document.load_page(page_number - 1)  # Zero-indexed in PyMuPDF
 
-    # Extract text using PyMuPDF (basic text extraction)
-    ocr_text = page.get_text("text")
+        # Extract text using PyMuPDF (basic text extraction)
+        ocr_text = page.get_text("text")
 
-    # If no text was extracted, try using OCR on the page image
-    if not ocr_text:
-        print(f"No text found on page {page_number}. Attempting OCR...")
-        # Convert the page to an image
-        pix = page.get_pixmap()
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        
-        # Perform OCR on the image
-        ocr_text = pytesseract.image_to_string(img)
+        # If no text is extracted, perform OCR
+        if not ocr_text.strip():
+            print(f"No text found on page {page_number}. Attempting OCR...")
+            pix = page.get_pixmap()
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            ocr_text = pytesseract.image_to_string(img)
 
-    return ocr_text
+        return ocr_text.strip()
+    except Exception as e:
+        print(f"Error processing page {page_number}: {e}")
+        return ""
 
 def continue_scanning(request, manuscript_id):
+    """
+    Processes the next 10 pages of the manuscript for OCR, 
+    or fewer if fewer pages remain.
+    """
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
-    # Process the next 10 pages if there are remaining pages to process
-    pages_to_process = 10
-    current_page = manuscript.current_page_count
-
-    # Ensure we don't go past the total number of pages
-    pages_to_process = min(pages_to_process, manuscript.remaining_page)
+    # Determine the range of pages to process
+    pages_to_process = min(10, manuscript.remaining_page)
+    if pages_to_process <= 0:
+        print("No pages left to process.")
+        return redirect('manuscript_detail', manuscript_id=manuscript.id)
 
     for i in range(pages_to_process):
-        # Calculate the page number for the current iteration
-        page_number = current_page + i + 1
-        
-        # Check if a PageOCRData entry already exists for this manuscript and page number
-        if not PageOCRData.objects.filter(manuscript=manuscript, page_num=page_number).exists():
-            # Extract OCR text from the PDF page
-            ocr_text = extract_text_from_page(manuscript.pdf_file, page_number)
-            
-            # Save the OCR data to the PageOCRData model
+        page_number = manuscript.current_page_count + i + 1
+
+        # Check if this page has already been processed
+        if PageOCRData.objects.filter(manuscript=manuscript, page_num=page_number).exists():
+            print(f"Skipping page {page_number}: already processed.")
+            continue
+
+        # Extract OCR text and save to the database
+        ocr_text = extract_text_from_page(manuscript.pdf_file, page_number)
+        if ocr_text:  # Only save if there is text
             try:
                 PageOCRData.objects.create(
                     manuscript=manuscript,
                     page_num=page_number,
                     text=ocr_text
                 )
+                print(f"Processed and saved page {page_number}.")
             except IntegrityError:
-                # If a duplicate entry is encountered, log it or handle accordingly
-                print(f"Page {page_number} already exists in OCR data.")
-        
+                print(f"Duplicate entry detected for page {page_number}. Skipping.")
         else:
-            print(f"Skipping page {page_number} as it has already been processed.")
-    
-    # Update the manuscript's page count and remaining pages after processing
+            print(f"No text extracted for page {page_number}. Skipping.")
+
+    # Update manuscript's progress
     manuscript.current_page_count += pages_to_process
-    manuscript.remaining_page -= pages_to_process
+    manuscript.remaining_page = max(0, manuscript.page_count - manuscript.current_page_count)
     manuscript.save()
+
+    print(f"Scanning completed for {pages_to_process} pages. Current page: {manuscript.current_page_count}")
 
     # Redirect back to the manuscript details page
     return redirect('manuscript_detail', manuscript_id=manuscript.id)
@@ -1410,7 +1406,7 @@ def faculty_upload_manuscript(request):
                 # Process the manuscript if the file exists
                 if os.path.exists(pdf_file_path):
                     try:
-                        process_manuscript(pdf_file_path, manuscript)
+                        process_and_extract_manuscript_data(pdf_file_path, manuscript, max_abstract_pages=5, chunk_size=5)
                     except Exception as e:
                         # Log or print the error for debugging
                         print(f"Error processing PDF: {e}")
@@ -1521,23 +1517,11 @@ def request_access(request, manuscript_id):
         )
     return redirect('visitor_manuscript_detail', manuscript_id=manuscript_id)
 
-# def manuscript_access_requests(request):
-#     # Query access requests, ordering by latest, and select related manuscript
-#     access_requests = ManuscriptAccessRequest.objects.filter(
-#         manuscript__adviser=request.user
-#     ).select_related('manuscript').order_by('-requested_at')
-    
-#     # Paginate to show 5 requests per page
-#     paginator = Paginator(access_requests, 5)
-#     page_number = request.GET.get('page')
-#     page_obj = paginator.get_page(page_number)
-    
-#     return render(request, 'ccsrepo_app/manuscript_access_requests.html', {'page_obj': page_obj})
 
 @login_required(login_url='login')
 def manuscript_access_requests(request):
     # Check if the user is authenticated and is a student
-    if request.user.is_adviser or request.user.is_admin:
+    if request.user.is_adviser or request.user.is_admin or request.user.is_student:
         access_requests = ManuscriptAccessRequest.objects.filter(
         manuscript__adviser=request.user
     ).select_related('manuscript').order_by('-requested_at')
@@ -1589,21 +1573,6 @@ def student_access_requests(request):
     else:
         # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
-
-# def manuscript_access_requests(request):
-#     # Check if the user is authenticated and is a student
-#     if request.user.is_authenticated:
-#         access_requests = ManuscriptAccessRequest.objects.filter(
-#         manuscript__adviser=request.user
-#     ).select_related('manuscript').order_by('-requested_at')
-
-#         paginator = Paginator(access_requests, 10)
-#         page_number = request.GET.get('page')
-#         page_obj = paginator.get_page(page_number)
-
-#         return render(request, 'ccsrepo_app/manuscript_access_requests.html', {
-#             'page_obj': page_obj,
-#         })
 
 
 def delete_unpublished_manuscripts(request):
@@ -1695,7 +1664,7 @@ def clean_and_extract_after_keywords(text):
 
 @login_required(login_url='login')
 def view_pdf_manuscript(request, manuscript_id):
-    if not request.user.is_admin or request.user.is_adviser or request.user.is_student :
+    if not (request.user.is_admin or request.user.is_adviser or request.user.is_student):
         return render(request, 'unauthorized.html', status=403)
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     
@@ -1787,8 +1756,8 @@ def visitor_search_manuscripts(request):
     # Split the search query into individual tags (words)
     tags = search_query.split()  # Split by whitespace to treat each term as a tag
 
-    # Base queryset for manuscripts
-    manuscripts = Manuscript.objects.all()
+    # Base queryset for manuscripts, filtering only approved manuscripts
+    manuscripts = Manuscript.objects.filter(status='approved')
 
     # Construct search filter using Q objects for multiple fields
     search_filter = Q()
@@ -1807,11 +1776,10 @@ def visitor_search_manuscripts(request):
                 Q(adviser__last_name__icontains=tag) |
                 Q(program__name__icontains=tag) |
                 Q(category__name__icontains=tag) |
-                Q(manuscript_type__name__icontains=tag) |
-                Q(keywords__keyword__icontains=tag)  # Match against the related Keyword model
+                Q(manuscript_type__name__icontains=tag)
             )
 
-    # Apply the filter to manuscripts
+    # Apply the search filter
     manuscripts = manuscripts.filter(search_filter)
 
     # Apply additional filters if selected
@@ -1833,14 +1801,17 @@ def visitor_search_manuscripts(request):
         year = request.GET.get('year')
         manuscripts = manuscripts.filter(year=year)
 
+    # Order manuscripts by publication_date in ascending order
+    manuscripts = manuscripts.order_by('-publication_date')
+
     # Annotate counts for programs, manuscript types, and categories
     programs = Program.objects.annotate(manuscript_count=Count('manuscript'))
     manuscript_types = ManuscriptType.objects.annotate(manuscript_count=Count('manuscript'))
     categories = Category.objects.annotate(manuscript_count=Count('manuscript'))
 
-    # Group manuscripts by `year` field and count manuscripts per year
+    # Group manuscripts by year field and count manuscripts per year
     manuscript_years = (
-        manuscripts.filter(year__isnull=False)  # Ensure `year` is not null
+        manuscripts.filter(year__isnull=False)  # Ensure year is not null
         .values('year')
         .annotate(count=Count('id'))
         .order_by('-year')  # Sort by year descending
@@ -1865,6 +1836,7 @@ def visitor_search_manuscripts(request):
         'manuscript_years': manuscript_years,  # Include year aggregation
     }
     return render(request, 'visitor_search_result.html', context)
+
 
 def visitor_manuscript_detail(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
