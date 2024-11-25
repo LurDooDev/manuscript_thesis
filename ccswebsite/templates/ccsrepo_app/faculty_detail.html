@@ -1,8 +1,10 @@
 {% extends "base_dashboard.html" %}
 {% load static %}
 {% block content %}
-<div class="content-card">
-
+<div id="loading-overlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+</div>
+<div id="content-container" class="content-card">
     <!-- Manuscript Information Card -->
     <section class="manuscript-card">
         <h2>Manuscript Information</h2>
@@ -10,9 +12,10 @@
         <p><strong>Authors:</strong> {{ manuscript.authors }}</p>
         <p><strong>Category:</strong> {{ manuscript.category }}</p>
         <p><strong>Type:</strong> {{ manuscript.manuscript_type }}</p>
-        <p><strong>Batch:</strong> {{ manuscript.year}}</p>
+        <p><strong>Batch:</strong> {{ manuscript.year }}</p>
         <p><strong>Abstract:</strong> {{ manuscript.abstracts }}</p>
-        <p><strong>Published Date:</strong> {{ manuscript.publication_date }}</p>
+        <p><strong>Status:</strong> {{ manuscript.status }}</p>
+        <p><strong>Uploaded Date:</strong> {{ manuscript.publication_date }}</p>
         <p><a href="{{ manuscript.pdf_file.url }}" target="_blank" class="details-link">View PDF</a></p>
     </section>
     
@@ -29,7 +32,7 @@
         {% endif %}
 
         {% if manuscript.remaining_page > 0 %}
-        <form action="{% url 'continue_scanning' manuscript.id %}" method="post">
+        <form id="scan-form" action="{% url 'faculty_continue_scanning' manuscript.id %}" method="post">
             {% csrf_token %}
             <button type="submit" class="details-link">Continue Scanning</button>
         </form>
@@ -37,10 +40,59 @@
         <p>All pages have been processed.</p>
         {% endif %}
     </section>
-
-    <!-- Back Button -->
-    <div class="back-button">
-        <a href="{% url 'faculty_manuscripts' %}" class="details-link">Back to My Manuscripts</a>
-    </div>
 </div>
+
+<!-- Add this script for the spinner functionality -->
+<script>
+    const form = document.getElementById('scan-form');
+    const overlay = document.getElementById('loading-overlay');
+    const content = document.getElementById('content-container');
+
+    form.addEventListener('submit', function() {
+        // Show the overlay and spinner
+        overlay.classList.remove('hidden');
+        // Disable interaction with the background
+        content.classList.add('disabled');
+    });
+</script>
+
+<style>
+    /* Spinner overlay styles */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4); /* Semi-transparent black */
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .loading-overlay.hidden {
+        display: none;
+    }
+
+    .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3); /* Light semi-transparent spinner */
+        border-top: 4px solid #064420; /* Solid accent color for spinner */
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Disable interactions on background content */
+    .content-card.disabled {
+        pointer-events: none;
+        opacity: 0.6; /* Slight fade effect for background content */
+    }
+</style>
 {% endblock %}

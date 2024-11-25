@@ -1324,6 +1324,53 @@ def continue_scanning(request, manuscript_id):
 
     # Redirect back to the manuscript details page
     return redirect('manuscript_detail', manuscript_id=manuscript.id)
+
+def faculty_continue_scanning(request, manuscript_id):
+    """
+    Processes the next 10 pages of the manuscript for OCR, 
+    or fewer if fewer pages remain.
+    """
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+
+    # Determine the range of pages to process
+    pages_to_process = min(1, manuscript.remaining_page)
+    if pages_to_process <= 0:
+        print("No pages left to process.")
+        return redirect('faculty_detail', manuscript_id=manuscript.id)
+
+    for i in range(pages_to_process):
+        page_number = manuscript.current_page_count + i + 1
+
+        # Check if this page has already been processed
+        if PageOCRData.objects.filter(manuscript=manuscript, page_num=page_number).exists():
+            print(f"Skipping page {page_number}: already processed.")
+            continue
+
+        # Extract OCR text and save to the database
+        ocr_text = extract_text_from_page(manuscript.pdf_file, page_number)
+        if ocr_text:  # Only save if there is text
+            try:
+                PageOCRData.objects.create(
+                    manuscript=manuscript,
+                    page_num=page_number,
+                    text=ocr_text
+                )
+                print(f"Processed and saved page {page_number}.")
+            except IntegrityError:
+                print(f"Duplicate entry detected for page {page_number}. Skipping.")
+        else:
+            print(f"No text extracted for page {page_number}. Skipping.")
+
+    # Update manuscript's progress
+    manuscript.current_page_count += pages_to_process
+    manuscript.remaining_page = max(0, manuscript.page_count - manuscript.current_page_count)
+    manuscript.save()
+
+    print(f"Scanning completed for {pages_to_process} pages. Current page: {manuscript.current_page_count}")
+
+    # Redirect back to the manuscript details page
+    return redirect('faculty_detail', manuscript_id=manuscript.id)
+
 #----------------End Student System ------------------------/
 
 #----------------Faculty System ------------------------/
@@ -1343,10 +1390,10 @@ def faculty_manuscripts_view(request):
         manuscripts = Manuscript.objects.filter(
             adviser=request.user,  # Assuming adviser is related to Manuscript
             upload_show=True
-        ).order_by('-upload_date')
+        ).order_by('-publication_date')
         
         # Set up pagination
-        paginator = Paginator(manuscripts, 2)  # Show 2 manuscripts per page
+        paginator = Paginator(manuscripts, 5)  # Show 2 manuscripts per page
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 

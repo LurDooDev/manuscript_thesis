@@ -38,6 +38,7 @@ urlpatterns = [
     path('manage-type/', views.manage_type, name='manage_type'),
     #AJAX
     path('continue-scanning/<int:manuscript_id>/', views.continue_scanning, name='continue_scanning'),
+    path('faculty-continue-scanning/<int:manuscript_id>/', views.faculty_continue_scanning, name='faculty_continue_scanning'),
     path('program/check-duplicate/', views.check_program_duplicate, name='check_program_duplicate'),
     path('category/check-duplicate/', views.check_duplicate_category, name='check_duplicate_category'),
     path('manuscripttype/check-duplicate/', views.check_duplicate_manuscripttype, name='check_duplicate_manuscripttype'),

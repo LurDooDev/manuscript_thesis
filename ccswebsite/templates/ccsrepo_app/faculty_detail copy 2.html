@@ -1,0 +1,46 @@
+{% extends "base_dashboard.html" %}
+{% load static %}
+{% block content %}
+<div class="content-card">
+
+    <!-- Manuscript Information Card -->
+    <section class="manuscript-card">
+        <h2>Manuscript Information</h2>
+        <p><strong>Title:</strong> {{ manuscript.title }}</p>
+        <p><strong>Authors:</strong> {{ manuscript.authors }}</p>
+        <p><strong>Category:</strong> {{ manuscript.category }}</p>
+        <p><strong>Type:</strong> {{ manuscript.manuscript_type }}</p>
+        <p><strong>Batch:</strong> {{ manuscript.year}}</p>
+        <p><strong>Abstract:</strong> {{ manuscript.abstracts }}</p>
+        <p><strong>Published Date:</strong> {{ manuscript.publication_date }}</p>
+        <p><a href="{{ manuscript.pdf_file.url }}" target="_blank" class="details-link">View PDF</a></p>
+    </section>
+    
+    <!-- OCR Progress Card -->
+    <section class="ocr-card">
+        <h2>Manuscript Progress</h2>
+        {% if manuscript.page_count > 0 %}
+        <div class="progress-bar">
+            <div class="progress" style="width: {{ progress_percentage }}%;"></div>
+        </div>
+        <p>{{ manuscript.current_page_count }} of {{ manuscript.page_count }} pages processed ({{ progress_percentage|floatformat:1 }}% complete)</p>
+        {% else %}
+        <p>Page count not available.</p>
+        {% endif %}
+
+        {% if manuscript.remaining_page > 0 %}
+        <form action="{% url 'continue_scanning' manuscript.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="details-link">Continue Scanning</button>
+        </form>
+        {% else %}
+        <p>All pages have been processed.</p>
+        {% endif %}
+    </section>
+
+    <!-- Back Button -->
+    <div class="back-button">
+        <a href="{% url 'faculty_manuscripts' %}" class="details-link">Back to My Manuscripts</a>
+    </div>
+</div>
+{% endblock %}
