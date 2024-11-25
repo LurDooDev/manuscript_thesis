@@ -1097,6 +1097,10 @@ def final_manuscript_page(request, manuscript_id):
             if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
                 errors.append(_("A manuscript with this title is already published. Please choose a different title."))
 
+            # Validate year
+            if not (year.isdigit() and len(year) == 4 and 1900 <= int(year) <= timezone.now().year):
+                errors.append(_("Year must be a valid 4-digit number between 1900 and the current year."))
+
             # Validate adviser
             try:
                 adviser = CustomUser.objects.get(id=adviser_id, is_adviser=True)
@@ -1149,6 +1153,7 @@ def final_manuscript_page(request, manuscript_id):
 
     # Render unauthorized page for non-students
     return render(request, 'unauthorized.html', status=403)
+
 #----------------End Manuscript System ------------------------/
 
 #----------------Adviser System ------------------------/
@@ -1434,6 +1439,14 @@ def faculty_final_page(request, manuscript_id):
             manuscript_type_id = request.POST.get('manuscript_type')
             program_id = request.POST.get('program')
 
+            # Validate year
+            try:
+                year = int(year)
+                if year < 1900 or year > timezone.now().year:
+                    errors.append(_("Please enter a valid year between 1900 and the current year."))
+            except ValueError:
+                errors.append(_("Year must be a valid number."))
+
             # Validate title uniqueness for `upload_show=True`
             if Manuscript.objects.filter(title=title, upload_show=True).exclude(id=manuscript.id).exists():
                 errors.append(_("A manuscript with this title is already published. Please choose a different title."))
@@ -1451,9 +1464,6 @@ def faculty_final_page(request, manuscript_id):
                     'errors': errors,
                 })
 
-            # Set adviser to the logged-in user
-            adviser = request.user
-
             # Update manuscript fields with the form data
             manuscript.title = title
             manuscript.abstracts = abstracts
@@ -1462,7 +1472,7 @@ def faculty_final_page(request, manuscript_id):
             manuscript.category_id = category_id
             manuscript.manuscript_type_id = manuscript_type_id
             manuscript.program_id = program_id
-            manuscript.adviser = adviser
+            manuscript.adviser = request.user
 
             # Finalize and publish manuscript
             manuscript.publication_date = timezone.now()
@@ -1486,7 +1496,6 @@ def faculty_final_page(request, manuscript_id):
             'programs': programs,
         })
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 #----------------End Faculty Upload System ------------------------/
 

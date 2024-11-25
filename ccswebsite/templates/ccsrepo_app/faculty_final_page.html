@@ -50,7 +50,21 @@
         <input type="text" name="authors" id="authors" placeholder="Enter researcher(s)" value="{{ manuscript.authors }}" required>
 
         <label for="year">Batch:</label>
-        <input type="text" name="year" id="year" placeholder="Enter batch (e.g., 2024)" value="{{ manuscript.year }}" required>
+<input 
+    type="text" 
+    name="year" 
+    id="year" 
+    placeholder="Enter batch (e.g., 2024)" 
+    value="{{ manuscript.year }}" 
+    required 
+    minlength="4" 
+    maxlength="4" 
+    pattern="\d{4}" 
+    oninput="validateYear()"
+/>
+<p id="year-error" class="text-red-500" style="display: none;">
+    Please enter a valid 4-digit year {{ timezone.now.year }}.
+</p>
 
         <label for="category">Category:</label>
         <select name="category" id="category" required>
@@ -92,6 +106,20 @@
     function toggleMenu() {
         const navbar = document.getElementById("navbar");
         navbar.classList.toggle("active");
+    }
+</script>
+
+<script>
+    function validateYear() {
+        const yearInput = document.getElementById("year");
+        const yearError = document.getElementById("year-error");
+        const currentYear = new Date().getFullYear();
+
+        if (yearInput.value < 1900 || yearInput.value > currentYear) {
+            yearError.style.display = "block";
+        } else {
+            yearError.style.display = "none";
+        }
     }
 </script>
 
