@@ -1123,6 +1123,19 @@ def final_manuscript_page(request, manuscript_id):
             manuscript.upload_show = True
             manuscript.save()
 
+            # **Keyword Extraction After Save**
+            # Combine relevant fields for keyword extraction
+            combined_text = f"{title} {abstracts} {authors}".lower()
+
+            # Extract keywords based on tech-related terms
+            extracted_keywords = extract_keywords_from_text(combined_text)
+
+            # Save extracted keywords to the database
+            existing_keywords = set(Keyword.objects.filter(manuscript=manuscript).values_list('keyword', flat=True))
+            for keyword in extracted_keywords:
+                if keyword not in existing_keywords:
+                    Keyword.objects.create(manuscript=manuscript, keyword=keyword)
+
             return redirect('visitor_search_manuscripts')
 
         # Load choices for form in GET request
@@ -1141,6 +1154,7 @@ def final_manuscript_page(request, manuscript_id):
 
     # Render unauthorized page for non-students
     return render(request, 'unauthorized.html', status=403)
+
 
 #----------------End Manuscript System ------------------------/
 
@@ -1174,7 +1188,7 @@ def adviser_manuscript(request):
         )
 
         # Paginate the results
-        paginator = Paginator(manuscripts, 10)
+        paginator = Paginator(manuscripts, 5)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
@@ -1374,13 +1388,6 @@ def faculty_continue_scanning(request, manuscript_id):
 #----------------End Student System ------------------------/
 
 #----------------Faculty System ------------------------/
-# def faculty_manuscripts_view(request):
-#     if request.user.is_authenticated:
-#         manuscripts = Manuscript.objects.filter(student=request.user,  upload_show=True)
-
-#         return render(request, 'ccsrepo_app/faculty_manuscript.html', {
-#             'manuscripts': manuscripts,
-#         })
 
 @login_required(login_url='login')
 def faculty_manuscripts_view(request):
@@ -1525,6 +1532,19 @@ def faculty_final_page(request, manuscript_id):
 
             manuscript.save()
 
+            # **Keyword Extraction After Save**
+            # Combine relevant fields for keyword extraction
+            combined_text = f"{title} {abstracts} {authors}".lower()
+
+            # Extract keywords based on tech-related terms
+            extracted_keywords = extract_keywords_from_text(combined_text)
+
+            # Save extracted keywords to the database
+            existing_keywords = set(Keyword.objects.filter(manuscript=manuscript).values_list('keyword', flat=True))
+            for keyword in extracted_keywords:
+                if keyword not in existing_keywords:
+                    Keyword.objects.create(manuscript=manuscript, keyword=keyword)
+
             # Redirect to the visitor search page
             return redirect('visitor_search_manuscripts')
 
@@ -1541,6 +1561,7 @@ def faculty_final_page(request, manuscript_id):
         })
     else:
         return render(request, 'unauthorized.html', status=403)
+
 #----------------End Faculty Upload System ------------------------/
 
 # ----------------Request Access System ------------------------/
@@ -1656,7 +1677,7 @@ tech_related_keywords = [
     "AI", "IoT", "blockchain", "virtual reality", "augmented reality", "machine vision",
     "javascript", "node.js", "react", "angular", "vue.js", "express.js",
     "html", "css", "web development", "front-end", "back-end", "full-stack", "typescript", 
-    "ruby on rails", "flutter", "swift", "kotlin", "c++", "c#", "go", "rust", "bash", "php", "sql", "nosql",
+    "ruby on rails", "flutter", "swift", "kotlin", "c++", "c#", "rust", "bash", "php", "sql", "nosql",
     "docker", "kubernetes", "aws", "azure", "gcp", "git", "gitlab", "github", "jenkins", "ci/cd", "tensorflow", 
     "keras", "pytorch", "scikit-learn", "matplotlib", "pandas", "numpy", "opencv", "django", "flask", "spark"
 ]
@@ -1717,43 +1738,6 @@ def view_pdf_manuscript(request, manuscript_id):
     
     # Safely assign a value to 'search_term' even if it's not in the GET request
     search_term = request.GET.get('search', '').strip()  # Default to an empty string if 'search' is not in the GET request
-
-    # Check if the manuscript is fully processed (current_page_count == page_count and remaining_page == 0)
-    if manuscript.current_page_count == manuscript.page_count and manuscript.remaining_page == 0:
-        # Get all OCR data for this manuscript
-        pages = PageOCRData.objects.filter(manuscript=manuscript)
-
-        # List to store all potential keywords from all pages
-        all_keywords = []
-
-        # Loop through each page's OCR data and extract keywords
-        for page_data in pages:
-            page_text = page_data.text.lower()  # Uniformly lowercase for consistent matching
-
-            # Clean the text to extract content only after CHAPTER, EXECUTIVE SUMMARY, or KEYWORDS:
-            cleaned_text = clean_and_extract_after_keywords(page_text)
-            
-            # Extract keywords based on tech-related terms
-            page_keywords = extract_keywords_from_text(cleaned_text)
-            all_keywords.extend(page_keywords)
-
-            # Extract any additional keywords after 'KEYWORDS:' section
-            additional_keywords = extract_keywords_after_keywords(page_text)
-            all_keywords.extend(additional_keywords)
-
-        # Deduplicate the keywords (set will remove duplicates)
-        unique_keywords = list(set(all_keywords))
-
-        # Limit the number of keywords to 5 or fewer
-        limited_keywords = unique_keywords[:10]
-
-        # Retrieve existing keywords for this manuscript
-        existing_keywords = set(Keyword.objects.filter(manuscript=manuscript).values_list('keyword', flat=True))
-
-        # Save only new keywords
-        for keyword in limited_keywords:
-            if keyword not in existing_keywords:
-                Keyword.objects.create(manuscript=manuscript, keyword=keyword)
 
     # Prepare OCR data for the view
     if search_term:
