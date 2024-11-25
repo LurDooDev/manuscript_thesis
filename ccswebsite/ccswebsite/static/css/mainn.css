@@ -152,6 +152,65 @@ body {
     border: 1px solid #ccc;
 }
 
+.filter-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.filter-list li {
+    margin: 0.5em 0;
+}
+
+.filter-list a {
+    text-decoration: none;
+    color: #064420;
+    font-weight: bold;
+}
+
+.filter-list a:hover {
+    text-decoration: underline;
+}
+
+.filter-chip {
+    display: inline-block;
+    background-color: #e4efe7;
+    padding: 5px 10px;
+    margin: 5px;
+    border-radius: 15px;
+    font-size: 14px;
+}
+
+.filter-chip a {
+    color: #064420;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.filter-chip a:hover {
+    color: #d9534f;
+}
+
+.filter-list-options {
+    display: none;
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.filter-list-options.active {
+    display: block;
+}
+
+.search-results-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #E4EFE7; /* Match your palette */
+    border: 1px solid #064420;
+    border-radius: 5px;
+    color: #064420;
+    font-weight: bold;
+}
+
 .apply-button {
     background-color: #064420; /* Using your chosen color */
     color: white;
@@ -267,6 +326,10 @@ body {
     background-color: #E4EFE7;
 }
 
+.year-filter {
+    display: none;
+}
+
 .view-button {
     color: #064420;
     text-decoration: none;
@@ -296,6 +359,32 @@ body {
 
 .no-results p {
     margin: 0;
+}
+
+.reset-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #064420; /* Dark green background */
+    color: #FAF1E6; /* Light cream text */
+    font-size: 1rem;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 5px;
+    border: 2px solid #064420; /* Border color matching the background */
+    transition: all 0.3s ease;
+}
+
+.reset-button:hover {
+    background-color: #FAF1E6; /* Light cream on hover */
+    color: #064420; /* Dark green text on hover */
+    border-color: #FAF1E6; /* Change border color on hover */
+    cursor: pointer;
+}
+
+.reset-button-container {
+    text-align: center; /* Center the reset button */
+    margin-top: 20px;
 }
 
 /* Responsive adjustments */

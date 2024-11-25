@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCS REPOSITORY</title>
+  <link href="{% static 'css/mainn.css' %}" rel="stylesheet">
+</head>
+<body>
+    
+    <header class="header">
+        <a href="{% url 'index' %}" class="logo text-white">College of Computing Studies</a>
+        <!-- Hamburger icon for small screens -->
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <nav class="nav text-white" id="navbar">
+            <a href="{% url 'visitor_search_manuscripts' %}">Home</a>
+            {% if not user.is_authenticated %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Register</a>
+            {% else %}
+                {% if user.is_admin %}
+                    <a href="{% url 'faculty_upload_page' %}">Upload</a>
+                {% elif user.is_adviser %}
+                    <a href="{% url 'faculty_upload_page' %}">Upload</a>
+                {% elif user.is_student %}
+                    <a href="{% url 'manuscript_upload_page' %}">Upload</a>
+                {% endif %}
+                <a href="{% url 'logout' %}">Logout</a>
+            {% endif %}
+        </nav>  
+    </header>
+
+    <!-- Main content container with the sidebar and results -->
+    <div class="main-container">
+        
+        <!-- Sidebar with search and filters -->
+        <div class="sidebar">
+            <h2 class="text-white">Search Manuscripts</h2>
+            
+            <form method="GET" action="{% url 'visitor_search_manuscripts' %}">
+                <!-- Search Box -->
+                <div class="search-container">
+                    <input type="text" class="search-box" name="q" placeholder="Search..." value="{{ search_query }}" />
+                    <button class="search-button" type="submit">Search</button>
+                </div>
+
+                <div class="active-filters">
+                    {% if selected_program %}
+                        <div class="filter-chip">
+                            <span>{{ selected_program.name }}</span>
+                            <a href="?q={{ search_query }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}" class="cancel-filter">×</a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if selected_manuscript_type %}
+                        <div class="filter-chip">
+                            <span>{{ selected_manuscript_type.name }}</span>
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&category={{ request.GET.category }}" class="cancel-filter">×</a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if selected_category %}
+                        <div class="filter-chip">
+                            <span>{{ selected_category.name }}</span>
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}" class="cancel-filter">×</a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if not selected_program and not selected_manuscript_type and not selected_category %}
+                        <p>No filters applied.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Filters -->
+                <div class="filters">
+                    <div class="filter-item">
+                        <h4>Program</h4>
+                        <ul class="filter-list">
+                            <li>
+                                <a href="{% url 'visitor_search_manuscripts' %}">All Programs</a>
+                            </li>
+                            {% for program in programs %}
+                                <li>
+                                    <a href="?program={{ program.id }}&q={{ search_query }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}">
+                                        {{ program.name }} ({{ program.manuscript_set.count }})
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="filter-item">
+                        <h4>Manuscript Type</h4>
+                        <ul class="filter-list">
+                            <li>
+                                <a href="{% url 'visitor_search_manuscripts' %}">All Manuscript Types</a>
+                            </li>
+                            {% for manuscript_type in manuscript_types %}
+                                <li>
+                                    <a href="?manuscript_type={{ manuscript_type.id }}&q={{ search_query }}&program={{ request.GET.program }}&category={{ request.GET.category }}">
+                                        {{ manuscript_type.name }} ({{ manuscript_type.manuscript_set.count }})
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="filter-item">
+                        <h4>Category</h4>
+                        <ul class="filter-list">
+                            <li>
+                                <a href="{% url 'visitor_search_manuscripts' %}">All Categories</a>
+                            </li>
+                            {% for category in categories %}
+                                <li>
+                                    <a href="?category={{ category.id }}&q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}">
+                                        {{ category.name }} ({{ category.manuscript_set.count }})
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Reset Filters Button -->
+                <div class="reset-button-container">
+                    <a href="{% url 'visitor_search_manuscripts' %}?q={{ search_query }}" class="reset-button">Reset Filters</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="results-container">
+            {% if manuscripts %}
+                <table class="results-table manuscript-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Authors</th>
+                            <th>Count</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for manuscript in manuscripts %}
+                            <tr>
+                                <td>{{ manuscript.title }}</td>
+                                <td>{{ manuscript.authors }}</td>
+                                <td>Views: {{ manuscript.views }}</td>
+                                <td>
+                                    <a href="{% url 'visitor_manuscript_detail' manuscript.id %}" class="view-button">View</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Pagination below the table -->
+                <div class="pagination-container">
+                    <span class="step-links">
+                        {% if manuscripts.has_previous %}
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.previous_page_number }}" aria-label="Previous page">previous</a>
+                        {% endif %}
+                        
+                        <span class="current">
+                            Page {{ manuscripts.number }} of {{ manuscripts.paginator.num_pages }}.
+                        </span>
+                        
+                        {% if manuscripts.has_next %}
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.next_page_number }}" aria-label="Next page">next</a>
+                        {% endif %}
+                    </span>
+                </div>
+            {% else %}
+                <div class="no-results">
+                    <p>No manuscripts found matching your search criteria.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const navbar = document.getElementById("navbar");
+            navbar.classList.toggle("active");
+        }
+    </script>
+
+</body>
+</html>

@@ -1,98 +1,66 @@
 {% extends "base_dashboard.html" %}
 
 {% block content %}
-<h2 class="text-2xl font-semibold text-[#25580F] mb-6">Manuscript Access Requests</h2>
+<div class="content">
+    <h1>Access Request</h1>
+    <p>Below is the list of Student requesting for viewing the manuscript</p>
 
-<!-- Pagination Controls -->
-<div class="flex justify-between mb-6">
-    <div>
-        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    </div>
-</div>
-
-<div class="flex-1 mr-4">
-    <table class="table-auto w-full bg-white shadow-md rounded-lg mb-6">
+    <!-- Table for Manuscripts -->
+    <table class="manuscript-table">
         <thead>
-            <tr class="bg-[#25580F] text-white">
-                <th class="px-4 py-2">Manuscript Title</th>
-                <th class="px-4 py-2">Student Name</th>
-                <th class="px-4 py-2">Requested At</th>
-                <th class="px-4 py-2">Status</th>
-                <th class="px-4 py-2">Approved At</th>
-                <th class="px-4 py-2">Access End Date</th>
-                <th class="px-4 py-2">Actions</th>
+            <tr>
+                <th>Title</th>
+                <th>Student Name</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for request in page_obj %}
-                <tr class="text-center">
-                    <td class="border px-4 py-2">{{ request.manuscript.title }}</td>
-                    <td class="border px-4 py-2">{{ request.student.first_name }} {{ request.student.middle_name }} {{ request.student.last_name }}</td>
-                    <td class="border px-4 py-2">{{ request.requested_at }}</td>
-                    <td class="border px-4 py-2">{{ request.get_status_display }}</td>
-                    <td class="border px-4 py-2">
-                        {% if request.approved_at %}
-                            {{ request.approved_at|date:"Y-m-d H:i" }}
-                        {% else %}
-                            <span class="text-gray-500">N/A</span>
-                        {% endif %}
-                    </td>
-                    <td class="border px-4 py-2">
-                        {% if request.access_end_date %}
-                            {{ request.access_end_date|date:"Y-m-d H:i" }}
-                        {% else %}
-                            <span class="text-gray-500">N/A</span>
-                        {% endif %}
-                    </td>
-                    <td class="border px-4 py-2">
-                        {% if request.status == 'pending' %}
-                            <form method="post" action="{% url 'manage_access_request' %}" class="inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="request_id" value="{{ request.id }}">
-                                <button type="submit" name="action" value="approve" class="custom-approve">
-                                    Approve
-                                </button>
-                                <button type="submit" name="action" value="deny" class="custom-deny">
-                                    Deny
-                                </button>
-                            </form>
-                        {% elif request.status == 'approved' %}
-                            <span class="text-green-600 font-semibold">Approved</span>
-                        {% elif request.status == 'denied' %}
-                            <span class="text-red-600 font-semibold">Denied</span>
-                        {% endif %}
-                    </td>
-                </tr>
+            <tr>
+                <td>{{ request.manuscript.title }}</td>
+                <td>{{ request.student.first_name }} {{ request.student.middle_name }} {{ request.student.last_name }}</td>
+                <td>
+                    {% if request.status == 'pending' %}
+                        <form method="post" action="{% url 'manage_access_request' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="request_id" value="{{ request.id }}">
+                            <button type="submit" name="action" value="approve" class="details-link">
+                                Approve
+                            </button>
+                            <button type="submit" name="action" value="deny" class="details-link">
+                                Deny
+                            </button>
+                        </form>
+                    {% elif request.status == 'approved' %}
+                        <span>Approved</span>
+                    {% elif request.status == 'denied' %}
+                        <span>Deny</span>
+                    {% endif %}
+                </td>             
+            </tr>
             {% empty %}
-                <tr>
-                    <td colspan="7" class="border px-4 py-2 text-center">No access requests found.</td>
-                </tr>
+            <tr>
+                <td colspan="4">No Request found.</td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
-</div>
 
-<!-- Pagination Links -->
-<div class="flex justify-between">
-    <div>
-        {% if page_obj.has_previous %}
-            <a href="?page=1" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
-                First
-            </a>
-            <a href="?page={{ page_obj.previous_page_number }}" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
-                Previous
-            </a>
-        {% endif %}
-    </div>
-    <div>
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
-                Next
-            </a>
-            <a href="?page={{ page_obj.paginator.num_pages }}" class="text-blue-500 px-4 py-2 border rounded hover:bg-blue-100">
-                Last
-            </a>
-        {% endif %}
+    <!-- Pagination -->
+    <div class="pagination-container">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            {% endif %}
+        </span>
     </div>
 </div>
 

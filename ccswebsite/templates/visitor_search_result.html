@@ -8,43 +8,33 @@
   <link href="{% static 'css/mainn.css' %}" rel="stylesheet">
 </head>
 <body>
-
     
     <header class="header">
-        <a href="{% url 'index' %}"class="logo text-white">College of Computing Studies</a>
-            <!-- Hamburger icon for small screens -->
-    <div class="hamburger" onclick="toggleMenu()">
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
-    <nav class="nav text-white" id="navbar">
-        <a href="{% url 'visitor_search_manuscripts' %}">Home</a>
-        
-        {% if not user.is_authenticated %}
-            <a href="{% url 'login' %}">Login</a>
-            <a href="{% url 'register' %}">Register</a>
-        {% else %}
-            {% if user.is_admin %}
-                <a href="{% url 'faculty_upload_page' %}">Upload</a>
-            {% elif user.is_adviser %}
-                <a href="{% url 'faculty_upload_page' %}">Upload</a>
-            {% elif user.is_student %}
-                <a href="{% url 'manuscript_upload_page' %}">Upload</a>
+        <a href="{% url 'index' %}" class="logo text-white">College of Computing Studies</a>
+        <!-- Hamburger icon for small screens -->
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <nav class="nav text-white" id="navbar">
+            <a href="{% url 'visitor_search_manuscripts' %}">Home</a>
+            {% if not user.is_authenticated %}
+                <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'register' %}">Register</a>
+            {% else %}
+                {% if user.is_admin %}
+                    <a href="{% url 'faculty_upload_page' %}">Upload</a>
+                {% elif user.is_adviser %}
+                    <a href="{% url 'faculty_upload_page' %}">Upload</a>
+                {% elif user.is_student %}
+                    <a href="{% url 'manuscript_upload_page' %}">Upload</a>
+                {% endif %}
+                <a href="{% url 'logout' %}">Logout</a>
             {% endif %}
-
-            {% if user.is_admin %}
-                <a href="{% url 'dashboard_page' %}">Hello, {{ user.first_name }}</a>
-            {% elif user.is_adviser %}
-                <a href="{% url 'adviser_manuscript' %}">Hello, {{ user.first_name }}</a>
-            {% elif user.is_student %}
-                <a href="{% url 'student_manuscripts' %}">Hello, {{ user.first_name }}</a>
-            {% endif %}
-            <a href="{% url 'logout' %}">Logout</a>
-        {% endif %}
-    </nav>  
+        </nav>  
     </header>
-    
+
     <!-- Main content container with the sidebar and results -->
     <div class="main-container">
         
@@ -58,50 +48,134 @@
                     <input type="text" class="search-box" name="q" placeholder="Search..." value="{{ search_query }}" />
                     <button class="search-button" type="submit">Search</button>
                 </div>
-            
-                <!-- Filters Section -->
-                <div class="filters">
-                    <h3>Filters</h3>
-                    <div class="filter-item">
-                        <label for="program">Program</label>
-                        <select name="program" id="program">
-                            <option value="">All Programs</option>
+
+                <div class="active-filters">
+                    {% if selected_program %}
+                        <div class="filter-chip">
+                            <span>{{ selected_program.name }}</span>
+                            <a href="?q={{ search_query }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&year={{ request.GET.year }}" class="cancel-filter">×</a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if selected_manuscript_type %}
+                        <div class="filter-chip">
+                            <span>{{ selected_manuscript_type.name }}</span>
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&category={{ request.GET.category }}&year={{ request.GET.year }}" class="cancel-filter">×</a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if selected_category %}
+                        <div class="filter-chip">
+                            <span>{{ selected_category.name }}</span>
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&year={{ request.GET.year }}" class="cancel-filter">×</a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if selected_year %}
+                        <div class="filter-chip">
+                            <span>{{ selected_year }}</span>
+                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}" class="cancel-filter">×</a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if not selected_program and not selected_manuscript_type and not selected_category and not selected_year %}
+                        <p>No filters applied.</p>
+                    {% endif %}
+                </div>
+
+                <div class="filter-item" id="program-filter">
+                    <div class="filters">
+                        <h4>Program</h4>
+                        <ul class="filter-list">
                             {% for program in programs %}
-                                <option value="{{ program.id }}" {% if program.id == request.GET.program %}selected{% endif %}>{{ program.name }}</option>
+                                {% if program.manuscript_set.count > 0 %}
+                                    <li>
+                                        <a href="?program={{ program.id }}&q={{ search_query }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}">
+                                            {{ program.name }} ({{ program.manuscript_set.count }})
+                                        </a>
+                                    </li>
+                                {% endif %}
                             {% endfor %}
-                        </select>
+                        </ul>
                     </div>
-            
-                    <div class="filter-item">
-                        <label for="manuscript_type">Manuscript Type</label>
-                        <select name="manuscript_type" id="manuscript_type">
-                            <option value="">All Manuscript Types</option>
-                            {% for manuscript_type in manuscript_types %}
-                                <option value="{{ manuscript_type.id }}" {% if manuscript_type.id == request.GET.manuscript_type %}selected{% endif %}>{{ manuscript_type.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-            
-                    <div class="filter-item">
-                        <label for="category">Category</label>
-                        <select name="category" id="category">
-                            <option value="">All Categories</option>
+                </div>
+                
+                <div class="filter-item" id="category-filter">
+                    <div class="filters">
+                        <h4>Category</h4>
+                        <ul class="filter-list">
                             {% for category in categories %}
-                                <option value="{{ category.id }}" {% if category.id == request.GET.category %}selected{% endif %}>{{ category.name }}</option>
+                                {% if category.manuscript_set.count > 0 %}
+                                    <li>
+                                        <a href="?category={{ category.id }}&q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}">
+                                            {{ category.name }} ({{ category.manuscript_set.count }})
+                                        </a>
+                                    </li>
+                                {% endif %}
                             {% endfor %}
-                        </select>
+                        </ul>
                     </div>
-            
-                    <!-- Apply Button -->
-                    <div class="filter-item">
-                        <button type="submit" class="apply-button">Apply Filters</button>
+                </div>
+                
+                <div class="filter-item" id="manuscript-type-filter">
+                    <div class="filters">
+                        <h4>Manuscript Type</h4>
+                        <ul class="filter-list">
+                            {% for manuscript_type in manuscript_types %}
+                            {% if manuscript_type.manuscript_set.count > 0 %}
+                            <li>
+                                <a href="?manuscript_type={{ manuscript_type.id }}&q={{ search_query }}&program={{ request.GET.program }}&category={{ request.GET.category }}">
+                                    {{ manuscript_type.name }} ({{ manuscript_type.manuscript_set.count }})
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        </ul>
                     </div>
+                </div>
+
+                    <!-- Check if any of the filters are selected or active -->
+                    {% if request.GET.program or request.GET.manuscript_type or request.GET.category %}
+                    <div class="filters">
+                        <div class="filter-item">
+                            <h3>Year</h3>
+                            <ul class="filter-list">
+                                {% for year_data in manuscript_years %}
+                                    <li>
+                                        <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&year={{ year_data.year }}" 
+                                           {% if selected_year == year_data.year %}{% endif %}>
+                                            {{ year_data.year }} ({{ year_data.count }})
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                
+
+                <!-- Reset Filters Button -->
+                <div class="reset-button-container">
+                    <a href="{% url 'visitor_search_manuscripts' %}?q={{ search_query }}" class="reset-button">Reset Filters</a>
                 </div>
             </form>
         </div>
 
         <div class="results-container">
-        
+            <!-- Display search results message -->
+            {% if search_query %}
+    <div class="search-results-message">
+        <p>
+            {{ search_query|capfirst }} found in {{ manuscripts.paginator.count }}
+            {% if manuscripts.paginator.count == 1 %}
+                manuscript
+            {% else %}
+                manuscripts
+            {% endif %}.
+        </p>
+    </div>
+{% endif %}
+            
             {% if manuscripts %}
                 <table class="results-table manuscript-table">
                     <thead>
@@ -109,7 +183,6 @@
                             <th>Title</th>
                             <th>Authors</th>
                             <th>Count</th>
-                            {% comment %} <th>Keywords</th> {% endcomment %}
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -119,13 +192,6 @@
                                 <td>{{ manuscript.title }}</td>
                                 <td>{{ manuscript.authors }}</td>
                                 <td>Views: {{ manuscript.views }}</td>
-                                {% comment %} <td>
-                                    {% for keyword in manuscript.keywords.all %}
-                                        {{ keyword.keyword }}{% if not forloop.last %}, {% endif %}
-                                    {% empty %}
-                                        No keywords available
-                                    {% endfor %}
-                                </td> {% endcomment %}
                                 <td>
                                     <a href="{% url 'visitor_manuscript_detail' manuscript.id %}" class="view-button">View</a>
                                 </td>
@@ -133,40 +199,80 @@
                         {% endfor %}
                     </tbody>
                 </table>
-        
-                <!-- Pagination below the table -->
-                <div class="pagination-container">
-                    <span class="step-links">
-                        {% if manuscripts.has_previous %}
-                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.previous_page_number }}">previous</a>
-                        {% endif %}
-                        
-                        <span class="current">
-                            Page {{ manuscripts.number }} of {{ manuscripts.paginator.num_pages }}.
-                        </span>
-                        
-                        {% if manuscripts.has_next %}
-                            <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.next_page_number }}">next</a>
-                        {% endif %}
-                    </span>
-                </div>
-            {% else %}
-                <div class="no-results">
-                    <p>No manuscripts found matching your search criteria.</p>
-                </div>
-            {% endif %}
+
+        <!-- Pagination below the table -->
+        <div class="pagination-container">
+            <span class="step-links">
+                {% if manuscripts.has_previous %}
+                    <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.previous_page_number }}" aria-label="Previous page">previous</a>
+                {% endif %}
+                
+                <span class="current">
+                    Page {{ manuscripts.number }} of {{ manuscripts.paginator.num_pages }}.
+                </span>
+                
+                {% if manuscripts.has_next %}
+                    <a href="?q={{ search_query }}&program={{ request.GET.program }}&manuscript_type={{ request.GET.manuscript_type }}&category={{ request.GET.category }}&page={{ manuscripts.next_page_number }}" aria-label="Next page">next</a>
+                {% endif %}
+            </span>
         </div>
-        
-        
-        
-    </div>
+    {% else %}
+        <div class="no-results">
+            <p>No manuscripts found matching your search criteria.</p>
+        </div>
+    {% endif %}
+</div>
 
     <script>
         function toggleMenu() {
             const navbar = document.getElementById("navbar");
             navbar.classList.toggle("active");
         }
-        </script>
+    </script>
+
+    <script>
+    function toggleProgramFilter() {
+        const filterList = document.getElementById("program-filter-list");
+        filterList.classList.toggle("active");
+    }
+</script>
+<script>
+    // Function to hide the individual filter items if the filter is active
+    function hideFilterItemsIfActive() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Hide program filter if 'program' is active
+        const programFilter = urlParams.has('program') && urlParams.get('program') !== "";
+        const programFilterDiv = document.getElementById("program-filter");
+        if (programFilter) {
+            programFilterDiv.style.display = "none";
+        } else {
+            programFilterDiv.style.display = "block";
+        }
+
+        // Hide category filter if 'category' is active
+        const categoryFilter = urlParams.has('category') && urlParams.get('category') !== "";
+        const categoryFilterDiv = document.getElementById("category-filter");
+        if (categoryFilter) {
+            categoryFilterDiv.style.display = "none";
+        } else {
+            categoryFilterDiv.style.display = "block";
+        }
+
+        // Hide manuscript type filter if 'manuscript_type' is active
+        const manuscriptTypeFilter = urlParams.has('manuscript_type') && urlParams.get('manuscript_type') !== "";
+        const manuscriptTypeFilterDiv = document.getElementById("manuscript-type-filter");
+        if (manuscriptTypeFilter) {
+            manuscriptTypeFilterDiv.style.display = "none";
+        } else {
+            manuscriptTypeFilterDiv.style.display = "block";
+        }
+    }
+
+    // Run the function when the page loads
+    window.onload = hideFilterItemsIfActive;
+</script>
+
 
 </body>
 </html>

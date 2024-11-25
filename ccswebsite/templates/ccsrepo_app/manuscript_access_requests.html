@@ -11,7 +11,7 @@
             <tr>
                 <th>Title</th>
                 <th>Student Name</th>
-                <th>Status</th>
+
                 <th>Actions</th>
             </tr>
         </thead>
@@ -20,7 +20,6 @@
             <tr>
                 <td>{{ request.manuscript.title }}</td>
                 <td>{{ request.student.first_name }} {{ request.student.middle_name }} {{ request.student.last_name }}</td>
-                <td>{{request.get_status_display }}</td>
                 <td>
                     {% if request.status == 'pending' %}
                         <form method="post" action="{% url 'manage_access_request' %}">
@@ -34,9 +33,9 @@
                             </button>
                         </form>
                     {% elif request.status == 'approved' %}
-                        <span>Done</span>
+                        <span>Approved</span>
                     {% elif request.status == 'denied' %}
-                        <span>Done</span>
+                        <span>Deny</span>
                     {% endif %}
                 </td>             
             </tr>

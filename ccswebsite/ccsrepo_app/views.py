@@ -22,6 +22,7 @@ import fitz
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.db.models import Case, When, Value, IntegerField
+from django.db.models import Count
 
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
@@ -1780,31 +1781,90 @@ def index_view(request):
     return render(request, 'index.html')
 
 def visitor_search_manuscripts(request):
+    # Get the search query if provided
     search_query = request.GET.get('q', '')
-    program_id = request.GET.get('program')
-    manuscript_type_id = request.GET.get('manuscript_type')
-    category_id = request.GET.get('category')
 
-    # Get filtered manuscripts based on search query and filters
-    manuscripts = get_filtered_manuscripts(search_query, program_id, manuscript_type_id, category_id)
+    # Split the search query into individual tags (words)
+    tags = search_query.split()  # Split by whitespace to treat each term as a tag
 
-    # Retrieve additional filter options
-    programs = Program.objects.all()
-    manuscript_types = ManuscriptType.objects.all()
-    categories = Category.objects.all()
+    # Base queryset for manuscripts
+    manuscripts = Manuscript.objects.all()
 
-    # Pagination
-    paginator = Paginator(manuscripts, 7)
+    # Construct search filter using Q objects for multiple fields
+    search_filter = Q()
+
+    if search_query:
+        # Loop through each tag and add it to the search filter
+        for tag in tags:
+            # Apply a filter to ensure the tag appears in all fields for a manuscript to be included
+            search_filter &= (
+                Q(title__icontains=tag) |
+                Q(authors__icontains=tag) |
+                Q(abstracts__icontains=tag) |
+                Q(year__icontains=tag) |
+                Q(adviser__first_name__icontains=tag) |
+                Q(adviser__middle_name__icontains=tag) |
+                Q(adviser__last_name__icontains=tag) |
+                Q(program__name__icontains=tag) |
+                Q(category__name__icontains=tag) |
+                Q(manuscript_type__name__icontains=tag) |
+                Q(keywords__keyword__icontains=tag)  # Match against the related Keyword model
+            )
+
+    # Apply the filter to manuscripts
+    manuscripts = manuscripts.filter(search_filter)
+
+    # Apply additional filters if selected
+    program = None
+    manuscript_type = None
+    category = None
+    year = None
+
+    if request.GET.get('program'):
+        program = Program.objects.get(id=request.GET['program'])
+        manuscripts = manuscripts.filter(program_id=program.id)
+    if request.GET.get('manuscript_type'):
+        manuscript_type = ManuscriptType.objects.get(id=request.GET['manuscript_type'])
+        manuscripts = manuscripts.filter(manuscript_type_id=manuscript_type.id)
+    if request.GET.get('category'):
+        category = Category.objects.get(id=request.GET['category'])
+        manuscripts = manuscripts.filter(category_id=category.id)
+    if request.GET.get('year'):  # Apply filter for the year
+        year = request.GET.get('year')
+        manuscripts = manuscripts.filter(year=year)
+
+    # Annotate counts for programs, manuscript types, and categories
+    programs = Program.objects.annotate(manuscript_count=Count('manuscript'))
+    manuscript_types = ManuscriptType.objects.annotate(manuscript_count=Count('manuscript'))
+    categories = Category.objects.annotate(manuscript_count=Count('manuscript'))
+
+    # Group manuscripts by `year` field and count manuscripts per year
+    manuscript_years = (
+        manuscripts.filter(year__isnull=False)  # Ensure `year` is not null
+        .values('year')
+        .annotate(count=Count('id'))
+        .order_by('-year')  # Sort by year descending
+    )
+
+    # Pagination setup
+    paginator = Paginator(manuscripts, 10)  # Show 10 manuscripts per page
     page_number = request.GET.get('page')
-    manuscripts = paginator.get_page(page_number)
+    manuscripts_page = paginator.get_page(page_number)
 
-    return render(request, 'visitor_search_result.html', {
-        'manuscripts': manuscripts,
-        'search_query': search_query,
+    # Pass context to the template, including selected filter names
+    context = {
+        'manuscripts': manuscripts_page,
         'programs': programs,
         'manuscript_types': manuscript_types,
         'categories': categories,
-    })
+        'search_query': search_query,
+        'selected_program': program,
+        'selected_manuscript_type': manuscript_type,
+        'selected_category': category,
+        'selected_year': year,  # Include the selected year filter
+        'manuscript_years': manuscript_years,  # Include year aggregation
+    }
+    return render(request, 'visitor_search_result.html', context)
 
 def visitor_manuscript_detail(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
