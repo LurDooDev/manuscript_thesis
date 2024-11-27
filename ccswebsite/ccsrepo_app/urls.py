@@ -56,6 +56,8 @@ urlpatterns = [
     path('program/create/', views.create_program, name='create_program'),
     path('category/create/', views.create_category, name='create_category'),
     path('manuscripttype/create/', views.create_manuscripttype, name='create_manuscripttype'),
+    path('delete-manuscript/<int:manuscript_id>/', views.delete_manuscript, name='delete_manuscript'),
+
     #Redirecting
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),

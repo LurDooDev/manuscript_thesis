@@ -202,13 +202,30 @@
                                 <td>{{ manuscript.title }}</td>
                                 <td>{{ manuscript.authors }}</td>
                                 <td>Views: {{ manuscript.views }}</td>
-                                <td>
-                                    <a href="{% url 'visitor_manuscript_detail' manuscript.id %}" class="view-button">View</a>
+                                <td> <!-- Action column -->
+                                    <div class="button-group">
+                                        <a href="{% url 'visitor_manuscript_detail' manuscript.id %}" class="view-button">View</a>
+                                        {% if request.user.is_admin %}
+                                        <a href="#" 
+                                        class="delete-button btn btn-danger" 
+                                        onclick="confirmDeletion(this);" 
+                                        data-url="{% url 'delete_manuscript' manuscript.id %}">
+                                        Delete
+                                        </a>  
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <!-- Confirmation Dialog (Hidden by Default) -->
+<div id="custom-confirmation" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); z-index: 1000; text-align: center;">
+    <p style="font-size: 16px; margin-bottom: 20px;">Are you sure you want to delete this manuscript?</p>
+    <button id="confirm-yes" style="background: #d9534f; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">Yes</button>
+    <button id="confirm-no" style="background: #5bc0de; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">No</button>
+</div>
 
         <!-- Pagination below the table -->
         <div class="pagination-container">
@@ -281,6 +298,77 @@
 
     // Run the function when the page loads
     window.onload = hideFilterItemsIfActive;
+</script>
+
+<script>
+    // Custom confirmation function
+    function customConfirm(message) {
+        // Create a custom confirmation dialog dynamically
+        const confirmationBox = document.createElement('div');
+        confirmationBox.style.position = 'fixed';
+        confirmationBox.style.top = '50%';
+        confirmationBox.style.left = '50%';
+        confirmationBox.style.transform = 'translate(-50%, -50%)';
+        confirmationBox.style.background = '#fff';
+        confirmationBox.style.padding = '20px';
+        confirmationBox.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+        confirmationBox.style.zIndex = '1000';
+        confirmationBox.style.borderRadius = '8px';
+        confirmationBox.style.textAlign = 'center';
+
+        // Add content
+        confirmationBox.innerHTML = `
+            <p style="font-size: 16px; margin-bottom: 20px;">${message}</p>
+            <button style="background: #d9534f; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;" 
+                id="confirmYes">Yes</button>
+            <button style="background: #5bc0de; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;" 
+                id="confirmNo">No</button>
+        `;
+
+        document.body.appendChild(confirmationBox);
+
+        // Add event listeners for the buttons
+        return new Promise((resolve) => {
+            confirmationBox.querySelector('#confirmYes').addEventListener('click', () => {
+                confirmationBox.remove();
+                resolve(true); // User confirmed
+            });
+
+            confirmationBox.querySelector('#confirmNo').addEventListener('click', () => {
+                confirmationBox.remove();
+                resolve(false); // User canceled
+            });
+        }).then((result) => {
+            return result; // Return true or false based on user action
+        });
+    }
+</script>
+
+
+<script>
+    function confirmDeletion(button) {
+        // Show the confirmation dialog
+        const confirmationDialog = document.getElementById('custom-confirmation');
+        confirmationDialog.style.display = 'block';
+
+        // Attach event listeners to "Yes" and "No" buttons
+        const confirmYes = document.getElementById('confirm-yes');
+        const confirmNo = document.getElementById('confirm-no');
+
+        // If "Yes" is clicked, proceed with deletion
+        confirmYes.onclick = function() {
+            confirmationDialog.style.display = 'none'; // Hide the dialog
+            window.location.href = button.getAttribute('data-url'); // Redirect to delete URL
+        };
+
+        // If "No" is clicked, close the dialog
+        confirmNo.onclick = function() {
+            confirmationDialog.style.display = 'none'; // Hide the dialog
+        };
+
+        // Prevent default link action
+        return false;
+    }
 </script>
 
 

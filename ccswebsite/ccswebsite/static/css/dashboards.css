@@ -397,6 +397,119 @@ select {
 }
 
 
+h1 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Table container styling */
+.table-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+/* Table heading styling */
+.table-container h3 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+/* Table styling */
+.dashboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.dashboard-table th {
+    background-color: #f4f4f4;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+/* Row hover effect */
+.dashboard-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Link styling */
+.dashboard-table a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.dashboard-table a:hover {
+    text-decoration: underline;
+}
+
+/* Empty state styling */
+.dashboard-table td[colspan="2"],
+.dashboard-table td[colspan="3"] {
+    text-align: center;
+    color: #777;
+}
+
+/* Paginator Style */
+.pagination {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.pagination .step-links {
+    display: inline-block;
+}
+
+.pagination .step-links a {
+    padding: 8px 15px;
+    margin: 0 5px;
+    background-color: #064420;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.pagination .step-links a:hover {
+    background-color: #506A3A;
+}
+
+.pagination .step-links .current {
+    display: inline-block;
+    padding: 8px 15px;
+    background-color: #f0f0f0;
+    color: #064420;
+    border-radius: 5px;
+    font-weight: bold;
+    margin: 0 5px;
+}
+
+.pagination .step-links a:disabled {
+    background-color: #ccc;
+    color: #888;
+    pointer-events: none;
+}
+
+.pagination .step-links span {
+    margin: 0 5px;
+    font-size: 14px;
+    color: #064420;
+}
+
+
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .sidebar {

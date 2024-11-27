@@ -355,34 +355,42 @@ def manage_program(request):
         'page_obj': page_obj
     })
 
-#Dashboard Page
 @login_required(login_url='login')
 def dashboard_page(request):
     if not request.user.is_admin:
         return render(request, 'unauthorized.html', status=403)
-    # Get manuscripts with specific statuses
-    advisers = CustomUser.objects.filter(is_adviser=True).annotate(manuscript_count=Count('manuscripts')
+
+    # Get advisers with the count of approved manuscripts
+    advisers = CustomUser.objects.filter(is_adviser=True).annotate(
+        manuscript_count=Count('manuscripts', filter=Q(manuscripts__status='approved'))
     )
+
     programs = Program.objects.annotate(
-        manuscript_count=Count('manuscript')  # Count all manuscripts related to each program
+        manuscript_count=Count('manuscript', filter=Q(manuscript__status='approved'))  # Count only approved manuscripts
     )
+
     types = ManuscriptType.objects.annotate(
-        manuscript_count=Count('manuscript')  # Count all manuscripts related to each program
+        manuscript_count=Count('manuscript', filter=Q(manuscript__status='approved'))  # Count only approved manuscripts
     )
-    
-    manuscripts = Manuscript.objects.all()
+
+    # Filter approved manuscripts
     approved_manuscripts = Manuscript.objects.filter(status='approved')
-    pending_manuscripts = Manuscript.objects.filter(status='pending')
-    rejected_manuscript = Manuscript.objects.filter(status = 'rejected')
-    adviser_names = [adviser.first_name + ' ' + adviser.last_name for adviser in advisers]
-    
-    # Count manuscripts by status
-    pending_count = pending_manuscripts.count()
-    approved_count = approved_manuscripts.count()
-    rejected_count = rejected_manuscript.count()
+
+    # Count manuscripts by status (only approved manuscripts)
+    pending_count = Manuscript.objects.filter(status='pending').count()
+    approved_count = approved_manuscripts.count()  # Count only approved manuscripts
+    rejected_count = Manuscript.objects.filter(status='rejected').count()
     adviser_count = advisers.count()
-    manuscript_counts = [adviser.manuscript_count for adviser in advisers]
-    total_records = Manuscript.objects.all().count()  # Total manuscripts count
+
+    total_records = approved_count  # Total approved manuscripts count
+
+    # Get all approved manuscripts ordered by views in descending order (pagination will be applied)
+    top_manuscripts = approved_manuscripts.order_by('-views')
+
+    # Pagination setup: 5 manuscripts per page
+    paginator = Paginator(top_manuscripts, 5)
+    page_number = request.GET.get('page')
+    manuscripts_page = paginator.get_page(page_number)
 
     # Pass manuscripts and counts to the template
     context = {
@@ -390,12 +398,11 @@ def dashboard_page(request):
         'pending_count': pending_count,
         'rejected_count': rejected_count,
         'adviser_count': adviser_count,
-        'manuscript_counts': manuscript_counts,
-        
-        'manuscripts': manuscripts,
+        'manuscript_counts': [adviser.manuscript_count for adviser in advisers],
+        'top_manuscripts': top_manuscripts,
+        'manuscripts': manuscripts_page,  # Paginated manuscripts
         'total_records': total_records,
         'advisers': advisers,
-        'adviser_names': adviser_names,
         'programs': programs,
         'types': types,
     }
@@ -604,7 +611,7 @@ def ManageAdviser(request):
             email = request.POST.get('email', '').strip()
             username = request.POST.get('username', '').strip()
             first_name = request.POST.get('first_name', '').strip()
-            middle_name = request.POST.get('middle_name', '').strip()
+            middle_name = request.POST.get('middle_name', '').strip() or None  # Allow empty or None if not provided
             last_name = request.POST.get('last_name', '').strip()
             password1 = request.POST.get('password1', '').strip()
             password2 = request.POST.get('password2', '').strip()
@@ -634,7 +641,7 @@ def ManageAdviser(request):
                 email=email,
                 username=username,
                 first_name=first_name,
-                middle_name=middle_name,
+                middle_name=middle_name,  # Middle name can be None or empty
                 last_name=last_name,
                 is_adviser=True,
                 program_id=program_id
@@ -814,17 +821,19 @@ def create_adviser(request):
     else:
         programs = Program.objects.all()
         return render(request, 'ccsrepo_app/create_adviser.html', {'programs': programs})
-
+    
 def validate_adviser_data(email, username, first_name, middle_name, last_name, program_id, password1, password2):
     errors = {}
 
-    # Validate first name, middle name, last name
+    # Validate first name and last name
     if not first_name:
         errors['first_name'] = [_("First name is required.")]
-    if not middle_name:
-        errors['middle_name'] = [_("Middle name is required.")]
     if not last_name:
         errors['last_name'] = [_("Last name is required.")]
+
+    # Middle name is optional, no need to validate its presence
+    if middle_name and len(middle_name) < 2:  # Optional validation, if provided, check its length or other conditions
+        errors['middle_name'] = [_("Middle name is too short.")]
 
     # Validate program
     if not program_id:
@@ -1787,8 +1796,8 @@ def visitor_search_manuscripts(request):
     # Split the search query into individual tags (words)
     tags = search_query.split()  # Split by whitespace to treat each term as a tag
 
-    # Base queryset for manuscripts, filtering only approved manuscripts
-    manuscripts = Manuscript.objects.filter(status='approved')
+    # Base queryset for manuscripts, filtering only approved manuscripts with non-null publication_date
+    manuscripts = Manuscript.objects.filter(status='approved', publication_date__isnull=False)
 
     # Construct search filter using Q objects for multiple fields
     search_filter = Q()
@@ -1822,29 +1831,49 @@ def visitor_search_manuscripts(request):
     if request.GET.get('program'):
         program = Program.objects.get(id=request.GET['program'])
         manuscripts = manuscripts.filter(program_id=program.id)
+
     if request.GET.get('manuscript_type'):
         manuscript_type = ManuscriptType.objects.get(id=request.GET['manuscript_type'])
         manuscripts = manuscripts.filter(manuscript_type_id=manuscript_type.id)
+
     if request.GET.get('category'):
         category = Category.objects.get(id=request.GET['category'])
         manuscripts = manuscripts.filter(category_id=category.id)
+
     if request.GET.get('year'):  # Apply filter for the year
         year = request.GET.get('year')
-        manuscripts = manuscripts.filter(year=year)
+        manuscripts = manuscripts.filter(publication_date__year=year)
 
-    # Order manuscripts by publication_date in ascending order
+    # Apply filters for status=approved and publication_date is not null
+    manuscripts = manuscripts.filter(status='approved', publication_date__isnull=False)
+
+    # Order manuscripts by publication_date in descending order
     manuscripts = manuscripts.order_by('-publication_date')
 
-    # Annotate counts for programs, manuscript types, and categories
-    programs = Program.objects.annotate(manuscript_count=Count('manuscript'))
-    manuscript_types = ManuscriptType.objects.annotate(manuscript_count=Count('manuscript'))
-    categories = Category.objects.annotate(manuscript_count=Count('manuscript'))
+    # Annotate counts for programs, manuscript types, and categories for only approved manuscripts with a non-null publication_date
+    programs = Program.objects.annotate(
+        manuscript_count=Count(
+            'manuscript', 
+            filter=Q(manuscript__status='approved') & Q(manuscript__publication_date__isnull=False)
+        )
+    )
+    manuscript_types = ManuscriptType.objects.annotate(
+        manuscript_count=Count(
+            'manuscript', 
+            filter=Q(manuscript__status='approved') & Q(manuscript__publication_date__isnull=False)
+        )
+    )
+    categories = Category.objects.annotate(
+        manuscript_count=Count(
+            'manuscript', 
+            filter=Q(manuscript__status='approved') & Q(manuscript__publication_date__isnull=False)
+        )
+    )
 
-    # Group manuscripts by year field and count manuscripts per year
+    # Group manuscripts by year field and count approved manuscripts per year, ensuring publication_date is not null
     manuscript_years = (
-        manuscripts.filter(year__isnull=False)  # Ensure year is not null
-        .values('year')
-        .annotate(count=Count('id'))
+        manuscripts.values('year')
+        .annotate(count=Count('id', filter=Q(status='approved') & Q(publication_date__isnull=False)))
         .order_by('-year')  # Sort by year descending
     )
 
@@ -1867,7 +1896,6 @@ def visitor_search_manuscripts(request):
         'manuscript_years': manuscript_years,  # Include year aggregation
     }
     return render(request, 'visitor_search_result.html', context)
-
 
 def visitor_manuscript_detail(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
@@ -1922,3 +1950,14 @@ def visitor_manuscript_detail(request, manuscript_id):
         'has_access': has_access,
         'has_pending_request': has_pending_request,
     })
+
+def delete_manuscript(request, manuscript_id):
+    manuscript = get_object_or_404(Manuscript, id=manuscript_id)
+    
+    # Check if the user has permission to delete the manuscript
+    if request.user.is_admin:
+        manuscript.delete()
+    else:
+        return render(request, 'unauthorized.html', status=403)
+    
+    return redirect('visitor_search_manuscripts')

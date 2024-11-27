@@ -18,7 +18,7 @@
         {% endif %}
 
         <label for="middle_name">Middle Name</label>
-        <input type="text" id="middle_name" name="middle_name" value="{{ middle_name }}" required />
+        <input type="text" id="middle_name" name="middle_name" value="{{ middle_name }}" />
         {% if errors.middle_name %}
             <div class="error">{{ errors.middle_name.0 }}</div>
         {% endif %}

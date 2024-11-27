@@ -387,6 +387,85 @@ body {
     margin-top: 20px;
 }
 
+.delete-button {
+    color: red;
+    text-decoration: none;
+    padding: 5px 10px;
+    border: 1px solid red;
+    border-radius: 5px;
+    background-color: #ffe6e6;
+    cursor: pointer;
+}
+
+.delete-button:hover {
+    background-color: #ffcccc;
+    color: darkred;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px; /* Space between buttons */
+}
+
+/* Modal background */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+}
+
+/* Modal content */
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+}
+
+.confirm-button {
+    background-color: #d9534f; /* Red button */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.cancel-button {
+    background-color: #6c757d; /* Gray button */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Stack buttons on smaller screens */
+@media (max-width: 768px) {
+    .button-group {
+        flex-direction: column; /* Stack the buttons vertically */
+        gap: 5px; /* Reduce the gap */
+    }
+    
+    .view-button,
+    .delete-button {
+        width: 100%; /* Make buttons full-width for better appearance */
+        text-align: center; /* Center the text */
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
     .main-container {

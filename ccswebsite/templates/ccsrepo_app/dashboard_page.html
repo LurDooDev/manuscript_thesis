@@ -4,28 +4,75 @@
 <div class="content">
     <h1>Dashboard</h1>
 
-    <table class="manuscript-table">
-        <h3> Manuscript under the adviser</h3>
-        <thead>
-            <tr>
-                <th>Adviser</th>
-                <th>Total Manuscripts</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for adviser in advisers %}
-            <tr>
-                <td>
-                    {{ adviser.first_name }} {{ adviser.last_name }}
-                  </td>
-                  <td>{{ adviser.manuscript_count }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4">No Category found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Manuscripts under the adviser -->
+    <div class="table-container">
+        <h3>Manuscripts under the adviser</h3>
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Adviser</th>
+                    <th>Total Manuscripts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for adviser in advisers %}
+                <tr>
+                    <td>{{ adviser.first_name }} {{ adviser.last_name }}</td>
+                    <td>{{ adviser.manuscript_count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2">No manuscripts found for this adviser.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
+    <!-- Top Views of Manuscripts -->
+    <div class="table-container">
+        <h3>Top Views of Manuscripts</h3>
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Views</th>
+                    <th>Adviser</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for manuscript in manuscripts %}
+                <tr>
+                    <td><a href="{% url 'visitor_manuscript_detail' manuscript.id %}">{{ manuscript.title }}</a></td>
+                    <td>{{ manuscript.views }}</td>
+                    <td>{{ manuscript.adviser.first_name }} {{ manuscript.adviser.last_name }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No top viewed manuscripts found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination controls -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if manuscripts.has_previous %}
+                    <a href="?page=1">&laquo; first</a>
+                    <a href="?page={{ manuscripts.previous_page_number }}">previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ manuscripts.number }} of {{ manuscripts.paginator.num_pages }}.
+                </span>
+
+                {% if manuscripts.has_next %}
+                    <a href="?page={{ manuscripts.next_page_number }}">next</a>
+                    <a href="?page={{ manuscripts.paginator.num_pages }}">last &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>
 {% endblock %}
