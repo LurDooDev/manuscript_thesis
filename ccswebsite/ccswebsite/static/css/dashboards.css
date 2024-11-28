@@ -508,7 +508,77 @@ h1 {
     color: #064420;
 }
 
+.chart-row {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
 
+.small-chart {
+    width: 30%;
+    max-width: 300px; /* Optional: Limit the maximum width */
+    min-width: 200px; /* Optional: Set a minimum width */
+    height: 200px; /* Control the height */
+}
+
+.chart-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.content {
+    padding: 20px;
+}
+
+.chart-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.chart-container {
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+    height: 300px;
+}
+
+.card-section {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.card {
+    flex: 1;
+    min-width: 250px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #333;
+}
+
+.card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.card ul li {
+    margin-bottom: 5px;
+    font-size: 16px;
+    color: #555;
+}
 
 /* Responsive Styles */
 @media (max-width: 768px) {

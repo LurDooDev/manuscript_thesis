@@ -405,53 +405,52 @@ def dashboard_page(request):
     if not request.user.is_admin:
         return render(request, 'unauthorized.html', status=403)
 
-    # Get advisers with the count of approved manuscripts
-    advisers = CustomUser.objects.filter(is_adviser=True).annotate(
-        manuscript_count=Count('manuscripts', filter=Q(manuscripts__status='approved'))
+    # Manuscripts by category
+    category_counts = (
+        Manuscript.objects.values('category__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')
     )
-
-    programs = Program.objects.annotate(
-        manuscript_count=Count('manuscript', filter=Q(manuscript__status='approved'))  # Count only approved manuscripts
-    )
-
-    types = ManuscriptType.objects.annotate(
-        manuscript_count=Count('manuscript', filter=Q(manuscript__status='approved'))  # Count only approved manuscripts
-    )
-
-    # Filter approved manuscripts
-    approved_manuscripts = Manuscript.objects.filter(status='approved')
-
-    # Count manuscripts by status (only approved manuscripts)
-    pending_count = Manuscript.objects.filter(status='pending').count()
-    approved_count = approved_manuscripts.count()  # Count only approved manuscripts
-    rejected_count = Manuscript.objects.filter(status='rejected').count()
-    adviser_count = advisers.count()
-
-    total_records = approved_count  # Total approved manuscripts count
-
-    # Get all approved manuscripts ordered by views in descending order (pagination will be applied)
-    top_manuscripts = approved_manuscripts.order_by('-views')
-
-    # Pagination setup: 5 manuscripts per page
-    paginator = Paginator(top_manuscripts, 5)
-    page_number = request.GET.get('page')
-    manuscripts_page = paginator.get_page(page_number)
-
-    # Pass manuscripts and counts to the template
-    context = {
-        'approved_count': approved_count,
-        'pending_count': pending_count,
-        'rejected_count': rejected_count,
-        'adviser_count': adviser_count,
-        'manuscript_counts': [adviser.manuscript_count for adviser in advisers],
-        'top_manuscripts': top_manuscripts,
-        'manuscripts': manuscripts_page,  # Paginated manuscripts
-        'total_records': total_records,
-        'advisers': advisers,
-        'programs': programs,
-        'types': types,
+    category_data = {
+        'labels': [item['category__name'] for item in category_counts if item['category__name']],
+        'data': [item['count'] for item in category_counts if item['category__name']],
     }
-    return render(request, 'ccsrepo_app/dashboard_page.html', context)
+
+    # Manuscripts by program
+    program_counts = (
+        Manuscript.objects.values('program__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    program_data = {
+        'labels': [item['program__name'] for item in program_counts if item['program__name']],
+        'data': [item['count'] for item in program_counts if item['program__name']],
+    }
+
+    # Manuscripts by type
+    type_counts = (
+        Manuscript.objects.values('manuscript_type__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    type_data = {
+        'labels': [item['manuscript_type__name'] for item in type_counts if item['manuscript_type__name']],
+        'data': [item['count'] for item in type_counts if item['manuscript_type__name']],
+    }
+
+    # Data for summary cards
+    program_summary = [{'name': item['program__name'], 'count': item['count']} for item in program_counts if item['program__name']]
+    category_summary = [{'name': item['category__name'], 'count': item['count']} for item in category_counts if item['category__name']]
+    type_summary = [{'name': item['manuscript_type__name'], 'count': item['count']} for item in type_counts if item['manuscript_type__name']]
+
+    return render(request, 'ccsrepo_app/dashboard_page.html', {
+        'category_data': category_data,
+        'program_data': program_data,
+        'type_data': type_data,
+        'program_summary': program_summary,
+        'category_summary': category_summary,
+        'type_summary': type_summary,
+    })
 
 @login_required(login_url='login')
 def manage_category(request):
