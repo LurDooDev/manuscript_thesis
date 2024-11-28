@@ -10,8 +10,8 @@
         <thead>
             <tr>
                 <th>Student Name</th>
+                <th>Email</th>
                 <th>Course</th>
-                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -19,13 +19,8 @@
             {% for relationship in page_obj %}
             <tr>
                 <td>{{ relationship.student.first_name }} {{ relationship.student.middle_name }} {{ relationship.student.last_name }}</td>
+                <td>{{ relationship.student.email }}</td>
                 <td>{{ relationship.student.program.name }}</td>
-                <td>{% if relationship.status == "approved" %}
-                    Approved
-                    {% else %}
-                    Pending Approval
-                    {% endif %}
-                </td>
                 <td>
                     {% if relationship.status != 'approved' %}
                         <form method="post" action="{% url 'adviser_approve_student' %}">

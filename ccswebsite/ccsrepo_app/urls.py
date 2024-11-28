@@ -61,6 +61,7 @@ urlpatterns = [
     #Redirecting
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('activate/<uidb64>/<token>/', views.activate_account, name='activate_account'),
     #Visitor Flow
     path('landingpage/', views.index_view, name='index'),
     path('search/', views.visitor_search_manuscripts, name='visitor_search_manuscripts'),

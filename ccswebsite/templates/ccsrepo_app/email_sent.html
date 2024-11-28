@@ -1,0 +1,16 @@
+{% extends "base_auth.html" %} 
+{% block content %}
+<div class="signup-form-container">
+  <h2>Check Your Email in Spam or inbox</h2>
+  <p>An email has been sent to {{ email }} with instructions to activate your account.</p>
+</div>
+
+<script>
+  function togglePasswordVisibility() {
+      const password1 = document.getElementById("password1");
+      const password2 = document.getElementById("password2");
+      password1.type = password1.type === "password" ? "text" : "password";
+      password2.type = password2.type === "password" ? "text" : "password";
+  }
+</script>
+{% endblock %}

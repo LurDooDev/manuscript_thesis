@@ -133,23 +133,35 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+
+        # Check if a user with the given username exists
+        try:
+            user = CustomUser.objects.get(username=username)
+        except CustomUser.DoesNotExist:
+            messages.error(request, "Invalid username or password. Please try again.")
+            return redirect('login')
+
+        # Check if the user is active
+        if not user.is_active:
+            messages.error(request, "Your account is inactive. Please verify your email to activate your account.")
+            return redirect('login')
+
+        # Authenticate the user
         user = authenticate(request, username=username, password=password)
 
-        if user is not None and user.is_active:
+        if user is not None:
+            # Log in the user
             login(request, user)
 
             # Redirect based on user type
             if user.is_student:
                 return redirect('visitor_search_manuscripts')
-
             elif user.is_adviser:
                 return redirect('adviser_approve_student')
-
             elif user.is_admin:
                 return redirect('manage_users')
 
             return redirect('adviser_request')
-
         else:
             messages.error(request, "Invalid username or password. Please try again.")
             return redirect('login')
@@ -281,6 +293,14 @@ def validate_user_data(email, username, password1, password2):
 
     return errors
 
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from django.conf import settings
+
 def StudentRegister(request):
     if request.method == 'POST':
         # Retrieve and strip form data
@@ -296,10 +316,8 @@ def StudentRegister(request):
         # Validate user data
         errors = validate_user_data(email, username, password1, password2)
 
-        # If there are errors, re-render the form with errors and the previously entered data
         if errors:
             programs = Program.objects.all()
-            # Add the current form data to the context
             return render(request, 'ccsrepo_app/register.html', {
                 'programs': programs,
                 'errors': errors,
@@ -311,7 +329,7 @@ def StudentRegister(request):
                 'program_id': program_id
             })
 
-        # If validation passes, create the user
+        # Create the user but set `is_active` to False until email verification
         user = CustomUser(
             email=email,
             username=username,
@@ -319,14 +337,41 @@ def StudentRegister(request):
             middle_name=middle_name,
             last_name=last_name,
             is_student=False,
+            is_active=False,  # Account is inactive until verified
             program_id=program_id
         )
-        user.set_password(password1)  # Use the hashed password method
+        user.set_password(password1)
         user.save()
-        return redirect('login')
+
+        # Send activation email
+        current_site = get_current_site(request)
+        subject = 'Activate Your Account'
+        message = render_to_string('ccsrepo_app/activation_email.html', {
+            'user': user,
+            'domain': current_site.domain,
+            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+            'token': default_token_generator.make_token(user),
+        })
+        send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email], fail_silently=False)
+
+        return render(request, 'ccsrepo_app/email_sent.html', {'email': email})
     
     programs = Program.objects.all()
     return render(request, 'ccsrepo_app/register.html', {'programs': programs})
+
+def activate_account(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = CustomUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+        user = None
+
+    if user and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        return redirect('login')
+    else:
+        return render(request, 'ccsrepo_app/activation_invalid.html')
 #----------------End Register------------------------/
 
 #----------------Admin Managing ------------------------/
