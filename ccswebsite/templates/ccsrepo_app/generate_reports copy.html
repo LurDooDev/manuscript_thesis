@@ -1,0 +1,131 @@
+{% extends "base_dashboard.html" %}
+
+{% block content %}
+<div class="content">
+    <h1>Generate Report</h1>
+    
+    <!-- Form to select filters for report generation -->
+    <form class="modal-form" method="POST" action="{% url 'generate_reports' %}">
+        {% csrf_token %}
+        
+        <!-- Adviser Selection -->
+        <div class="form-group">
+            <label for="adviser">Select Adviser:</label>
+            <select id="adviser" name="adviser" class="form-control">
+                <option value="">--Select Adviser--</option>
+                {% for adviser in advisers %}
+                <option value="{{ adviser.id }}">{{ adviser.first_name }} {{ adviser.last_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Program Selection -->
+        <div class="form-group">
+            <label for="program">Select Program:</label>
+            <select id="program" name="program" class="form-control">
+                <option value="">--Select Program--</option>
+                {% for program in programs %}
+                <option value="{{ program.id }}">{{ program.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Category Selection -->
+        <div class="form-group">
+            <label for="category">Select Category:</label>
+            <select id="category" name="category" class="form-control">
+                <option value="">--Select Category--</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Manuscript Type Selection -->
+        <div class="form-group">
+            <label for="manuscript_type">Select Manuscript Type:</label>
+            <select id="manuscript_type" name="type" class="form-control">
+                <option value="">--Select Manuscript Type--</option>
+                {% for type in types %}
+                <option value="{{ type.id }}">{{ type.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Year Selection -->
+        <div class="form-group">
+            <label for="year">Select Batch Year:</label>
+            <select id="year" name="year" class="form-control">
+                <option value="">--Select Year--</option>
+                {% for year in years %}
+                <option value="{{ year.year }}">{{ year.year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Publication Year Selection -->
+        <div class="form-group">
+            <label for="publication_year">Select Publication Year:</label>
+            <select id="publication_year" name="publication_year" class="form-control">
+                <option value="">--Select Publication Year--</option>
+                {% for publication_year in publication_years %}
+                <option value="{{ publication_year.publication_date__year }}">{{ publication_year.publication_date__year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Generate Report</button>
+    </form>
+</div>
+
+<script>
+// No dependency on adviser for displaying other fields
+document.addEventListener('DOMContentLoaded', function () {
+    // Load all options dynamically if needed
+    fetch(`/get_filtered_options/all/`)
+        .then(response => response.json())
+        .then(data => {
+            updateFieldOptions(data);
+        });
+});
+
+// Function to update the options for the select fields
+function updateFieldOptions(data) {
+    // Update Program
+    var programSelect = document.getElementById('program');
+    programSelect.innerHTML = '<option value="">--Select Program--</option>';
+    data.programs.forEach(function(program) {
+        programSelect.innerHTML += `<option value="${program.id}">${program.name}</option>`;
+    });
+
+    // Update Category
+    var categorySelect = document.getElementById('category');
+    categorySelect.innerHTML = '<option value="">--Select Category--</option>';
+    data.categories.forEach(function(category) {
+        categorySelect.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+    });
+
+    // Update Manuscript Type
+    var typeSelect = document.getElementById('manuscript_type');
+    typeSelect.innerHTML = '<option value="">--Select Manuscript Type--</option>';
+    data.types.forEach(function(type) {
+        typeSelect.innerHTML += `<option value="${type.id}">${type.name}</option>`;
+    });
+
+    // Update Year
+    var yearSelect = document.getElementById('year');
+    yearSelect.innerHTML = '<option value="">--Select Year--</option>';
+    data.years.forEach(function(year) {
+        yearSelect.innerHTML += `<option value="${year.year}">${year.year}</option>`;
+    });
+
+    // Update Publication Year
+    var publicationYearSelect = document.getElementById('publication_year');
+    publicationYearSelect.innerHTML = '<option value="">--Select Publication Year--</option>';
+    data.publication_years.forEach(function(pub_year) {
+        publicationYearSelect.innerHTML += `<option value="${pub_year.publication_date__year}">${pub_year.publication_date__year}</option>`;
+    });
+}
+</script>
+{% endblock %}

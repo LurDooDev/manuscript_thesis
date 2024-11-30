@@ -1,5 +1,200 @@
 {% extends "base_dashboard.html" %}
 
 {% block content %}
+<div class="content">
+    <h1>Generate Report</h1>
+
+    <!-- Form to select filters for report generation -->
+    <form class="modal-form" method="POST" action="{% url 'generate_reports' %}" id="report-form">
+        {% csrf_token %}
+        
+        <!-- Adviser Selection -->
+        <div class="form-group">
+            <label for="adviser">Select Adviser:</label>
+            <select id="adviser" name="adviser" class="form-control">
+                <option value="">--Select Adviser--</option>
+                {% for adviser in advisers %}
+                <option value="{{ adviser.id }}">{{ adviser.first_name }} {{ adviser.last_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Program Selection -->
+        <div class="form-group">
+            <label for="program">Select Program:</label>
+            <select id="program" name="program" class="form-control">
+                <option value="">--Select Program--</option>
+                {% for program in programs %}
+                <option value="{{ program.id }}">{{ program.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Category Selection -->
+        <div class="form-group">
+            <label for="category">Select Category:</label>
+            <select id="category" name="category" class="form-control">
+                <option value="">--Select Category--</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Manuscript Type Selection -->
+        <div class="form-group">
+            <label for="manuscript_type">Select Manuscript Type:</label>
+            <select id="manuscript_type" name="type" class="form-control">
+                <option value="">--Select Manuscript Type--</option>
+                {% for type in types %}
+                <option value="{{ type.id }}">{{ type.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Year Selection -->
+        <div class="form-group">
+            <label for="year">Select Batch Year:</label>
+            <select id="year" name="year" class="form-control">
+                <option value="">--Select Year--</option>
+                {% for year in years %}
+                <option value="{{ year.year }}">{{ year.year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Publication Year Selection -->
+        <div class="form-group">
+            <label for="publication_year">Select Publication Year:</label>
+            <select id="publication_year" name="publication_year" class="form-control">
+                <option value="">--Select Publication Year--</option>
+                {% for publication_year in publication_years %}
+                <option value="{{ publication_year.publication_date__year }}">{{ publication_year.publication_date__year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Generate Report</button>
+    </form>
+</div>
+
+<!-- Modal for Preview -->
+<div id="reportPreviewModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Report Preview</h2>
+        <div id="preview-container">
+            <!-- Preview will be displayed here after form submission -->
+        </div>
+        
+        <!-- Exit and Download Buttons -->
+        <button id="download-btn" class="btn btn-success" style="display: none;">Download Report</button>
+        <button id="exit-btn" class="btn btn-secondary">close</button>
+    </div>
+</div>
+
+<script>
+// Modal setup
+var modal = document.getElementById("reportPreviewModal");
+var closeBtn = document.getElementsByClassName("close")[0];
+var exitBtn = document.getElementById("exit-btn");
+var downloadBtn = document.getElementById("download-btn");
+
+// When the user clicks the close button, close the modal
+closeBtn.onclick = function() {
+    modal.style.display = "none";
+}
+
+// Exit button behavior
+exitBtn.onclick = function() {
+    modal.style.display = "none"; // Hide the modal
+}
+
+// Handle form submission via AJAX
+document.getElementById('report-form').addEventListener('submit', function (event) {
+    event.preventDefault(); // Prevent form submission
+
+    var formData = new FormData(this);
+
+    // Send the form data using AJAX
+    fetch("{% url 'generate_reports' %}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Insert the preview HTML into the preview container
+        document.getElementById('preview-container').innerHTML = data.preview_html;
+
+        // Show the modal
+        modal.style.display = "block";
+
+        // Show the download button
+        downloadBtn.style.display = "inline-block";
+        
+        // Optionally set up the download link (e.g., if you have a URL for downloading the file)
+        downloadBtn.onclick = function() {
+            // You could implement the actual download logic here, like redirecting to a URL:
+            window.location.href = "{% url 'download_report' %}?adviser=" + formData.get('adviser') + "&program=" + formData.get('program') + "&category=" + formData.get('category') + "&type=" + formData.get('type') + "&year=" + formData.get('year') + "&publication_year=" + formData.get('publication_year');
+        };
+    })
+    .catch(error => {
+        console.error("Error generating report preview:", error);
+    });
+});
+
+// Close the modal if the user clicks anywhere outside the modal content
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+</script>
+
+<style>
+/* Modal styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black with opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 900px;
+}
+
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 10px;
+    top: 5px;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+button {
+    margin-top: 15px;
+}
+</style>
 
 {% endblock %}

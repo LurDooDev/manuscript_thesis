@@ -36,6 +36,9 @@ urlpatterns = [
     path('manage-category/', views.manage_category, name='manage_category'),
     path('manage-batch/', views.manage_batch, name='manage_batch'),
     path('manage-type/', views.manage_type, name='manage_type'),
+    path('generate-reports/', views.generate_reports, name='generate_reports'),
+    path('download-report/', views.download_report, name='download_report'),
+    path('get_filtered_options/<int:adviser_id>/', views.get_filtered_options, name='get_filtered_options'),
     #AJAX
     path('continue-scanning/<int:manuscript_id>/', views.continue_scanning, name='continue_scanning'),
     path('faculty-continue-scanning/<int:manuscript_id>/', views.faculty_continue_scanning, name='faculty_continue_scanning'),

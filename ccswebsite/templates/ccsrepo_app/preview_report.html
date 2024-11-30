@@ -1,0 +1,20 @@
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Program</th>
+            <th>Year</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for manuscript in manuscripts %}
+        <tr>
+            <td>{{ manuscript.title }}</td>
+            <td>{{ manuscript.authors }}</td>
+            <td>{{ manuscript.program.name }}</td>
+            <td>{{ manuscript.batch }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

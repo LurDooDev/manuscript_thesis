@@ -580,6 +580,47 @@ h1 {
     color: #555;
 }
 
+form {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.form-group select,
+button {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.report-table th,
+.report-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+.report-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .sidebar {

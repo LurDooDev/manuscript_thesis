@@ -1,0 +1,7 @@
+<div>
+    <ul>
+        {% for manuscript in manuscripts %}
+            <li>{{ manuscript.title }} - {{ manuscript.adviser.first_name }} {{ manuscript.adviser.last_name }}</li>
+        {% endfor %}
+    </ul>
+</div>

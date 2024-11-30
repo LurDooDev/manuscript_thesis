@@ -22,8 +22,9 @@ import fitz
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.db.models import Case, When, Value, IntegerField
-from django.db.models import Count
-
+from docx import Document
+from django.http import HttpResponse
+from django.db.models import Sum
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
     # Get all approved manuscripts
@@ -2005,3 +2006,205 @@ def delete_manuscript(request, manuscript_id):
         return render(request, 'unauthorized.html', status=403)
     
     return redirect('visitor_search_manuscripts')
+
+from docx import Document
+from django.http import HttpResponse
+from django.db.models import Sum
+@login_required(login_url='login')
+def generate_reports(request):
+    if request.method == 'POST':
+        # Get the selected filters
+        adviser_id = request.POST.get('adviser')
+        program_id = request.POST.get('program')
+        category_id = request.POST.get('category')
+        type_id = request.POST.get('type')  # Manuscript type
+        year = request.POST.get('year')
+        publication_year = request.POST.get('publication_year')
+
+        # Query the database with the selected filters
+        manuscripts = Manuscript.objects.filter(status='approved', publication_date__isnull=False)
+
+        # Apply filters based on the selected options
+        if adviser_id:
+            manuscripts = manuscripts.filter(adviser_id=adviser_id)
+        if program_id:
+            manuscripts = manuscripts.filter(program_id=program_id)
+        if category_id:
+            manuscripts = manuscripts.filter(category_id=category_id)
+        if type_id:
+            try:
+                type_id = int(type_id)
+                manuscripts = manuscripts.filter(manuscript_type_id=type_id)
+            except ValueError:
+                print(f"Invalid manuscript type ID: {type_id}")
+        if year:
+            manuscripts = manuscripts.filter(year=year)
+        if publication_year:
+            manuscripts = manuscripts.filter(publication_date__year=publication_year)
+
+        # For preview: create HTML table summary with your custom CSS class
+        preview_html = """
+        <table class="manuscript-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Adviser</th>
+                    <th>Category</th>
+                    <th>Program</th>
+                    <th>Type</th>
+                    <th>Year</th>
+                    <th>Authors</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        
+        # Add rows for each manuscript
+        for manuscript in manuscripts:
+            authors = manuscript.authors if manuscript.authors else 'N/A'
+            preview_html += f"""
+                <tr>
+                    <td>{manuscript.title}</td>
+                    <td>{manuscript.adviser.first_name} {manuscript.adviser.last_name}</td>
+                    <td>{manuscript.category.name if manuscript.category else 'N/A'}</td>
+                    <td>{manuscript.program.name if manuscript.program else 'N/A'}</td>
+                    <td>{manuscript.manuscript_type.name if manuscript.manuscript_type else 'N/A'}</td>
+                    <td>{manuscript.year}</td>
+                    <td>{authors}</td>
+                </tr>
+            """
+        
+        preview_html += "</tbody></table>"
+
+        # Return the preview HTML to be displayed on the frontend
+        return JsonResponse({
+            'preview_html': preview_html
+        })
+
+    # Render the filter form (unchanged)
+    advisers = CustomUser.objects.filter(is_adviser=True)
+    programs = Program.objects.all()
+    categories = Category.objects.all()
+    types = ManuscriptType.objects.all()
+    years = Manuscript.objects.filter(year__isnull=False).values('year').distinct()
+    publication_years = Manuscript.objects.filter(publication_date__isnull=False).values('publication_date__year').distinct()
+
+    return render(request, 'ccsrepo_app/generate_reports.html', {
+        'advisers': advisers,
+        'programs': programs,
+        'categories': categories,
+        'types': types,
+        'years': years,
+        'publication_years': publication_years,
+    })
+
+from docx.shared import RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+@login_required(login_url='login')
+def download_report(request):
+    # Get filter parameters from the query string
+    adviser_id = request.GET.get('adviser')
+    program_id = request.GET.get('program')
+    category_id = request.GET.get('category')
+    type_id = request.GET.get('type')
+    year = request.GET.get('year')
+    publication_year = request.GET.get('publication_year')
+
+    # Start the query to get approved manuscripts with valid publication dates
+    manuscripts = Manuscript.objects.filter(status='approved', publication_date__isnull=False)
+
+    # Apply filters based on the selected options
+    if adviser_id:
+        manuscripts = manuscripts.filter(adviser_id=adviser_id)
+    if program_id:
+        manuscripts = manuscripts.filter(program_id=program_id)
+    if category_id:
+        manuscripts = manuscripts.filter(category_id=category_id)
+    if type_id:  # Ensure the type filter is applied
+        manuscripts = manuscripts.filter(manuscript_type_id=type_id)
+    if year:
+        manuscripts = manuscripts.filter(year=year)
+    if publication_year:
+        manuscripts = manuscripts.filter(publication_date__year=publication_year)
+
+    # Debugging (Optional): Check filtered manuscripts
+    print("Manuscripts after filtering:", manuscripts.count())
+
+    # Generate the report as a Word document
+    doc = Document()
+    doc.add_heading('Generated Report', 0)
+    doc.add_paragraph(f"Report generated on: {timezone.now()}")
+    doc.add_paragraph("\n")
+
+    # Add a summary
+    total_views = manuscripts.aggregate(Sum('views'))['views__sum'] or 0
+    doc.add_heading('Summary', level=1)
+    doc.add_paragraph(f"Total manuscripts generated: {manuscripts.count()}")
+    doc.add_paragraph(f"Total views across all manuscripts: {total_views}")
+
+    # Create a table in the Word document
+    doc.add_heading('Manuscripts', level=1)
+
+    # Define the headers for the table
+    headers = ['Title', 'Adviser', 'Category', 'Program', 'Type', 'Year', 'Authors']
+    table = doc.add_table(rows=1, cols=len(headers))  # Create a table with the correct number of columns
+
+    # Add header cells with a normal style (bold text, no color)
+    hdr_cells = table.rows[0].cells
+    for i, header in enumerate(headers):
+        hdr_cells[i].text = header
+        hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER  # Center-align header text
+        hdr_cells[i].paragraphs[0].runs[0].font.bold = True  # Make header text bold
+
+    # Add rows for each manuscript and handle alternating row colors
+    for index, manuscript in enumerate(manuscripts):
+        row_cells = table.add_row().cells
+        row_cells[0].text = manuscript.title
+        row_cells[1].text = f"{manuscript.adviser.first_name} {manuscript.adviser.last_name}"
+        row_cells[2].text = manuscript.category.name if manuscript.category else 'N/A'
+        row_cells[3].text = manuscript.program.name if manuscript.program else 'N/A'
+        row_cells[4].text = manuscript.manuscript_type.name if manuscript.manuscript_type else 'N/A'
+        row_cells[5].text = str(manuscript.year)
+        row_cells[6].text = manuscript.authors if manuscript.authors else 'N/A'
+
+        # Style for alternating row colors
+        if index % 2 == 0:  # Even index - light yellow
+            for cell in row_cells:
+                cell._element.get_or_add_tcPr().append(OxmlElement('w:shd'))
+                cell._element.xpath('.//w:shd')[0].set(qn('w:fill'), "FAF1E6")  # Light background for even rows
+        else:  # Odd index - white
+            for cell in row_cells:
+                cell._element.get_or_add_tcPr().append(OxmlElement('w:shd'))
+                cell._element.xpath('.//w:shd')[0].set(qn('w:fill'), "FFFFFF")  # White background for odd rows
+
+    # Save the document to the response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = 'attachment; filename="report.docx"'
+    doc.save(response)
+
+    return response
+
+def get_filtered_options(request, adviser_id):
+    manuscripts = Manuscript.objects.filter(
+        status='approved',
+        publication_date__isnull=False
+    )
+    if adviser_id != "all":
+        manuscripts = manuscripts.filter(adviser_id=adviser_id)
+
+    programs = Program.objects.filter(manuscript__in=manuscripts).distinct().values('id', 'name')
+    categories = Category.objects.filter(manuscript__in=manuscripts).distinct().values('id', 'name')
+    types = ManuscriptType.objects.filter(manuscript__in=manuscripts).distinct().values('id', 'name')
+    years = manuscripts.values('year').distinct()
+    publication_years = manuscripts.values('publication_date__year').distinct()
+
+    data = {
+        'programs': list(programs),
+        'categories': list(categories),
+        'types': list(types),
+        'years': list(years),
+        'publication_years': list(publication_years),
+    }
+    return JsonResponse(data)
