@@ -25,6 +25,12 @@ from django.db.models import Case, When, Value, IntegerField
 from docx import Document
 from django.http import HttpResponse
 from django.db.models import Sum
+
+from io import BytesIO
+from django.db.models import Count
+from PIL import Image
+import pytesseract
+import fitz
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
     # Get all approved manuscripts
@@ -1027,28 +1033,29 @@ def extract_authors_from_first_page(first_page_text):
 
     return "No authors found"
 
+
+from io import BytesIO
+from django.db.models import Count
+from PIL import Image
+import pytesseract
+import fitz
 def process_and_extract_manuscript_data(pdf_path, manuscript, max_abstract_pages=5, chunk_size=5, max_pages=5):
-    """Process the manuscript by extracting abstract, OCR data, title, year, and authors from the first `max_pages`."""
     doc = fitz.open(pdf_path)
     ocr_data_list = []
     abstract_text = None
     first_page_text = None
 
-    # Ensure we only process up to `max_pages`
     pages_to_process = min(max_pages, len(doc))
 
-    # Process up to `max_pages`
     for page_num in range(pages_to_process):
         page = doc.load_page(page_num)
         pix = page.get_pixmap(dpi=120)
         img = Image.open(BytesIO(pix.tobytes("png")))
         page_text = pytesseract.image_to_string(img).strip()
 
-        # Capture the first page's text for title, year, and authors extraction
         if page_num == 0:
             first_page_text = page_text
 
-        # Attempt to extract abstract from the first `max_abstract_pages`
         if abstract_text is None and page_num < max_abstract_pages:
             lower_text = page_text.lower()
             if lower_text.startswith("abstract") or lower_text.startswith("executive summary"):
@@ -1058,19 +1065,15 @@ def process_and_extract_manuscript_data(pdf_path, manuscript, max_abstract_pages
                     extracted_text = extracted_text.split("keywords")[0].strip()
                 abstract_text = extracted_text or "No abstract found"
 
-        # Add OCR data for this page
         ocr_data_list.append(PageOCRData(manuscript=manuscript, page_num=page_num + 1, text=page_text))
 
-        # Save OCR data in chunks to reduce memory usage
         if len(ocr_data_list) >= chunk_size:
             PageOCRData.objects.bulk_create(ocr_data_list)
             ocr_data_list = []
 
-    # Save any remaining OCR data
     if ocr_data_list:
         PageOCRData.objects.bulk_create(ocr_data_list)
 
-    # Extract title, year, and authors from the first page
     title = extract_title_from_first_page(first_page_text)
     year = extract_year_from_first_page(first_page_text)
     authors = extract_authors_from_first_page(first_page_text)
@@ -1080,9 +1083,9 @@ def process_and_extract_manuscript_data(pdf_path, manuscript, max_abstract_pages
     manuscript.year = year
     manuscript.authors = authors
     manuscript.abstracts = abstract_text or "No abstract found"
-    manuscript.page_count = len(doc)  # Total number of pages in the document
-    manuscript.current_page_count = pages_to_process  # Only processed up to `max_pages`
-    manuscript.remaining_page = len(doc) - pages_to_process  # Remaining pages, if any
+    manuscript.page_count = len(doc)
+    manuscript.current_page_count = pages_to_process
+    manuscript.remaining_page = len(doc) - pages_to_process
     manuscript.save()
 
 @login_required(login_url='login')
