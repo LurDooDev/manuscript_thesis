@@ -25,18 +25,21 @@ from django.db.models import Case, When, Value, IntegerField
 from docx import Document
 from django.http import HttpResponse
 from django.db.models import Sum
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from django.conf import settings
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
-from io import BytesIO
-from django.db.models import Count
-from PIL import Image
-import pytesseract
-import fitz
 #----------------Search and Manuscript flow System ------------------------/
 def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=None, category_id=None):
-    # Get all approved manuscripts
     manuscripts = Manuscript.objects.filter(status='approved')
 
-    # Filter based on search query for title, abstracts, batch name, and category
     if search_query:
         manuscripts = manuscripts.filter(
             Q(title__icontains=search_query) |
@@ -50,7 +53,6 @@ def get_filtered_manuscripts(search_query, program_id=None, manuscript_type_id=N
             Q(manuscript_type__name__icontains=search_query)
         )
 
-    # Filter by program, manuscript type, category, and batch if specified
     if program_id:
         manuscripts = manuscripts.filter(program_id=program_id)
     if manuscript_type_id:
@@ -66,15 +68,12 @@ def manuscript_search_page(request):
     manuscript_type_id = request.GET.get('manuscript_type')
     category_id = request.GET.get('category')
 
-    # Get filtered manuscripts based on search query and filters
     manuscripts = get_filtered_manuscripts(search_query, program_id, manuscript_type_id, category_id)
 
-    # Retrieve additional filter options
     programs = Program.objects.all()
     manuscript_types = ManuscriptType.objects.all()
     categories = Category.objects.all()
 
-    # Pagination
     paginator = Paginator(manuscripts, 5)
     page_number = request.GET.get('page')
     manuscripts = paginator.get_page(page_number)
@@ -90,14 +89,11 @@ def manuscript_search_page(request):
 def view_manuscript(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
-    # Check if the user is the student or adviser of the manuscript
     is_student = request.user == manuscript.student
     
-    # Check if the user is an admin
     is_admin = request.user.is_admin
     is_adviser = request.user.is_adviser
 
-    # Check if the user has an approved access request
     access_request = ManuscriptAccessRequest.objects.filter(
         manuscript=manuscript,
         student=request.user,
@@ -105,15 +101,13 @@ def view_manuscript(request, manuscript_id):
         access_start_date__lte=timezone.now(),
         access_end_date__gte=timezone.now()
     ).first()
-    
-    # Check if the user has a pending access request
+
     has_pending_request = ManuscriptAccessRequest.objects.filter(
         manuscript=manuscript,
         student=request.user,
         status='pending'
     ).exists()
 
-    # Set has_access to True if the user is the student, adviser, admin, or has an approved request
     has_access = is_student or is_adviser or is_admin or (access_request is not None)
 
     return render(request, 'ccsrepo_app/view_manuscript.html', {
@@ -141,19 +135,16 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        # Check if a user with the given username exists
         try:
             user = CustomUser.objects.get(username=username)
         except CustomUser.DoesNotExist:
             messages.error(request, "Invalid username or password. Please try again.")
             return redirect('login')
 
-        # Check if the user is active
         if not user.is_active:
             messages.error(request, "Your account is inactive. Please verify your email to activate your account.")
             return redirect('login')
 
-        # Authenticate the user
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
@@ -191,7 +182,6 @@ def request_adviser_view(request):
         try:
             adviser = CustomUser.objects.get(email=adviser_email, is_adviser=True)
 
-            # Check if there's already an approved relationship with the adviser
             existing_relationship = AdviserStudentRelationship.objects.filter(adviser=adviser, student=student).first()
 
             if existing_relationship:
@@ -200,7 +190,6 @@ def request_adviser_view(request):
                 else:
                     messages.warning(request, "You have already sent a request to this adviser.")
             else:
-                # Create a new adviser-student relationship with 'pending' status
                 AdviserStudentRelationship.objects.create(adviser=adviser, student=student, status='pending')
                 return redirect('adviser_request_success')
 
@@ -216,10 +205,8 @@ def approve_student_view(request):
     if not request.user.is_adviser:
         return render(request, 'unauthorized.html', status=403)
 
-    # Get all relationships where the logged-in user is the adviser, ordered by created_at
     relationships = AdviserStudentRelationship.objects.filter(adviser=request.user).order_by('-created_at')
 
-    # Pagination setup: Show 5 relationships per page
     paginator = Paginator(relationships, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -227,19 +214,13 @@ def approve_student_view(request):
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
         try:
-            # Get the student relationship for the adviser
             student_relationship = get_object_or_404(AdviserStudentRelationship, id=student_id, adviser=request.user)
             
-            # Get the student from the relationship
             student = student_relationship.student
 
-            # Check if the status is already approved before updating
             if student_relationship.status != 'approved':
-                # Update the status of the relationship to approved
-                student_relationship.status = AdviserStudentRelationship.APPROVED  # Assuming you added the constant 'APPROVED'
+                student_relationship.status = AdviserStudentRelationship.APPROVED
                 student_relationship.save()
-
-                # Optionally, set the student role to True if needed (e.g., if your CustomUser model has is_student)
                 student.is_student = True
                 student.save()
             else:
@@ -253,6 +234,7 @@ def approve_student_view(request):
     return render(request, 'ccsrepo_app/adviser_approve_student.html', {'page_obj': page_obj})
 
 #----------------End Student and Adviser ------------------------/
+
 #----------------Register ------------------------/
 def validate_user_password(password):
     errors = []
@@ -300,13 +282,6 @@ def validate_user_data(email, username, password1, password2):
 
     return errors
 
-from django.contrib.sites.shortcuts import get_current_site
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.contrib.auth.tokens import default_token_generator
-from django.template.loader import render_to_string
-from django.core.mail import send_mail
-from django.conf import settings
 
 def StudentRegister(request):
     if request.method == 'POST':
@@ -344,7 +319,7 @@ def StudentRegister(request):
             middle_name=middle_name,
             last_name=last_name,
             is_student=False,
-            is_active=False,  # Account is inactive until verified
+            is_active=False,
             program_id=program_id
         )
         user.set_password(password1)
@@ -482,7 +457,6 @@ def manage_category(request):
             'page_obj': page_obj
         })
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 @login_required(login_url='login')
@@ -610,20 +584,16 @@ def manage_batch(request):
         if request.method == 'POST':
             name = request.POST.get('name', '').strip()
 
-            # Check if the batch name already exists
             if Batch.objects.filter(name__iexact=name).exists():
                 messages.error(request, "A batch with this name already exists.")
             else:
-                # Create the batch if it doesn't already exist
                 Batch.objects.create(name=name)
                 messages.success(request, "Batch created successfully.")
             return redirect('manage_batch')
 
-        # Fetch all batches to display in the template
         batch = Batch.objects.all()
         return render(request, 'ccsrepo_app/manage_batch.html', {'batch': batch})
 
-    # Render the unauthorized page for non-admin users
     return render(request, 'unauthorized.html', status=403)
 
 @login_required(login_url='login')
@@ -632,11 +602,9 @@ def manage_type(request):
         if request.method == 'POST':
             name = request.POST.get('name', '').strip()
 
-            # Check if the type name already exists
             if ManuscriptType.objects.filter(name__iexact=name).exists():
                 messages.error(request, "A type with this name already exists.")
             else:
-                # Create the type if it doesn't already exist
                 ManuscriptType.objects.create(name=name)
                 messages.success(request, "Type created successfully.")
             return redirect('manage_type')
@@ -662,7 +630,7 @@ def ManageAdviser(request):
             email = request.POST.get('email', '').strip()
             username = request.POST.get('username', '').strip()
             first_name = request.POST.get('first_name', '').strip()
-            middle_name = request.POST.get('middle_name', '').strip() or None  # Allow empty or None if not provided
+            middle_name = request.POST.get('middle_name', '').strip() or None
             last_name = request.POST.get('last_name', '').strip()
             password1 = request.POST.get('password1', '').strip()
             password2 = request.POST.get('password2', '').strip()
@@ -716,68 +684,51 @@ def ManageAdviser(request):
             'page_obj': page_obj,
             'programs': programs
         })
-
-    # Render the unauthorized page for non-admin users
     return render(request, 'unauthorized.html', status=403)
 
 @login_required(login_url='login')
 def create_program(request):
     if request.user.is_admin:
-        # Initialize variables to retain form values in case of validation failure
         name = ""
         abbreviation = ""
 
         if request.method == "POST":
-            # Retrieve and strip form inputs
             name = request.POST.get("name", "").strip()
             abbreviation = request.POST.get("abbreviation", "").strip()
 
-            # Check for duplicates in name and abbreviation
             if Program.objects.filter(name__iexact=name).exists():
                 messages.error(request, _("A program with this name already exists."))
             elif Program.objects.filter(abbreviation__iexact=abbreviation).exists():
                 messages.error(request, _("A program with this abbreviation already exists."))
             else:
-                # Create the program if no duplicates are found
                 Program.objects.create(name=name, abbreviation=abbreviation)
                 messages.success(request, _("Program created successfully."))
-                return redirect("manage_program")  # Redirect to the program management page
+                return redirect("manage_program")
 
-        # Render the form for GET requests or on validation failure
         return render(request, "ccsrepo_app/create_program.html", {"program": {"name": name, "abbreviation": abbreviation}})
 
-    # Render the unauthorized page for non-admin users
     return render(request, "unauthorized.html", status=403)
 
 @login_required(login_url='login')
 def create_category(request):
     if request.user.is_admin:
-        # Initialize variable to retain form values in case of validation failure
         name = ""
 
         if request.method == "POST":
-            # Retrieve and strip form inputs
             name = request.POST.get("name", "").strip()
 
-            # Check for duplicate category name
             if Category.objects.filter(name__iexact=name).exists():
                 messages.error(request, _("A category with this name already exists."))
             else:
-                # Create the category if no duplicates are found
                 Category.objects.create(name=name)
                 messages.success(request, _("Category created successfully."))
-                return redirect("manage_category")  # Redirect to the category management page
-
-        # Render the form for GET requests or on validation failure
+                return redirect("manage_category")
         return render(request, "ccsrepo_app/create_category.html", {"category": {"name": name}})
-
-    # Render the unauthorized page for non-admin users
     return render(request, "unauthorized.html", status=403)
 
 @login_required(login_url='login')
 def create_manuscripttype(request):
     if request.user.is_admin:
-        # Initialize an empty dictionary for storing the form values in case of errors
         manuscripttype = {'name': ''}
 
         if request.method == 'POST':
@@ -882,8 +833,7 @@ def validate_adviser_data(email, username, first_name, middle_name, last_name, p
     if not last_name:
         errors['last_name'] = [_("Last name is required.")]
 
-    # Middle name is optional, no need to validate its presence
-    if middle_name and len(middle_name) < 2:  # Optional validation, if provided, check its length or other conditions
+    if middle_name and len(middle_name) < 2:
         errors['middle_name'] = [_("Middle name is too short.")]
 
     # Validate program
@@ -918,7 +868,6 @@ def validate_adviser_data(email, username, first_name, middle_name, last_name, p
 
 
 #----------------Manuscript System ------------------------/
-#----------------UTIL/Helper------------------------/
 
 def validate_user_title(title):
     errors = []
@@ -932,7 +881,7 @@ def validate_user_title(title):
 def extract_title_from_first_page(first_page_text):
     """Extract and format the title from the first page."""
     title_text = first_page_text.replace('\n', ' ').strip()
-    title_text = re.sub(r'\s+', ' ', title_text)  # Normalize spaces to a single space
+    title_text = re.sub(r'\s+', ' ', title_text)
 
     # Define possible start and end keywords for the title extraction
     title_start_keywords = ["Zamboanga City", "Department of Information Technology"]
@@ -957,7 +906,7 @@ def extract_title_from_first_page(first_page_text):
     for exclude_keyword in title_exclude_keywords:
         exclude_idx = title_text.lower().find(exclude_keyword.lower())
         if exclude_idx != -1:
-            end_idx = exclude_idx  # Adjust end index to exclude unwanted part
+            end_idx = exclude_idx
             break
 
     if start_idx != -1 and end_idx != -1:
@@ -1033,12 +982,6 @@ def extract_authors_from_first_page(first_page_text):
 
     return "No authors found"
 
-
-from io import BytesIO
-from django.db.models import Count
-from PIL import Image
-import pytesseract
-import fitz
 def process_and_extract_manuscript_data(pdf_path, manuscript, max_abstract_pages=5, chunk_size=5, max_pages=5):
     doc = fitz.open(pdf_path)
     ocr_data_list = []
@@ -1216,12 +1159,7 @@ def final_manuscript_page(request, manuscript_id):
 #----------------End Manuscript System ------------------------/
 
 #----------------Adviser System ------------------------/
-# def adviser_manuscript(request):
-#     manuscripts = Manuscript.objects.filter(adviser=request.user).exclude(student=request.user)
 
-#     return render(request, 'ccsrepo_app/adviser_manuscript.html', {
-#         'manuscripts': manuscripts,
-#     })
 @login_required(login_url='login')
 def adviser_manuscript(request):
     if request.user.is_adviser:
@@ -1233,15 +1171,15 @@ def adviser_manuscript(request):
         ).annotate(
             # Assign priority values for statuses
             status_priority=Case(
-                When(status="pending", then=Value(1)),  # Pending manuscripts first
-                When(status="review", then=Value(2)),  # Review manuscripts next
-                When(status="approved", then=Value(3)),  # Approved manuscripts last
-                default=Value(4),  # Fallback for any other statuses
+                When(status="pending", then=Value(1)),
+                When(status="review", then=Value(2)),
+                When(status="approved", then=Value(3)),
+                default=Value(4),
                 output_field=IntegerField(),
             )
         ).order_by(
-            'status_priority',  # Sort by priority (pending first)
-            '-upload_date'  # Within each status, sort by most recent upload date
+            'status_priority',
+            '-upload_date'
         )
 
         # Paginate the results
@@ -1254,14 +1192,11 @@ def adviser_manuscript(request):
             'manuscripts': manuscripts,
         })
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 @login_required(login_url='login')
 def adviser_review(request, manuscript_id):
-    # Check if the user is an adviser
     if request.user.is_adviser:
-        # Fetch the manuscript or return 404 if not found
         manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
         if request.method == "POST":
@@ -1276,14 +1211,11 @@ def adviser_review(request, manuscript_id):
             manuscript.publication_date = timezone.now() if decision == "approve" else None
             manuscript.save()
 
-            # Redirect to the adviser manuscripts page
             return redirect('adviser_manuscript')
 
-        # Render the review page with the manuscript data
         return render(request, 'ccsrepo_app/adviser_review.html', {'manuscript': manuscript})
 
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 #----------------End Adviser System ------------------------/
@@ -1291,7 +1223,6 @@ def adviser_review(request, manuscript_id):
 #----------------Student System ------------------------/
 @login_required(login_url='login')
 def student_manuscripts_view(request):
-    # Check if the user is authenticated and is a student
     if request.user.is_student:
         manuscripts = Manuscript.objects.filter(
             student=request.user, 
@@ -1306,7 +1237,6 @@ def student_manuscripts_view(request):
             'page_obj': page_obj,
         })
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 def manuscript_detail_view(request, manuscript_id):
@@ -1327,10 +1257,6 @@ def manuscript_detail_view(request, manuscript_id):
     return render(request, 'ccsrepo_app/manuscript_detail.html', context)
 
 def extract_text_from_page(pdf_file, page_number):
-    """
-    Extract text from a specific page of a PDF file.
-    Falls back to OCR if no text is extracted.
-    """
     try:
         pdf_document = fitz.open(pdf_file.path)
         page = pdf_document.load_page(page_number - 1)  # Zero-indexed in PyMuPDF
@@ -1351,10 +1277,6 @@ def extract_text_from_page(pdf_file, page_number):
         return ""
 
 def continue_scanning(request, manuscript_id):
-    """
-    Processes the next 10 pages of the manuscript for OCR, 
-    or fewer if fewer pages remain.
-    """
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
     # Determine the range of pages to process
@@ -1397,10 +1319,6 @@ def continue_scanning(request, manuscript_id):
     return redirect('manuscript_detail', manuscript_id=manuscript.id)
 
 def faculty_continue_scanning(request, manuscript_id):
-    """
-    Processes the next 10 pages of the manuscript for OCR, 
-    or fewer if fewer pages remain.
-    """
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
     # Determine the range of pages to process
@@ -1417,9 +1335,8 @@ def faculty_continue_scanning(request, manuscript_id):
             print(f"Skipping page {page_number}: already processed.")
             continue
 
-        # Extract OCR text and save to the database
         ocr_text = extract_text_from_page(manuscript.pdf_file, page_number)
-        if ocr_text:  # Only save if there is text
+        if ocr_text:
             try:
                 PageOCRData.objects.create(
                     manuscript=manuscript,
@@ -1439,7 +1356,6 @@ def faculty_continue_scanning(request, manuscript_id):
 
     print(f"Scanning completed for {pages_to_process} pages. Current page: {manuscript.current_page_count}")
 
-    # Redirect back to the manuscript details page
     return redirect('faculty_detail', manuscript_id=manuscript.id)
 
 #----------------End Student System ------------------------/
@@ -1448,32 +1364,26 @@ def faculty_continue_scanning(request, manuscript_id):
 
 @login_required(login_url='login')
 def faculty_manuscripts_view(request):
-    # Check if the user is an adviser or admin
     if request.user.is_adviser or request.user.is_admin:
-        # Fetch manuscripts for the authenticated user
         manuscripts = Manuscript.objects.filter(
-            adviser=request.user,  # Assuming adviser is related to Manuscript
+            adviser=request.user,
             upload_show=True
         ).order_by('-publication_date')
         
         # Set up pagination
-        paginator = Paginator(manuscripts, 5)  # Show 2 manuscripts per page
+        paginator = Paginator(manuscripts, 5)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
-        # Render the manuscripts page
         return render(request, 'ccsrepo_app/faculty_manuscript.html', {
             'page_obj': page_obj,
         })
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 @login_required(login_url='login')
 def faculty_detail_view(request, manuscript_id):
-    # Check if the user is an adviser or an admin
     if request.user.is_adviser or request.user.is_admin:
-        # Fetch the manuscript or return 404 if not found
         manuscript = get_object_or_404(Manuscript, id=manuscript_id)
 
         # Calculate the progress percentage if there are pages to process
@@ -1488,26 +1398,21 @@ def faculty_detail_view(request, manuscript_id):
             'progress_percentage': progress_percentage
         }
 
-        # Render the faculty detail page
         return render(request, 'ccsrepo_app/faculty_detail.html', context)
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 #----------------Faculty Upload System ------------------------/
 @login_required(login_url='login')
 def faculty_upload_manuscript(request):
-    # Check if the user is an adviser or an admin
     if request.user.is_adviser or request.user.is_admin:
         if request.method == 'POST':
-            # Get the uploaded file from the request
             pdf_file = request.FILES.get('pdf_file')
 
             if pdf_file:
-                # Create a new Manuscript object
                 manuscript = Manuscript(
                     pdf_file=pdf_file,
                     student=request.user,
-                    abstracts="No abstract found"  # Default value if abstract is not extracted
+                    abstracts="No abstract found"
                 )
                 manuscript.save()
 
@@ -1519,16 +1424,12 @@ def faculty_upload_manuscript(request):
                     try:
                         process_and_extract_manuscript_data(pdf_file_path, manuscript, max_abstract_pages=5, chunk_size=5)
                     except Exception as e:
-                        # Log or print the error for debugging
                         print(f"Error processing PDF: {e}")
 
-                # Redirect to the final confirmation page with the manuscript ID
                 return redirect('faculty_final_page', manuscript_id=manuscript.id)
 
-        # Render the upload page for GET requests
         return render(request, 'ccsrepo_app/faculty_upload_page.html')
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 @login_required(login_url='login')
@@ -1588,9 +1489,6 @@ def faculty_final_page(request, manuscript_id):
             manuscript.upload_show = True
 
             manuscript.save()
-
-            # **Keyword Extraction After Save**
-            # Combine relevant fields for keyword extraction
             combined_text = f"{title} {abstracts} {authors}".lower()
 
             # Extract keywords based on tech-related terms
@@ -1625,11 +1523,9 @@ def faculty_final_page(request, manuscript_id):
 def request_access(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     
-    # Check if the user is the assigned student or already has access
     if request.user.is_student and request.user == manuscript.student:
         return redirect('view_pdf', manuscript_id=manuscript.id)
 
-    # Check if an access request already exists for this student and manuscript
     existing_request = ManuscriptAccessRequest.objects.filter(
         manuscript=manuscript, student=request.user, status='pending'
     ).exists()
@@ -1659,23 +1555,18 @@ def manuscript_access_requests(request):
             'page_obj': page_obj,
         })
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 def manage_access_request(request):
-    # Manage approval or denial of a request via a single endpoint
     if request.method == "POST":
         request_id = request.POST.get("request_id")
         action = request.POST.get("action")
         
-        # Retrieve the access request and verify the adviser is responsible
         access_request = get_object_or_404(ManuscriptAccessRequest, id=request_id, manuscript__adviser=request.user)
         
         if action == "approve":
-            # Approve and set the access duration
             access_request.approve(duration_days=7)
         elif action == "deny":
-            # Deny the access request
             access_request.deny()
         
     return redirect("manuscript_access_requests")
@@ -1683,10 +1574,8 @@ def manage_access_request(request):
 @login_required(login_url='login')
 def student_access_requests(request):
     if request.user.is_student:
-        # Fetch access requests for the logged-in student
         access_requests = ManuscriptAccessRequest.objects.filter(student=request.user)
 
-        # Set up pagination for the access requests
         paginator = Paginator(access_requests, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -1696,20 +1585,16 @@ def student_access_requests(request):
             'page_obj': page_obj,
         })
     else:
-        # Render the unauthorized page for unauthorized users
         return render(request, 'unauthorized.html', status=403)
 
 
 def delete_unpublished_manuscripts(request):
     if request.method == 'POST':
-        # Filter manuscripts where upload_show is False
         manuscripts_to_delete = Manuscript.objects.filter(upload_show=False)
 
         for manuscript in manuscripts_to_delete:
-            # Delete related PageOCR records
             PageOCRData.objects.filter(manuscript=manuscript).delete()
 
-            # Delete the PDF file from the filesystem
             if manuscript.pdf_file and os.path.isfile(manuscript.pdf_file.path):
                 try:
                     os.remove(manuscript.pdf_file.path)
@@ -1722,11 +1607,10 @@ def delete_unpublished_manuscripts(request):
             print(f"Deleted manuscript: {manuscript.title}")
 
         messages.success(request, "Unpublished manuscripts have been successfully deleted.")
-        return redirect('delete_unpublished_manuscripts')  # Redirect to your desired page after deletion
+        return redirect('delete_unpublished_manuscripts')
     return render(request, 'ccsrepo_app/delete_unpublished_manuscript.html')
 
 # ----------------Indexing System ------------------------/
-# Define the list of tech-related keywords
 tech_related_keywords = [
     "machine learning", "artificial intelligence", "deep learning", "neural network", "data science",
     "python", "algorithm", "natural language processing", "computer vision", "big data", "cloud computing",
@@ -1740,16 +1624,9 @@ tech_related_keywords = [
 ]
 
 def extract_keywords_from_text(text):
-    """
-    Extract exact matches for keywords from a predefined list, ensuring only full matches.
-    """
-    # Convert text to lowercase to ensure case-insensitivity
     text = text.lower()
-    
-    # Only add full matches of keywords, preventing partial matches like "Java" for "JavaScript"
     keywords_found = []
     for keyword in tech_related_keywords:
-        # Ensure we match the exact word (not a part of other words)
         if re.search(r'\b' + re.escape(keyword) + r'\b', text):
             keywords_found.append(keyword)
     
@@ -1757,10 +1634,7 @@ def extract_keywords_from_text(text):
     return list(set(keywords_found))
 
 def extract_keywords_after_keywords(text):
-    """
-    Extract keywords after 'KEYWORDS:' section in the text.
-    This function is specifically designed to capture keywords that follow 'KEYWORDS:' directly.
-    """
+
     keywords_section = re.search(r'keywords:\s*(.*)', text, re.IGNORECASE)
     if keywords_section:
         keywords_str = keywords_section.group(1)
@@ -1770,22 +1644,18 @@ def extract_keywords_after_keywords(text):
     return []
 
 def clean_and_extract_after_keywords(text):
-    """
-    Clean and extract content after 'CHAPTER', 'EXECUTIVE SUMMARY', or 'KEYWORDS:' keywords.
-    """
     patterns = [
-        r'(?<=\bchapter\b)(.*)',  # Match after "CHAPTER"
-        r'(?<=\bexecutive summary\b)(.*)',  # Match after "EXECUTIVE SUMMARY"
-        r'(?<=\bkeywords:\b)(.*)',  # Match after "KEYWORDS:"
+        r'(?<=\bchapter\b)(.*)',
+        r'(?<=\bexecutive summary\b)(.*)',
+        r'(?<=\bkeywords:\b)(.*)',
     ]
     
-    # Check for matches and return the first match (prioritize CHAPTER, EXECUTIVE SUMMARY, or KEYWORDS: )
     for pattern in patterns:
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
-            return match.group(1).strip()  # Return the content after the keyword
+            return match.group(1).strip()
     
-    return text  # If no match, return the original text
+    return text
 
 @login_required(login_url='login')
 def view_pdf_manuscript(request, manuscript_id):
@@ -1793,8 +1663,7 @@ def view_pdf_manuscript(request, manuscript_id):
         return render(request, 'unauthorized.html', status=403)
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     
-    # Safely assign a value to 'search_term' even if it's not in the GET request
-    search_term = request.GET.get('search', '').strip()  # Default to an empty string if 'search' is not in the GET request
+    search_term = request.GET.get('search', '').strip()
 
     # Prepare OCR data for the view
     if search_term:
@@ -1832,28 +1701,19 @@ def view_pdf_manuscript(request, manuscript_id):
 def index_view(request):
     if request.method == 'GET' and 'q' in request.GET:
         search_query = request.GET.get('q')
-        # Redirect to the search result page with the search query
-        return redirect(f'/search/?q={search_query}')  # Use the exact URL of your search results page
+        return redirect(f'/search/?q={search_query}')
     
     return render(request, 'index.html')
 
 def visitor_search_manuscripts(request):
-    # Get the search query if provided
     search_query = request.GET.get('q', '')
-
-    # Split the search query into individual tags (words)
-    tags = search_query.split()  # Split by whitespace to treat each term as a tag
-
-    # Base queryset for manuscripts, filtering only approved manuscripts with non-null publication_date
+    tags = search_query.split()
     manuscripts = Manuscript.objects.filter(status='approved', publication_date__isnull=False)
 
-    # Construct search filter using Q objects for multiple fields
     search_filter = Q()
 
     if search_query:
-        # Loop through each tag and add it to the search filter
         for tag in tags:
-            # Apply a filter to ensure the tag appears in all fields for a manuscript to be included
             search_filter &= (
                 Q(title__icontains=tag) |
                 Q(authors__icontains=tag) |
@@ -1867,15 +1727,11 @@ def visitor_search_manuscripts(request):
                 Q(manuscript_type__name__icontains=tag)
             )
 
-    # Apply the search filter
     manuscripts = manuscripts.filter(search_filter)
-
-    # Apply additional filters if selected
     program = None
     manuscript_type = None
     category = None
     year = None
-
     if request.GET.get('program'):
         program = Program.objects.get(id=request.GET['program'])
         manuscripts = manuscripts.filter(program_id=program.id)
@@ -1888,17 +1744,14 @@ def visitor_search_manuscripts(request):
         category = Category.objects.get(id=request.GET['category'])
         manuscripts = manuscripts.filter(category_id=category.id)
 
-    if request.GET.get('year'):  # Apply filter for the year
+    if request.GET.get('year'):
         year = request.GET.get('year')
         manuscripts = manuscripts.filter(publication_date__year=year)
 
-    # Apply filters for status=approved and publication_date is not null
     manuscripts = manuscripts.filter(status='approved', publication_date__isnull=False)
 
-    # Order manuscripts by publication_date in descending order
     manuscripts = manuscripts.order_by('-publication_date')
 
-    # Annotate counts for programs, manuscript types, and categories for only approved manuscripts with a non-null publication_date
     programs = Program.objects.annotate(
         manuscript_count=Count(
             'manuscript', 
@@ -1917,20 +1770,16 @@ def visitor_search_manuscripts(request):
             filter=Q(manuscript__status='approved') & Q(manuscript__publication_date__isnull=False)
         )
     )
-
-    # Group manuscripts by year field and count approved manuscripts per year, ensuring publication_date is not null
     manuscript_years = (
         manuscripts.values('year')
         .annotate(count=Count('id', filter=Q(status='approved') & Q(publication_date__isnull=False)))
-        .order_by('-year')  # Sort by year descending
+        .order_by('-year')
     )
 
-    # Pagination setup
-    paginator = Paginator(manuscripts, 10)  # Show 10 manuscripts per page
+    paginator = Paginator(manuscripts, 10)
     page_number = request.GET.get('page')
     manuscripts_page = paginator.get_page(page_number)
 
-    # Pass context to the template, including selected filter names
     context = {
         'manuscripts': manuscripts_page,
         'programs': programs,
@@ -1940,15 +1789,14 @@ def visitor_search_manuscripts(request):
         'selected_program': program,
         'selected_manuscript_type': manuscript_type,
         'selected_category': category,
-        'selected_year': year,  # Include the selected year filter
-        'manuscript_years': manuscript_years,  # Include year aggregation
+        'selected_year': year,
+        'manuscript_years': manuscript_years,
     }
     return render(request, 'visitor_search_result.html', context)
 
 def visitor_manuscript_detail(request, manuscript_id):
     manuscript = get_object_or_404(Manuscript, id=manuscript_id)
     
-    # Replace commas with <br> for the authors
     authors_with_br = manuscript.authors.replace(',', '<br>')
 
     # Check if the user is authenticated and determine roles
@@ -1980,9 +1828,9 @@ def visitor_manuscript_detail(request, manuscript_id):
     has_access = is_student or is_adviser or is_admin or (access_request is not None)
     ip_address = request.META.get('HTTP_X_FORWARDED_FOR', None)
     if ip_address:
-        ip_address = ip_address.split(',')[0]  # If there are multiple IPs, take the first one
+        ip_address = ip_address.split(',')[0]
     else:
-        ip_address = request.META.get('REMOTE_ADDR')  # Fallback to the direct REMOTE_ADDR
+        ip_address = request.META.get('REMOTE_ADDR')
 
     # Check if the IP address has already viewed the manuscript
     if not ManuscriptView.objects.filter(manuscript=manuscript, ip_address=ip_address).exists():
@@ -2010,24 +1858,18 @@ def delete_manuscript(request, manuscript_id):
     
     return redirect('visitor_search_manuscripts')
 
-from docx import Document
-from django.http import HttpResponse
-from django.db.models import Sum
 @login_required(login_url='login')
 def generate_reports(request):
     if request.method == 'POST':
-        # Get the selected filters
         adviser_id = request.POST.get('adviser')
         program_id = request.POST.get('program')
         category_id = request.POST.get('category')
-        type_id = request.POST.get('type')  # Manuscript type
+        type_id = request.POST.get('type')
         year = request.POST.get('year')
         publication_year = request.POST.get('publication_year')
 
-        # Query the database with the selected filters
         manuscripts = Manuscript.objects.filter(status='approved', publication_date__isnull=False)
 
-        # Apply filters based on the selected options
         if adviser_id:
             manuscripts = manuscripts.filter(adviser_id=adviser_id)
         if program_id:
@@ -2045,7 +1887,6 @@ def generate_reports(request):
         if publication_year:
             manuscripts = manuscripts.filter(publication_date__year=publication_year)
 
-        # For preview: create HTML table summary with your custom CSS class
         preview_html = """
         <table class="manuscript-table">
             <thead>
@@ -2061,8 +1902,6 @@ def generate_reports(request):
             </thead>
             <tbody>
         """
-        
-        # Add rows for each manuscript
         for manuscript in manuscripts:
             authors = manuscript.authors if manuscript.authors else 'N/A'
             preview_html += f"""
@@ -2079,12 +1918,10 @@ def generate_reports(request):
         
         preview_html += "</tbody></table>"
 
-        # Return the preview HTML to be displayed on the frontend
         return JsonResponse({
             'preview_html': preview_html
         })
 
-    # Render the filter form (unchanged)
     advisers = CustomUser.objects.filter(is_adviser=True)
     programs = Program.objects.all()
     categories = Category.objects.all()
@@ -2101,13 +1938,8 @@ def generate_reports(request):
         'publication_years': publication_years,
     })
 
-from docx.shared import RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
 @login_required(login_url='login')
 def download_report(request):
-    # Get filter parameters from the query string
     adviser_id = request.GET.get('adviser')
     program_id = request.GET.get('program')
     category_id = request.GET.get('category')
@@ -2115,53 +1947,45 @@ def download_report(request):
     year = request.GET.get('year')
     publication_year = request.GET.get('publication_year')
 
-    # Start the query to get approved manuscripts with valid publication dates
     manuscripts = Manuscript.objects.filter(status='approved', publication_date__isnull=False)
 
-    # Apply filters based on the selected options
     if adviser_id:
         manuscripts = manuscripts.filter(adviser_id=adviser_id)
     if program_id:
         manuscripts = manuscripts.filter(program_id=program_id)
     if category_id:
         manuscripts = manuscripts.filter(category_id=category_id)
-    if type_id:  # Ensure the type filter is applied
+    if type_id:
         manuscripts = manuscripts.filter(manuscript_type_id=type_id)
     if year:
         manuscripts = manuscripts.filter(year=year)
     if publication_year:
         manuscripts = manuscripts.filter(publication_date__year=publication_year)
 
-    # Debugging (Optional): Check filtered manuscripts
+
     print("Manuscripts after filtering:", manuscripts.count())
 
-    # Generate the report as a Word document
     doc = Document()
     doc.add_heading('Generated Report', 0)
     doc.add_paragraph(f"Report generated on: {timezone.now()}")
     doc.add_paragraph("\n")
 
-    # Add a summary
     total_views = manuscripts.aggregate(Sum('views'))['views__sum'] or 0
     doc.add_heading('Summary', level=1)
     doc.add_paragraph(f"Total manuscripts generated: {manuscripts.count()}")
     doc.add_paragraph(f"Total views across all manuscripts: {total_views}")
 
-    # Create a table in the Word document
     doc.add_heading('Manuscripts', level=1)
 
-    # Define the headers for the table
     headers = ['Title', 'Adviser', 'Category', 'Program', 'Type', 'Year', 'Authors']
-    table = doc.add_table(rows=1, cols=len(headers))  # Create a table with the correct number of columns
+    table = doc.add_table(rows=1, cols=len(headers))
 
-    # Add header cells with a normal style (bold text, no color)
     hdr_cells = table.rows[0].cells
     for i, header in enumerate(headers):
         hdr_cells[i].text = header
-        hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER  # Center-align header text
-        hdr_cells[i].paragraphs[0].runs[0].font.bold = True  # Make header text bold
+        hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        hdr_cells[i].paragraphs[0].runs[0].font.bold = True
 
-    # Add rows for each manuscript and handle alternating row colors
     for index, manuscript in enumerate(manuscripts):
         row_cells = table.add_row().cells
         row_cells[0].text = manuscript.title
@@ -2172,17 +1996,15 @@ def download_report(request):
         row_cells[5].text = str(manuscript.year)
         row_cells[6].text = manuscript.authors if manuscript.authors else 'N/A'
 
-        # Style for alternating row colors
-        if index % 2 == 0:  # Even index - light yellow
+        if index % 2 == 0:
             for cell in row_cells:
                 cell._element.get_or_add_tcPr().append(OxmlElement('w:shd'))
-                cell._element.xpath('.//w:shd')[0].set(qn('w:fill'), "FAF1E6")  # Light background for even rows
-        else:  # Odd index - white
+                cell._element.xpath('.//w:shd')[0].set(qn('w:fill'), "FAF1E6")
+        else:
             for cell in row_cells:
                 cell._element.get_or_add_tcPr().append(OxmlElement('w:shd'))
-                cell._element.xpath('.//w:shd')[0].set(qn('w:fill'), "FFFFFF")  # White background for odd rows
+                cell._element.xpath('.//w:shd')[0].set(qn('w:fill'), "FFFFFF")
 
-    # Save the document to the response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     response['Content-Disposition'] = 'attachment; filename="report.docx"'
     doc.save(response)
